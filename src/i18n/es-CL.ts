@@ -52,7 +52,18 @@ export const esCL = {
     privacy:
       "Tus datos se guardan solo en este dispositivo. No usamos analytics ni telemetría. No necesitas crear una cuenta.",
   },
+  checklist: {
+    title: "Checklist prevuelo",
+    progress: (checked: number, total: number) => `${checked} / ${total} completados`,
+    complete: "✓ Checklist completo",
+    pending: "⚠ Checklist pendiente",
+    remaining: (n: number) => `${n} elementos restantes`,
+    requiredRemaining: (n: number) => `${n} obligatorios restantes`,
+    reset: "Reiniciar checklist",
+    resetConfirm: "¿Reiniciar la checklist actual? Se conservarán aeronave, límites y ubicación.",
+    resetCancel: "Cancelar",
+  },
   footer: {
-    attributions: "Open-Meteo · OpenStreetMap · NOAA · SunCalc",
+    attributions: "Open-Meteo · OpenStreetMap · VATSIM METAR · SunCalc",
   },
 } as const;

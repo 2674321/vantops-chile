@@ -8,9 +8,14 @@ import { SolarCard } from "../solar/SolarCard";
 import { NearbyMetarCard } from "../observations/NearbyMetarCard";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { AssessmentCard } from "../assessment/AssessmentCard";
+import { ChecklistCard } from "../checklist/ChecklistCard";
 import { Button } from "../../components/ui/button";
 import { MapPin, Navigation, MapIcon } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
+import { useMemo } from "react";
+import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
+import { evaluateFlight } from "../../domain/assessment/evaluator";
+import { loadFlightLimits } from "../../storage/settings";
 import { esCL as t } from "../../i18n/es-CL";
 
 export default function DashboardPage() {
@@ -27,6 +32,36 @@ export default function DashboardPage() {
     staleTime: 5 * 60_000,
     retry: 2,
   });
+
+  const solarTimes = useMemo(
+    () =>
+      coordinate
+        ? computeSolarTimes(new Date(), coordinate.latitude, coordinate.longitude)
+        : null,
+    [coordinate]
+  );
+
+  const assessment = useMemo(() => {
+    if (!weatherQuery.data) return null;
+    const limits = loadFlightLimits();
+    return evaluateFlight({
+      windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
+      gustKmh: weatherQuery.data.current.windGustsKmh,
+      windSpeed100mKmh: weatherQuery.data.current.windSpeed100mKmh,
+      windDirectionDeg: weatherQuery.data.current.windDirectionDeg,
+      temperatureC: weatherQuery.data.current.temperatureC,
+      precipitationMm: weatherQuery.data.current.precipitationMm,
+      visibilityM: weatherQuery.data.current.visibilityM,
+      humidityPct: weatherQuery.data.current.humidityPct,
+      cloudCoverPct: weatherQuery.data.current.cloudCoverPct,
+      windMaxKmh: limits.windMaxKmh,
+      gustMaxKmh: limits.gustMaxKmh,
+      precipitationMaxMm: limits.precipitationMaxMm,
+      visibilityMinMeters: limits.visibilityMinMeters,
+      temperatureMinC: limits.temperatureMinC,
+      temperatureMaxC: limits.temperatureMaxC,
+    });
+  }, [weatherQuery.data]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,9 +217,15 @@ export default function DashboardPage() {
             longitude={coordinate.longitude}
           />
 
-          {weatherQuery.data && (
-            <AssessmentCard snapshot={weatherQuery.data} />
+          {weatherQuery.data && assessment && (
+            <AssessmentCard snapshot={weatherQuery.data} assessment={assessment} />
           )}
+
+          <ChecklistCard
+            weather={weatherQuery.data ?? null}
+            solar={solarTimes}
+            assessment={assessment}
+          />
         </section>
       )}
 

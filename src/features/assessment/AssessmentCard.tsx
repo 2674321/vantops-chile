@@ -1,9 +1,6 @@
-import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
-import { evaluateFlight } from "../../domain/assessment/evaluator";
 import type { FlightAssessment, AssessmentStatus } from "../../domain/assessment/types";
 import type { WeatherSnapshot } from "../../domain/weather";
-import { loadFlightLimits } from "../../storage/settings";
 
 const STATUS_CONFIG: Record<
   AssessmentStatus,
@@ -21,30 +18,12 @@ function severityColor(severity: string): string {
   return "text-slate-300";
 }
 
-export function AssessmentCard({ snapshot }: { snapshot: WeatherSnapshot }) {
-  const [limits, setLimits] = useState(loadFlightLimits);
+interface AssessmentCardProps {
+  snapshot: WeatherSnapshot;
+  assessment: FlightAssessment;
+}
 
-  useEffect(() => {
-    setLimits(loadFlightLimits());
-  }, []);
-
-  const assessment: FlightAssessment = evaluateFlight({
-    windSpeedKmh: snapshot.current.windSpeedKmh,
-    gustKmh: snapshot.current.windGustsKmh,
-    windSpeed100mKmh: snapshot.current.windSpeed100mKmh,
-    windDirectionDeg: snapshot.current.windDirectionDeg,
-    temperatureC: snapshot.current.temperatureC,
-    precipitationMm: snapshot.current.precipitationMm,
-    visibilityM: snapshot.current.visibilityM,
-    humidityPct: snapshot.current.humidityPct,
-    cloudCoverPct: snapshot.current.cloudCoverPct,
-    windMaxKmh: limits.windMaxKmh,
-    gustMaxKmh: limits.gustMaxKmh,
-    precipitationMaxMm: limits.precipitationMaxMm,
-    visibilityMinMeters: limits.visibilityMinMeters,
-    temperatureMinC: limits.temperatureMinC,
-    temperatureMaxC: limits.temperatureMaxC,
-  });
+export function AssessmentCard({ snapshot: _snapshot, assessment }: AssessmentCardProps) {
 
   const cfg = STATUS_CONFIG[assessment.status];
 

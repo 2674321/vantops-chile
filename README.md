@@ -48,6 +48,7 @@ src/
   app/          App.tsx, ErrorBoundary
   domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate
   domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator
+  domain/checklist/   ChecklistItem, ChecklistState, engine, defaultChecklist
   providers/
     weather/        Open-Meteo forecast
     elevation/      Open-Meteo Elevation API
@@ -56,13 +57,14 @@ src/
   features/
     dashboard/      Pantalla principal
     assessment/     AssessmentCard (semáforo de vuelo)
+    checklist/      CheckListCard (checklist prevuelo)
     map/            Leaflet + OSM
     weather/        WeatherPanel
     elevation/      ElevationCard
     solar/          SolarCard
     observations/   NearbyMetarCard
   hooks/          useLastCoordinate (localStorage)
-  storage/        settings.ts (flightLimits, aircraft)
+  storage/        settings.ts (flightLimits, aircraft), checklists.ts
   i18n/           es-CL
   components/     ui/ (button, card)
 ```
@@ -109,6 +111,18 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Consolidación de Coordinate**: validación, serialización, formato con tests de regresión de signo negativo
 - **80 tests** pasando (coordinate, assessment, weather, elevation, solar, METAR, stations, sourceMeta)
 
+## Fase 3 — R0.4 Checklist (completada)
+
+- **Checklist prevuelo interactiva**: 22 items en 8 categorías (Documentación, Equipo, Aeronave, Batería, Entorno, Clima, Operación, Post-vuelo)
+- **Checklist engine**: funciones puras para progreso, visibilidad, contexto, toggle, reset
+- **Items contextuales**: se muestran automáticamente según condiciones (lluvia, viento fuerte, baja visibilidad, operación nocturna)
+- **Integración con Assessment**: el estado del assessment alimenta el contexto del checklist
+- **Persistencia**: estado del checklist guardado en localStorage, sobrevive recarga de página
+- **Reset con confirmación**: permite reiniciar sin afectar aeronave, límites ni ubicación
+- **Progreso visual**: barra de progreso + porcentaje + indicadores de obligatorios restantes
+- **Funcionamiento offline**: checklist opera sin conexión, sin depender de APIs externas
+- **116 tests** pasando (+36 nuevos: engine 28, persistence 8)
+
 ## Fuentes de datos
 
 | Fuente | Uso | Licencia |
@@ -125,6 +139,7 @@ La UI nunca depende del JSON crudo de APIs externas.
 - La elevación es un punto único; no genera curvas de perfil de vuelo
 - No sustituye permisos, AIS, DGAC ni normativa vigente
 - Los límites de evaluación son por defecto vacíos; el piloto debe configurar sus propios parámetros
+- El checklist es una guía de verificación personal, no constituye certificación ni cumplimiento normativo
 
 ## Privacidad
 
