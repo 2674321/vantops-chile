@@ -20,7 +20,7 @@ export function AboutPage() {
     <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-10 sm:px-6">
       <header>
         <h1 className="text-2xl font-bold">{t.about.title}</h1>
-        <p className="mt-1 text-xs text-slate-500">v{APP_VERSION} · 🚧 Development</p>
+        <p className="mt-1 text-xs text-slate-500">v{APP_VERSION}</p>
       </header>
 
       <Card>
