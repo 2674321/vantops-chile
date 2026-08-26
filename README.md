@@ -1,82 +1,130 @@
-# 🚁 VantOPS Chile
+# VantOPS Chile
 
-> Planifica tu vuelo RPAS con datos reales. PWA gratuita, sin registro y privacy-first para pilotos de drones en Chile.
+PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Estado:** 🚧 Development · v0.1.0 · [Roadmap completo](docs/ROADMAP.md)
-
-▶️ **Demo:** https://2674321.github.io/vantops-chile/
-
-## Qué hace (hoy)
-
-- Consulta **condiciones meteorológicas reales** (Open-Meteo) por ubicación GPS o coordenadas manuales: viento a 10 m y 100 m, ráfagas, precipitación, humedad, amanecer/atardecer.
-- Muestra el **estado de la fuente** (● Actualizado / Datos parciales / Sin conexión) — nunca presenta datos viejos como actuales.
-- Guarda tu última ubicación **solo en tu dispositivo**.
-- Diseño *dark cockpit* mobile-first.
-
-## Roadmap
-
-| Release | Contenido | Estado |
-|---|---|---|
-| 0.1 Foundation | Scaffold + CI + Pages + clima real básico | ✅ |
-| 0.2 Data Core | Mapa Leaflet/OSM, METAR más cercano, elevación, sol offline | ⏳ |
-| 0.3 Assessment | Semáforo explicable «¿Puedo volar?» configurable | ⏳ |
-| 0.4 Checklist | Checklist prevuelo contextual persistente | ⏳ |
-| 0.5 Logbook | Bitácora de vuelos/baterías local + export/import | ⏳ |
-| 0.6–1.0 | PWA instalable offline → beta pública → MVP | ⏳ |
+**Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 ## Stack
 
-React 19 · TypeScript · Vite · Tailwind CSS v4 · TanStack Query · Vitest · Biome · GitHub Actions + Pages
+- React 19 + TypeScript
+- Vite 6
+- Tailwind CSS v4
+- shadcn/ui (componentes button, card)
+- TanStack Query
+- Leaflet + react-leaflet (OpenStreetMap)
+- Open-Meteo (clima + elevación)
+- SunCalc (posición solar local)
+- NOAA Aviation Weather (METAR)
+- vite-plugin-pwa (service worker + manifest)
+- Biome (lint)
+- Vitest (tests)
+- GitHub Actions + GitHub Pages
 
-## Desarrollo
-
-Requisitos: Node ≥ 18.
+## Ejecutar localmente
 
 ```bash
 npm install
-npm run dev        # servidor local
-npm test           # tests unitarios (Vitest)
-npm run lint       # Biome
-npm run typecheck  # tsc --noEmit
-npm run build      # build producción a dist/
+npm run dev
 ```
 
-La ruta base de producción es `/vantops-chile/` (GitHub Pages); en `npm run dev` es `/`.
+## Tests
 
-> **Nota:** se usa `HashRouter` (`/#/acerca`) porque GitHub Pages no soporta
-> reescrituras de servidor: con `BrowserRouter`, recargar una ruta interna
-> respondería 404.
+```bash
+npm test
+```
+
+## Build de producción
+
+```bash
+npm run build
+```
+
+> En Node 18, el build usa `--experimental-global-webcrypto` automáticamente.
 
 ## Estructura
 
 ```
 src/
-├── app/            # App shell, providers, rutas
-├── components/     # UI base (button, card, badges)
-├── domain/         # tipos y reglas puras (coordenadas)
-├── features/
-│   ├── about/      # página Acerca (fuentes, disclaimer)
-│   ├── dashboard/  # pantalla principal
-│   ├── location/   # geolocalización + persistencia local
-│   └── weather/    # servicio Open-Meteo, mapper, panel
-├── i18n/           # textos es-CL
-└── lib/            # utilidades (cn)
+  app/          App.tsx, ErrorBoundary
+  domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate
+  providers/
+    weather/        Open-Meteo forecast
+    elevation/      Open-Meteo Elevation API
+    solar/          SunCalc (cálculo local)
+    observations/   NOAA METAR, decoder, estaciones
+  features/
+    dashboard/      Pantalla principal
+    map/            Leaflet + OSM
+    weather/        WeatherPanel
+    elevation/      ElevationCard
+    solar/          SolarCard
+    observations/   NearbyMetarCard
+  hooks/          useLastCoordinate (localStorage)
+  i18n/           es-CL
+  components/     ui/ (button, card)
 ```
 
-## Fuentes y atribuciones
+## Flujo de datos
 
-- [Open-Meteo](https://open-meteo.com/) — pronóstico meteorológico · CC BY 4.0
-- [OpenStreetMap](https://www.openstreetmap.org/copyright) — mapas · ODbL (próximamente)
-- METAR/SPECI: Dirección Meteorológica de Chile (DMC) e IFIS DGAC, respaldo NOAA aviationweather.gov — Fase 1
+```
+UI (features/)
+  → Provider adapter (providers/)
+    → External API (Open-Meteo, NOAA, SunCalc)
+  → Domain model (domain/)
+  → DataSourceMeta (status, timestamps, fuente)
+```
+
+La UI nunca depende del JSON crudo de APIs externas.
+
+## Fase 0 (completada)
+
+- React 19 + Vite + TS + Tailwind
+- Dashboard con GPS o coordenadas manuales
+- Clima real vía Open-Meteo (viento 10m/100m, ráfagas, dirección, temperatura, precipitación, humedad, visibilidad, nubosidad)
+- ErrorBoundary global
+- HashRouter (sin 404 al recargar)
+- CI + Deploy automático
+- 38 tests
+
+## Fase 1 (completada)
+
+- **Mapa Leaflet/OSM** con marcador, clic para seleccionar punto, OpenStreetMap attribution
+- **Elevación** vía Open-Meteo Elevation API
+- **Sol** calculado localmente con SunCalc (amanecer, atardecer, hora dorada, duración del día)
+- **METAR cercano** vía NOAA Aviation Weather (parser decode: viento, visibilidad, QNH, nubosidad, fenómenos, temperatura/punto de rocío)
+- **11 aeródromos chilenos** con cálculo de estación más cercana (haversine)
+- **Metadata de fuentes**: timestamp requestedAt/receivedAt, status (actualizado/antiguo/error/sin datos), nombre de fuente
+- **PWA**: manifest, service worker, íconos 192/512, instalable
+- **Provider architecture**: domain → provider → API con normalización
+
+## Fuentes de datos
+
+| Fuente | Uso | Licencia |
+|--------|-----|----------|
+| [Open-Meteo](https://open-meteo.com/) | Clima forecast + elevación | CC BY 4.0 |
+| [OpenStreetMap](https://www.openstreetmap.org/) | Mapa base | ODbL |
+| [NOAA Aviation Weather](https://aviationweather.gov/) | METAR observaciones | Public domain |
+| [SunCalc](https://suncalc.org/) | Posición solar | BSD-2 |
+
+## Limitaciones
+
+- El METAR más cercano se calcula entre 11 aeródromos principales; no cubre todos los campos de Chile
+- La fuente oficial chilena (DMC/meteochile) no se integra aún por estabilidad de su API
+- La elevación es un punto único; no genera curvas de perfil de vuelo
+- No sustituye permisos, AIS, DGAC ni normativa vigente
+- El semáforo jurídico (R0.3) no está implementado aún
 
 ## Privacidad
 
-Sin cuentas, sin analytics, sin telemetría. Los datos personales (ubicaciones, futura bitácora) se almacenan únicamente en tu dispositivo.
+- Sin analytics ni telemetría
+- Sin cuentas obligatorias
+- Datos guardados solo en el dispositivo (localStorage)
+- Sin tracking de terceros
 
-## Aviso
+## Disclaimer
 
-VantOPS es una herramienta de apoyo a la planificación. No sustituye la normativa vigente ni las instrucciones de las autoridades competentes. El piloto es responsable de operar conforme a la normativa (DGAC).
+VantOPS Chile es una herramienta de apoyo a la planificación de operaciones RPAS. No sustituye la normativa vigente, publicaciones aeronáuticas, permisos, autorizaciones ni instrucciones de las autoridades competentes (DGAC). El piloto es responsable de operar conforme a la normativa vigente.
 
 ## Licencia
 
-[MIT](LICENSE) © Patricio Varela C. (CA2OPX)
+MIT
