@@ -44,13 +44,19 @@ export function AboutPage() {
         <CardContent className="space-y-1 text-sm text-slate-300">
           <p>
             <ExternalLink href="https://open-meteo.com/">Open-Meteo</ExternalLink> — pronóstico
-            meteorológico (CC BY 4.0)
+            meteorológico y elevación (CC BY 4.0)
           </p>
           <p>
             <ExternalLink href="https://www.openstreetmap.org/copyright">OpenStreetMap</ExternalLink>{" "}
-            — mapas (ODbL) · próximamente con Leaflet
+            — mapas base (ODbL) + Leaflet
           </p>
-          <p>METAR/SPECI DMC · IFIS DGAC / aviationweather.gov — Fase 1</p>
+          <p>
+            <ExternalLink href="https://metar.vatsim.net/">VATSIM METAR</ExternalLink>{" "}
+            — observaciones METAR en tiempo real
+          </p>
+          <p>
+            <ExternalLink href="https://suncalc.org/">SunCalc</ExternalLink> — posición solar (BSD-2)
+          </p>
         </CardContent>
       </Card>
 

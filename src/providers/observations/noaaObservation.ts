@@ -3,7 +3,7 @@ import type { DataSourceMeta } from "../../domain/sourceMeta";
 import { findNearestStation } from "./stations";
 import { decodeMetar } from "./metarDecoder";
 
-const NOAA_URL = "https://aviationweather.gov/api/data/metar";
+const VATSIM_URL = "https://metar.vatsim.net";
 
 export class ObservationError extends Error {
   constructor(message: string) {
@@ -12,39 +12,24 @@ export class ObservationError extends Error {
   }
 }
 
-interface NoaaMetarItem {
-  icaoId: string;
-  obsTime?: number;
-  reportTime?: string;
-  temp?: number | null;
-  dewp?: number | null;
-  wdir?: number | null;
-  wspd?: number | null;
-  wgust?: number | null;
-  visib?: number | null;
-  rawOb?: string;
-}
-
-function ktToKmh(kt: number): number {
-  return Math.round(kt * 1.852);
-}
-
-function milesToMeters(mi: number): number {
-  return Math.round(mi * 1609.34);
-}
-
-function formatLocal(iso: string, tz = "America/Santiago"): string {
-  try {
-    return new Date(iso).toLocaleString("es-CL", {
-      timeZone: tz,
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "short",
-    });
-  } catch {
-    return iso;
+function parseObsTimeFromRaw(raw: string): string {
+  const dayHourMatch = raw.match(/\b(\d{2})(\d{2})Z\b/);
+  if (!dayHourMatch) return "";
+  const day = Number.parseInt(dayHourMatch[1], 10);
+  const hour = Number.parseInt(dayHourMatch[2], 10);
+  const now = new Date();
+  const obs = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    day,
+    hour,
+    0,
+    0
+  ));
+  if (obs.getTime() > now.getTime() + 24 * 3600_000) {
+    obs.setUTCMonth(obs.getUTCMonth() - 1);
   }
+  return obs.toISOString();
 }
 
 export async function fetchNearestObservation(
@@ -53,19 +38,17 @@ export async function fetchNearestObservation(
 ): Promise<ObservationSnapshot> {
   const { station, distanceKm } = findNearestStation(lat, lon);
   const requestedAt = new Date().toISOString();
-  const res = await fetch(
-    `${NOAA_URL}?ids=${station.icao}&format=json`
-  );
+  const res = await fetch(`${VATSIM_URL}/${station.icao}`);
   if (!res.ok) throw new ObservationError(`HTTP ${res.status}`);
-  const data: NoaaMetarItem[] = await res.json();
-  if (!data?.length) {
+  const raw = (await res.text()).trim();
+  if (!raw || /METAR\s+\w+\s+\d{6}Z\s+NIL/i.test(raw)) {
     return {
       observation: null,
       stationName: station.name,
       stationIcao: station.icao,
       distanceKm,
       meta: {
-        source: "NOAA Aviation Weather",
+        source: "VATSIM METAR",
         requestedAt,
         receivedAt: new Date().toISOString(),
         status: "no-data",
@@ -73,34 +56,18 @@ export async function fetchNearestObservation(
       },
     };
   }
-  const item = data[0];
-  let observedISO = "";
-  if (item.obsTime) {
-    observedISO = new Date(item.obsTime * 1000).toISOString();
-  } else if (item.reportTime) {
-    observedISO = new Date(item.reportTime).toISOString();
-  }
-  const metar = item.rawOb
-    ? decodeMetar(item.rawOb)
-    : {
-        station: station.icao,
-        observedAtISO: observedISO,
-        observedAtLocal: formatLocal(observedISO),
-        windDirDeg: item.wdir ?? null,
-        windKmh: item.wspd != null ? ktToKmh(item.wspd) : null,
-        gustKmh: item.wgust != null ? ktToKmh(item.wgust) : null,
-        visibilityM: item.visib != null ? milesToMeters(item.visib) : null,
-        visibilityLabel:
-          item.visib != null ? `${milesToMeters(item.visib)} m` : "—",
-        tempC: item.temp ?? null,
-        dewC: item.dewp ?? null,
-        qnhHpa: null,
-        clouds: [],
-        phenomena: [],
-        raw: item.rawOb ?? "",
-      };
+  const metar = decodeMetar(raw);
+  const observedISO = parseObsTimeFromRaw(raw);
   metar.observedAtISO = observedISO;
-  metar.observedAtLocal = formatLocal(observedISO);
+  metar.observedAtLocal = observedISO
+    ? new Date(observedISO).toLocaleString("es-CL", {
+        timeZone: "America/Santiago",
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+      })
+    : "";
   const ageMinutes = observedISO
     ? Math.round((Date.now() - new Date(observedISO).getTime()) / 60_000)
     : 9999;
@@ -112,7 +79,7 @@ export async function fetchNearestObservation(
     stationIcao: station.icao,
     distanceKm,
     meta: {
-      source: "NOAA Aviation Weather",
+      source: "VATSIM METAR",
       requestedAt,
       receivedAt: new Date().toISOString(),
       status,

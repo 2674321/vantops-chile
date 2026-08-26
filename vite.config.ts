@@ -46,11 +46,11 @@ export default defineConfig(({ command }) => ({
             },
           },
           {
-            urlPattern: /^https:\/\/aviationweather\.gov\/.*/i,
+            urlPattern: /^https:\/\/metar\.vatsim\.net\/.*/i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "noaa-aviation",
-              expiration: { maxEntries: 20, maxAgeSeconds: 1800 },
+              cacheName: "vatsim-metar",
+              expiration: { maxEntries: 20, maxAgeSeconds: 600 },
             },
           },
         ],
