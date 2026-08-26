@@ -28,7 +28,7 @@ export function App() {
       <HashRouter>
         <div className="flex min-h-dvh flex-col">
           <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-            <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
+            <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 py-3 sm:px-6">
               <NavLink to="/" className={navLinkClass}>
                 <Plane aria-hidden className="h-4 w-4" />
                 {t.appName}

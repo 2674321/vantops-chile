@@ -19,9 +19,9 @@ function localTime(isoLocal: string | null): string {
 
 function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-lg bg-slate-950/60 p-3">
+    <div className="rounded-lg bg-slate-950/60 p-4">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-100">{value}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
     </div>
   );
 }
@@ -42,10 +42,10 @@ export function WeatherPanel({ snapshot }: { snapshot: WeatherSnapshot }) {
   return (
     <section aria-label="Condiciones actuales" className="space-y-4">
       <div className="flex items-baseline gap-4">
-        <span aria-hidden className="text-5xl">
+        <span aria-hidden className="text-6xl sm:text-7xl">
           {weatherCodeEmoji(current.weatherCode)}
         </span>
-        <p className="text-4xl font-bold">
+        <p className="text-5xl font-bold sm:text-6xl">
           {current.temperatureC === null ? "—" : `${Math.round(current.temperatureC)}°C`}
         </p>
       </div>
@@ -56,7 +56,7 @@ export function WeatherPanel({ snapshot }: { snapshot: WeatherSnapshot }) {
         </output>
       )}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Metric
           label="Viento 10 m"
           value={

@@ -98,10 +98,10 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 px-4 py-8">
-      <header className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">{t.appName}</h1>
-        <p className="text-sm text-slate-400">{t.tagline}</p>
+    <div className="mx-auto w-full max-w-2xl space-y-7 px-5 py-10 sm:px-6">
+      <header className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t.appName}</h1>
+        <p className="text-base text-slate-400">{t.tagline}</p>
       </header>
 
       <Button size="lg" className="w-full" onClick={handleUseLocation} disabled={locating}>
@@ -120,9 +120,9 @@ export function DashboardPage() {
           <CardTitle>{t.dashboard.manualTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleManualSubmit}>
+          <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleManualSubmit}>
             <input
-              className="h-10 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-sky-500"
+              className="h-11 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
               inputMode="decimal"
               placeholder="-29.9070"
               aria-label="Latitud"
@@ -130,14 +130,14 @@ export function DashboardPage() {
               onChange={(e) => setManualLat(e.target.value)}
             />
             <input
-              className="h-10 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none focus:border-sky-500"
+              className="h-11 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
               inputMode="decimal"
               placeholder="-71.2500"
               aria-label="Longitud"
               value={manualLon}
               onChange={(e) => setManualLon(e.target.value)}
             />
-            <Button type="submit" variant="outline">
+            <Button type="submit" variant="outline" className="w-full sm:col-span-2">
               {t.dashboard.showWeather}
             </Button>
           </form>

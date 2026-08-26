@@ -17,7 +17,7 @@ function ExternalLink({ href, children }: { href: string; children: string }) {
 
 export function AboutPage() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 px-4 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-10 sm:px-6">
       <header>
         <h1 className="text-2xl font-bold">{t.about.title}</h1>
         <p className="mt-1 text-xs text-slate-500">v{APP_VERSION} · 🚧 Development</p>
