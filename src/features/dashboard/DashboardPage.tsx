@@ -7,6 +7,7 @@ import { ElevationCard } from "../elevation/ElevationCard";
 import { SolarCard } from "../solar/SolarCard";
 import { NearbyMetarCard } from "../observations/NearbyMetarCard";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
+import { AssessmentCard } from "../assessment/AssessmentCard";
 import { Button } from "../../components/ui/button";
 import { MapPin, Navigation, MapIcon } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
@@ -181,13 +182,7 @@ export default function DashboardPage() {
             longitude={coordinate.longitude}
           />
 
-          <Card>
-            <CardContent className="py-6 text-center">
-              <p className="text-sm text-slate-500">
-                Evaluación de vuelo · Disponible en una fase posterior
-              </p>
-            </CardContent>
-          </Card>
+          <AssessmentCard snapshot={weatherQuery.data!} />
         </section>
       )}
 

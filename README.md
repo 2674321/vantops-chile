@@ -14,7 +14,7 @@ PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales
 - Leaflet + react-leaflet (OpenStreetMap)
 - Open-Meteo (clima + elevación)
 - SunCalc (posición solar local)
-- NOAA Aviation Weather (METAR)
+- VATSIM METAR (observaciones)
 - vite-plugin-pwa (service worker + manifest)
 - Biome (lint)
 - Vitest (tests)
@@ -47,19 +47,22 @@ npm run build
 src/
   app/          App.tsx, ErrorBoundary
   domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate
+  domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator
   providers/
     weather/        Open-Meteo forecast
     elevation/      Open-Meteo Elevation API
     solar/          SunCalc (cálculo local)
-    observations/   NOAA METAR, decoder, estaciones
+    observations/   VATSIM METAR, decoder, estaciones
   features/
     dashboard/      Pantalla principal
+    assessment/     AssessmentCard (semáforo de vuelo)
     map/            Leaflet + OSM
     weather/        WeatherPanel
     elevation/      ElevationCard
     solar/          SolarCard
     observations/   NearbyMetarCard
   hooks/          useLastCoordinate (localStorage)
+  storage/        settings.ts (flightLimits, aircraft)
   i18n/           es-CL
   components/     ui/ (button, card)
 ```
@@ -84,18 +87,27 @@ La UI nunca depende del JSON crudo de APIs externas.
 - ErrorBoundary global
 - HashRouter (sin 404 al recargar)
 - CI + Deploy automático
-- 38 tests
 
 ## Fase 1 (completada)
 
 - **Mapa Leaflet/OSM** con marcador, clic para seleccionar punto, OpenStreetMap attribution
 - **Elevación** vía Open-Meteo Elevation API
 - **Sol** calculado localmente con SunCalc (amanecer, atardecer, hora dorada, duración del día)
-- **METAR cercano** vía NOAA Aviation Weather (parser decode: viento, visibilidad, QNH, nubosidad, fenómenos, temperatura/punto de rocío)
+- **METAR cercano** vía VATSIM (parser decode: viento, visibilidad, QNH, nubosidad, fenómenos, temperatura/punto de rocío)
 - **11 aeródromos chilenos** con cálculo de estación más cercana (haversine)
 - **Metadata de fuentes**: timestamp requestedAt/receivedAt, status (actualizado/antiguo/error/sin datos), nombre de fuente
 - **PWA**: manifest, service worker, íconos 192/512, instalable
 - **Provider architecture**: domain → provider → API con normalización
+
+## Fase 2 (completada)
+
+- **Motor de evaluación de vuelo**: reglas basadas en límites configurables (viento, ráfagas, precipitación, visibilidad, temperatura)
+- **AssessmentCard**: semáforo FAVORABLE / CAUTION / UNFAVORABLE / NO_DATA con razones detalladas
+- **FlightLimits**: modelo de configuración de límites persistidos en localStorage
+- **AircraftProfile**: modelo de perfil de aeronave (preparado para futuras reglas por tipo)
+- **Storage abstraction**: `storage/settings.ts` con separación de concerns para futura migración a IndexedDB/Dexie
+- **Consolidación de Coordinate**: validación, serialización, formato con tests de regresión de signo negativo
+- **80 tests** pasando (coordinate, assessment, weather, elevation, solar, METAR, stations, sourceMeta)
 
 ## Fuentes de datos
 
@@ -103,7 +115,7 @@ La UI nunca depende del JSON crudo de APIs externas.
 |--------|-----|----------|
 | [Open-Meteo](https://open-meteo.com/) | Clima forecast + elevación | CC BY 4.0 |
 | [OpenStreetMap](https://www.openstreetmap.org/) | Mapa base | ODbL |
-| [NOAA Aviation Weather](https://aviationweather.gov/) | METAR observaciones | Public domain |
+| [VATSIM METAR](https://metar.vatsim.net/) | METAR observaciones | Público |
 | [SunCalc](https://suncalc.org/) | Posición solar | BSD-2 |
 
 ## Limitaciones
@@ -112,7 +124,7 @@ La UI nunca depende del JSON crudo de APIs externas.
 - La fuente oficial chilena (DMC/meteochile) no se integra aún por estabilidad de su API
 - La elevación es un punto único; no genera curvas de perfil de vuelo
 - No sustituye permisos, AIS, DGAC ni normativa vigente
-- El semáforo jurídico (R0.3) no está implementado aún
+- Los límites de evaluación son por defecto vacíos; el piloto debe configurar sus propios parámetros
 
 ## Privacidad
 
