@@ -182,7 +182,9 @@ export default function DashboardPage() {
             longitude={coordinate.longitude}
           />
 
-          <AssessmentCard snapshot={weatherQuery.data!} />
+          {weatherQuery.data && (
+            <AssessmentCard snapshot={weatherQuery.data} />
+          )}
         </section>
       )}
 
