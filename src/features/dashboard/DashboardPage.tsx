@@ -1,126 +1,88 @@
-import { useQuery } from "@tanstack/react-query";
-import { Crosshair } from "lucide-react";
 import { useState } from "react";
-import { DataSourceBadge } from "../../components/DataSourceBadge";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
+import { WeatherPanel, DataSourceBadge } from "../weather/WeatherPanel";
+import MapPicker from "../map/LocationMap";
+import { ElevationCard } from "../elevation/ElevationCard";
+import { SolarCard } from "../solar/SolarCard";
+import { NearbyMetarCard } from "../observations/NearbyMetarCard";
+import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { formatCoordinate, isValidCoordinate, type Coordinate } from "../../domain/coordinate";
-import {
-  getCurrentCoordinate,
-  loadLastLocation,
-  saveLastLocation,
-} from "../location/geolocation";
-import { fetchWeatherSnapshot } from "../weather/weather.service";
-import { WeatherPanel } from "../weather/WeatherPanel";
+import { MapPin, Navigation, MapIcon } from "lucide-react";
+import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { esCL as t } from "../../i18n/es-CL";
 
-type GeoErrorKey = "geoDenied" | "geoUnavailable" | "geoTimeout";
-
-const GEO_ERROR_MAP: Record<string, GeoErrorKey> = {
-  GEOLOCATION_DENIED: "geoDenied",
-  GEOLOCATION_UNAVAILABLE: "geoUnavailable",
-  GEOLOCATION_TIMEOUT: "geoTimeout",
-};
-
-function WeatherSection({ coordinate }: { coordinate: Coordinate }) {
-  const key = `${coordinate.latitude.toFixed(4)},${coordinate.longitude.toFixed(4)}`;
-  const query = useQuery({
-    queryKey: ["weather", key],
-    queryFn: () => fetchWeatherSnapshot(coordinate),
-    staleTime: 5 * 60_000,
-    retry: 1,
-  });
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle>Condiciones actuales</CardTitle>
-        <DataSourceBadge
-          status={query.isError ? "ERROR" : (query.data?.status ?? "ERROR")}
-          fetchedAtIso={query.data?.fetchedAtIso}
-          onRetry={() => query.refetch()}
-        />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-xs text-slate-400">{formatCoordinate(coordinate)}</p>
-        {query.isPending && <p className="text-sm text-slate-400">Consultando fuente…</p>}
-        {query.isError && (
-          <p role="alert" className="text-sm text-bad">
-            {t.weather.errorMessage}
-          </p>
-        )}
-        {query.data && <WeatherPanel snapshot={query.data} />}
-      </CardContent>
-    </Card>
-  );
-}
-
-export function DashboardPage() {
-  const [coordinate, setCoordinate] = useState<Coordinate | null>(() => loadLastLocation());
-  const [locating, setLocating] = useState(false);
-  const [geoMessage, setGeoMessage] = useState<string | null>(null);
+export default function DashboardPage() {
+  const { coordinate, saveCoordinate } = useLastCoordinate();
   const [manualLat, setManualLat] = useState("");
   const [manualLon, setManualLon] = useState("");
-  const [manualError, setManualError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  function handleUseLocation() {
-    setGeoMessage(null);
-    setLocating(true);
-    getCurrentCoordinate()
-      .then((coord) => {
-        saveLastLocation(coord);
-        setCoordinate(coord);
-      })
-      .catch((error: unknown) => {
-        const code = error instanceof Error ? error.message : "";
-        const key = GEO_ERROR_MAP[code] ?? "geoUnavailable";
-        setGeoMessage(t.dashboard[key]);
-      })
-      .finally(() => setLocating(false));
-  }
+  const weatherQuery = useQuery({
+    queryKey: ["weather", coordinate?.latitude, coordinate?.longitude],
+    queryFn: () =>
+      fetchWeatherSnapshot(coordinate?.latitude ?? 0, coordinate?.longitude ?? 0),
+    enabled: coordinate !== null,
+    staleTime: 5 * 60_000,
+    retry: 2,
+  });
 
-  function handleManualSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const latRaw = manualLat.trim();
-    const lonRaw = manualLon.trim();
-    // campos vacíos: no hacer nada (evita error falso)
-    if (!latRaw && !lonRaw) return;
-    const lat = Number.parseFloat(latRaw.replace(",", "."));
-    const lon = Number.parseFloat(lonRaw.replace(",", "."));
-    if (!isValidCoordinate(lat, lon)) {
-      setManualError(t.dashboard.invalidCoords);
-      return;
-    }
-    setManualError(null);
-    const coord = { latitude: lat, longitude: lon };
-    saveLastLocation(coord);
-    setCoordinate(coord);
-  }
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lat = Number.parseFloat(manualLat);
+    const lon = Number.parseFloat(manualLon);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+    saveCoordinate({ latitude: lat, longitude: lon });
+  };
+
+  const handleGeolocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        saveCoordinate({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { timeout: 10_000, maximumAge: 60_000 }
+    );
+  };
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-7 px-5 py-10 sm:px-6">
       <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t.appName}</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          {t.appName}
+        </h1>
         <p className="text-base text-slate-400">{t.tagline}</p>
       </header>
 
-      <Button size="lg" className="w-full" onClick={handleUseLocation} disabled={locating}>
-        <Crosshair aria-hidden className="h-5 w-5" />
-        {locating ? t.dashboard.locating : t.dashboard.useMyLocation}
-      </Button>
-
-      {geoMessage && (
-        <p role="alert" className="text-center text-sm text-warn">
-          {geoMessage}
-        </p>
-      )}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button onClick={handleGeolocation} className="h-12 text-base">
+          <Navigation className="mr-2 h-4 w-4" />
+          {t.dashboard.useMyLocation}
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t.dashboard.manualTitle}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MapPin className="h-4 w-4 text-sky-400" />
+            Coordenadas
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleManualSubmit}>
+          {coordinate && (
+            <p className="mb-3 text-sm text-slate-300">
+              {coordinate.latitude.toFixed(5)}, {coordinate.longitude.toFixed(5)}
+            </p>
+          )}
+          <form
+            className="grid gap-3 sm:grid-cols-2"
+            onSubmit={handleManualSubmit}
+          >
             <input
               className="h-11 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
               inputMode="decimal"
@@ -137,26 +99,101 @@ export function DashboardPage() {
               value={manualLon}
               onChange={(e) => setManualLon(e.target.value)}
             />
-            <Button type="submit" variant="outline" className="w-full sm:col-span-2">
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full sm:col-span-2"
+            >
               {t.dashboard.showWeather}
             </Button>
           </form>
-          {manualError && (
-            <p role="alert" className="mt-2 text-sm text-bad">
-              {manualError}
-            </p>
-          )}
         </CardContent>
       </Card>
 
-      {coordinate && (
-        <>
-          <p className="text-xs text-slate-500">
-            {t.dashboard.lastUsed} {formatCoordinate(coordinate)}
-          </p>
-          <WeatherSection coordinate={coordinate} />
-        </>
+      {!coordinate && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <MapIcon className="h-10 w-10 text-slate-600" />
+            <p className="text-sm text-slate-400">
+              Usa tu ubicación o ingresa coordenadas para ver el mapa y el clima.
+            </p>
+          </CardContent>
+        </Card>
       )}
+
+      {coordinate && (
+        <section className="space-y-6">
+          <MapPicker
+            coordinate={coordinate}
+            onPick={saveCoordinate}
+          />
+
+          {weatherQuery.isLoading && (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-slate-400">
+                Consultando Open-Meteo…
+              </CardContent>
+            </Card>
+          )}
+
+          {weatherQuery.error && (
+            <Card>
+              <CardContent className="space-y-2 py-6 text-center">
+                <p className="text-sm text-red-400">
+                  Sin datos meteorológicos
+                </p>
+                <p className="text-xs text-slate-500">
+                  {(weatherQuery.error as Error).message}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {weatherQuery.data && (
+            <Card>
+              <CardContent className="space-y-3 py-5">
+                <WeatherPanel
+                  snapshot={weatherQuery.data}
+                  onRefresh={() =>
+                    queryClient.invalidateQueries({
+                      queryKey: ["weather"],
+                    })
+                  }
+                />
+                <DataSourceBadge
+                  meta={weatherQuery.data.meta}
+                  onRetry={() => weatherQuery.refetch()}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <ElevationCard
+            latitude={coordinate.latitude}
+            longitude={coordinate.longitude}
+          />
+          <SolarCard
+            latitude={coordinate.latitude}
+            longitude={coordinate.longitude}
+          />
+          <NearbyMetarCard
+            latitude={coordinate.latitude}
+            longitude={coordinate.longitude}
+          />
+
+          <Card>
+            <CardContent className="py-6 text-center">
+              <p className="text-sm text-slate-500">
+                Evaluación de vuelo · Disponible en una fase posterior
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      <footer className="text-center text-xs text-slate-600">
+        {t.footer.attributions}
+      </footer>
     </div>
   );
 }

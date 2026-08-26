@@ -52,4 +52,7 @@ export const esCL = {
     privacy:
       "Tus datos se guardan solo en este dispositivo. No usamos analytics ni telemetría. No necesitas crear una cuenta.",
   },
+  footer: {
+    attributions: "Open-Meteo · OpenStreetMap · NOAA · SunCalc",
+  },
 } as const;

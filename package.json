@@ -15,7 +15,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --experimental-global-webcrypto\" vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -26,22 +26,28 @@
     "@tanstack/react-query": "^5.66.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.474.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^6.28.1",
+    "suncalc": "^1.9.0",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@tailwindcss/oxide-linux-x64-gnu": "^4.3.3",
     "@tailwindcss/vite": "^4.0.6",
+    "@types/leaflet": "^1.9.22",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "@types/suncalc": "^1.9.2",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.6",
     "typescript": "~5.7.3",
     "vite": "^6.1.0",
+    "vite-plugin-pwa": "^0.21.2",
     "vitest": "^3.0.5"
   }
 }

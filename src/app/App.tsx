@@ -4,7 +4,8 @@ import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { AboutPage } from "../features/about/AboutPage";
-import { DashboardPage } from "../features/dashboard/DashboardPage";
+import DashboardPage from "../features/dashboard/DashboardPage";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,29 +26,31 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <HashRouter>
-        <div className="flex min-h-dvh flex-col">
-          <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-            <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 py-3 sm:px-6">
-              <NavLink to="/" className={navLinkClass}>
-                <Plane aria-hidden className="h-4 w-4" />
-                {t.appName}
-              </NavLink>
-              <NavLink to="/acerca" className={navLinkClass}>
-                {t.nav.about}
-              </NavLink>
-            </div>
-          </nav>
+      <ErrorBoundary>
+        <HashRouter>
+          <div className="flex min-h-dvh flex-col">
+            <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+              <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 py-3 sm:px-6">
+                <NavLink to="/" className={navLinkClass}>
+                  <Plane aria-hidden className="h-4 w-4" />
+                  {t.appName}
+                </NavLink>
+                <NavLink to="/acerca" className={navLinkClass}>
+                  {t.nav.about}
+                </NavLink>
+              </div>
+            </nav>
 
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/acerca" element={<AboutPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </HashRouter>
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/acerca" element={<AboutPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+          </div>
+        </HashRouter>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }
