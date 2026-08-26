@@ -42,14 +42,14 @@ const baseWeather: WeatherSnapshot = {
 };
 
 describe("getDefaultChecklist", () => {
-  it("returns items from all 8 categories", () => {
+  it("returns items from all 9 categories", () => {
     const items = getDefaultChecklist();
     const categories = new Set(items.map((i) => i.category));
-    expect(categories.size).toBe(8);
+    expect(categories.size).toBe(9);
   });
 
-  it("returns more than 22 items (type-specific added)", () => {
-    expect(getDefaultChecklist().length).toBeGreaterThanOrEqual(22);
+  it("returns more than 30 items (type-specific + regulatory added)", () => {
+    expect(getDefaultChecklist().length).toBeGreaterThanOrEqual(30);
   });
 
   it("every item has a unique id", () => {
@@ -61,6 +61,23 @@ describe("getDefaultChecklist", () => {
   it("items have required flag", () => {
     const items = getDefaultChecklist();
     expect(items.every((i) => typeof i.required === "boolean")).toBe(true);
+  });
+
+  it("includes normative items", () => {
+    const items = getDefaultChecklist();
+    const normItems = items.filter((i) => i.category === "NORMATIVA");
+    expect(normItems.length).toBeGreaterThanOrEqual(5);
+    expect(normItems.some((i) => i.id === "norm-credencial")).toBe(true);
+    expect(normItems.some((i) => i.id === "norm-metar")).toBe(true);
+    expect(normItems.some((i) => i.id === "norm-airspace")).toBe(true);
+  });
+
+  it("includes security items", () => {
+    const items = getDefaultChecklist();
+    const secItems = items.filter((i) => i.category === "SEGURIDAD");
+    expect(secItems.length).toBeGreaterThanOrEqual(2);
+    expect(secItems.some((i) => i.id === "seg-emergencia")).toBe(true);
+    expect(secItems.some((i) => i.id === "seg-mirador")).toBe(true);
   });
 });
 
@@ -83,7 +100,7 @@ describe("isApplicable", () => {
 
   const universalItem: ChecklistItem = {
     id: "test-universal",
-    category: "EQUIPO",
+    category: "DOCUMENTACION",
     title: "Test universal",
     required: true,
   };
@@ -169,6 +186,16 @@ describe("getContextFromData", () => {
     expect(ctx.strongWind).toBeUndefined();
   });
 
+  it("populatedArea parameter sets context", () => {
+    const ctx = getContextFromData(null, null, null, true);
+    expect(ctx.populatedArea).toBe(true);
+  });
+
+  it("populatedArea false does not set context", () => {
+    const ctx = getContextFromData(null, null, null, false);
+    expect(ctx.populatedArea).toBeUndefined();
+  });
+
   it("assessment wind warning triggers strongWind", () => {
     const assessment: FlightAssessment = {
       status: "CAUTION",
@@ -243,12 +270,22 @@ describe("getContextualItems", () => {
     expect(items.some((i) => i.id === "cli-noche")).toBe(true);
   });
 
+  it("returns populated area items", () => {
+    const items = getContextualItems({ populatedArea: true });
+    expect(items.some((i) => i.id === "seg-populated")).toBe(true);
+  });
+
   it("returns empty for empty context", () => {
     expect(getContextualItems({}).length).toBe(0);
   });
 
   it("returns multiple items for multiple conditions", () => {
     const items = getContextualItems({ rain: true, strongWind: true });
+    expect(items.length).toBe(2);
+  });
+
+  it("returns multiple items for populated area + rain", () => {
+    const items = getContextualItems({ populatedArea: true, rain: true });
     expect(items.length).toBe(2);
   });
 });
@@ -264,6 +301,14 @@ describe("getVisibleChecklistItems", () => {
     const base = getDefaultChecklist();
     const visible = getVisibleChecklistItems(base, { rain: true });
     expect(visible.length).toBe(base.length + 1);
+  });
+
+  it("populated area adds contextual items", () => {
+    const base = getDefaultChecklist();
+    const visible = getVisibleChecklistItems(base, { populatedArea: true });
+    const ids = visible.map((i) => i.id);
+    expect(ids).toContain("seg-populated");
+    expect(ids).toContain("norm-populated");
   });
 
   it("no duplicate ids", () => {
@@ -389,7 +434,7 @@ describe("getItemsByCategory", () => {
   it("groups items by category", () => {
     const items = getDefaultChecklist();
     const grouped = getItemsByCategory(items);
-    expect(grouped.size).toBe(8);
+    expect(grouped.size).toBe(9);
   });
 });
 
@@ -400,6 +445,13 @@ describe("getWarningItems", () => {
     const warnings = getWarningItems(visible, { rain: true, strongWind: true });
     expect(warnings.some((i) => i.id === "cli-precipitacion")).toBe(true);
     expect(warnings.some((i) => i.id === "cli-rafagas")).toBe(true);
+  });
+
+  it("returns populated area warning", () => {
+    const base = getDefaultChecklist();
+    const visible = getVisibleChecklistItems(base, { populatedArea: true });
+    const warnings = getWarningItems(visible, { populatedArea: true });
+    expect(warnings.some((i) => i.id === "seg-populated")).toBe(true);
   });
 
   it("returns empty for no context", () => {

@@ -1,13 +1,14 @@
 import type { AircraftType } from "../assessment/aircraft";
 
 export type ChecklistCategory =
+  | "NORMATIVA"
   | "DOCUMENTACION"
-  | "EQUIPO"
   | "AERONAVE"
   | "BATERIA"
   | "ENTORNO"
   | "CLIMA"
   | "OPERACION"
+  | "SEGURIDAD"
   | "POST_VUELO";
 
 export interface ChecklistApplicability {
@@ -19,6 +20,7 @@ export interface ChecklistContext {
   lowVisibility?: boolean;
   strongWind?: boolean;
   night?: boolean;
+  populatedArea?: boolean;
 }
 
 export interface ChecklistItem {

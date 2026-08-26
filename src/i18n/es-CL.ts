@@ -65,6 +65,9 @@ export const esCL = {
     reset: "Reiniciar checklist",
     resetConfirm: "¿Reiniciar la checklist actual? Se conservarán aeronave, límites y ubicación.",
     resetCancel: "Cancelar",
+    populatedArea: "Zona poblada",
+    normative: "Normativa",
+    security: "Seguridad",
   },
   footer: {
     attributions: "Open-Meteo · OpenStreetMap · VATSIM METAR · SunCalc",

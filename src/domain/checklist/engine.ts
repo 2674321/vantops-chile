@@ -18,9 +18,12 @@ export function getDefaultChecklist(): ChecklistItem[] {
 export function getContextFromData(
   weather: WeatherSnapshot | null,
   solar: SolarTimes | null,
-  assessment: FlightAssessment | null
+  assessment: FlightAssessment | null,
+  populatedArea?: boolean
 ): ChecklistContext {
   const ctx: ChecklistContext = {};
+
+  if (populatedArea) ctx.populatedArea = true;
 
   if (weather) {
     const c = weather.current;
@@ -64,6 +67,7 @@ export function getContextualItems(context: ChecklistContext): ChecklistItem[] {
     if (item.context.lowVisibility && !context.lowVisibility) return false;
     if (item.context.strongWind && !context.strongWind) return false;
     if (item.context.night && !context.night) return false;
+    if (item.context.populatedArea && !context.populatedArea) return false;
     return true;
   });
 }
@@ -119,6 +123,7 @@ export function getWarningItems(
     if (item.context?.strongWind && context.strongWind) return true;
     if (item.context?.lowVisibility && context.lowVisibility) return true;
     if (item.context?.night && context.night) return true;
+    if (item.context?.populatedArea && context.populatedArea) return true;
     return false;
   });
 }
