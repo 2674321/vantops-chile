@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plane } from "lucide-react";
-import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { AboutPage } from "../features/about/AboutPage";
@@ -25,7 +25,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <HashRouter>
         <div className="flex min-h-dvh flex-col">
           <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
             <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
@@ -47,7 +47,7 @@ export function App() {
             </Routes>
           </main>
         </div>
-      </BrowserRouter>
+      </HashRouter>
     </QueryClientProvider>
   );
 }

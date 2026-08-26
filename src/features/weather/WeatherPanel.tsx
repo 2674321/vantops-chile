@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { WeatherSnapshot } from "./weather.types";
 
 function weatherCodeEmoji(code: number | null): string {
@@ -16,7 +17,7 @@ function localTime(isoLocal: string | null): string {
   return isoLocal ? isoLocal.slice(11, 16) : "—";
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-lg bg-slate-950/60 p-3">
       <p className="text-xs text-slate-400">{label}</p>
@@ -56,7 +57,19 @@ export function WeatherPanel({ snapshot }: { snapshot: WeatherSnapshot }) {
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Metric label="Viento 10 m" value={`${current.windSpeedKmh ?? "—"} km/h ${windDir ?? ""}`} />
+        <Metric
+          label="Viento 10 m"
+          value={
+            current.windSpeedKmh === null ? (
+              "—"
+            ) : (
+              <>
+                {current.windSpeedKmh} km/h
+                {windDir && <span className="ml-1 inline-block">{windDir}</span>}
+              </>
+            )
+          }
+        />
         <Metric label="Ráfagas" value={current.windGustsKmh === null ? "—" : `${current.windGustsKmh} km/h`} />
         <Metric label="Viento 100 m (crucero)" value={snapshot.windSpeed100mKmh === null ? "—" : `${snapshot.windSpeed100mKmh} km/h`} />
         <Metric label="Precipitación" value={current.precipitationMm === null ? "—" : `${current.precipitationMm} mm`} />

@@ -43,6 +43,10 @@ npm run build      # build producción a dist/
 
 La ruta base de producción es `/vantops-chile/` (GitHub Pages); en `npm run dev` es `/`.
 
+> **Nota:** se usa `HashRouter` (`/#/acerca`) porque GitHub Pages no soporta
+> reescrituras de servidor: con `BrowserRouter`, recargar una ruta interna
+> respondería 404.
+
 ## Estructura
 
 ```

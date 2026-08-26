@@ -81,8 +81,12 @@ export function DashboardPage() {
 
   function handleManualSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const lat = Number.parseFloat(manualLat.replace(",", "."));
-    const lon = Number.parseFloat(manualLon.replace(",", "."));
+    const latRaw = manualLat.trim();
+    const lonRaw = manualLon.trim();
+    // campos vacíos: no hacer nada (evita error falso)
+    if (!latRaw && !lonRaw) return;
+    const lat = Number.parseFloat(latRaw.replace(",", "."));
+    const lon = Number.parseFloat(lonRaw.replace(",", "."));
     if (!isValidCoordinate(lat, lon)) {
       setManualError(t.dashboard.invalidCoords);
       return;
