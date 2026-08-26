@@ -1,63 +1,96 @@
-import type { ChecklistItem, ChecklistCategory } from "./types";
+import type { ChecklistItem, ChecklistCategory, ChecklistKind, RegulatoryReference } from "./types";
 import type { AircraftType } from "../assessment/aircraft";
+
+const DAN_91_REF: RegulatoryReference = {
+  document: "DAN 91",
+  section: "Reglas del Aire",
+  edition: "Ed. 4 / ENM 5 — JUL 2023",
+  sourceUrl: "https://www.dgac.gob.cl/wp-content/uploads/2024/07/DAN-91_ED4__ENM5_20JUL2023-2.pdf",
+  status: "verified",
+};
+
+const DAN_151_REF: RegulatoryReference = {
+  document: "DAN 151",
+  section: "Operaciones RPAS sobre áreas pobladas",
+  edition: "Ed. 3 — MAY 2024",
+  sourceUrl: "https://www.dgac.gob.cl/wp-content/uploads/2024/05/DAN-151-ED3-27MAY2024.pdf",
+  status: "verified",
+};
 
 export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   // ── NORMATIVA ──
   {
     id: "norm-credencial",
     category: "NORMATIVA",
+    kind: "REGULATORY",
     title: "Credencial de operador vigente",
-    description: "Credencial de piloto RPAS emitida por DGAC (DAN 91)",
+    description: "Credencial de piloto RPAS emitida por DGAC",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "norm-seguro",
     category: "NORMATIVA",
+    kind: "REGULATORY",
     title: "Seguro de responsabilidad civil",
-    description: "Seguro vigente que cubra la operación (DAN 91)",
+    description: "Seguro vigente que cubra la operación",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "norm-autorizacion",
     category: "NORMATIVA",
-    title: "Autorización de vuelo obtainida",
-    description: "Plan de vuelo aprobado por autoridad competente (DAN 91)",
+    kind: "REGULATORY",
+    title: "Autorización de vuelo verificada",
+    description: "Confirmar autorización del plan de vuelo si aplica para la zona",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "norm-metar",
     category: "NORMATIVA",
-    title: "METAR e IFIS revisados",
-    description: "Consultar fuentes meteorológicas oficiales (METAR/IFIS) antes del vuelo",
+    kind: "OPERATIONAL",
+    title: "Revisar información meteorológica disponible",
+    description: "Pronóstico y observaciones METAR/SPECI si están disponibles",
     required: true,
+    regulatoryReference: {
+      ...DAN_91_REF,
+      section: "Requisitos meteorológicos",
+    },
   },
   {
     id: "norm-airspace",
     category: "NORMATIVA",
+    kind: "REGULATORY",
     title: "Espacio aéreo verificado",
-    description: "Confirmar que la zona no requiere autorización especial del espacio aéreo",
+    description: "Verificar que la zona no requiere autorización especial del espacio aéreo",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "norm-populated",
     category: "NORMATIVA",
-    title: "Verificar requisitos para zona poblada",
-    description: "Si opera sobre área poblada: aplica DAN 91. Requiere autorización DGAC + credencial",
+    kind: "REGULATORY",
+    title: "Verificar requisitos para operación en zona poblada",
+    description: "Si opera sobre área poblada: verificar requisitos aplicables según normativa DGAC",
     required: true,
     context: { populatedArea: true },
+    regulatoryReference: DAN_151_REF,
   },
 
   // ── DOCUMENTACION ──
   {
     id: "doc-plan-vuelo",
     category: "DOCUMENTACION",
+    kind: "OPERATIONAL",
     title: "Plan de vuelo definido",
-    description: "Ruta, altitud (max 400 ft AGL), zona y objetivos establecidos",
+    description: "Ruta, altitud y zona de operación establecidos",
     required: true,
   },
   {
     id: "doc-limites",
     category: "DOCUMENTACION",
+    kind: "GOOD_PRACTICE",
     title: "Límites de vuelo configurados",
     description: "Altitud máxima, distancia y tiempo de vuelo establecidos",
     required: true,
@@ -67,18 +100,21 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-estructura",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Estructura revisada",
     required: true,
   },
   {
     id: "aero-gnss",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "GNSS/GPS disponible",
     required: true,
   },
   {
     id: "aero-helices",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Hélices revisadas",
     required: true,
     applicability: { aircraftTypes: ["MULTIROTOR", "HELICOPTER"] },
@@ -86,6 +122,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-motores",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Motores revisados",
     required: true,
     applicability: { aircraftTypes: ["MULTIROTOR"] },
@@ -93,6 +130,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-rth",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "RTH configurado",
     required: true,
     applicability: { aircraftTypes: ["MULTIROTOR"] },
@@ -100,6 +138,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-superficies",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Superficies de control revisadas",
     required: true,
     applicability: { aircraftTypes: ["FIXED_WING", "VTOL"] },
@@ -107,6 +146,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-propulsion",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Propulsión revisada",
     required: true,
     applicability: { aircraftTypes: ["FIXED_WING"] },
@@ -114,6 +154,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-lanzamiento",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Sistema de lanzamiento preparado",
     required: true,
     applicability: { aircraftTypes: ["FIXED_WING"] },
@@ -121,6 +162,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-recuperacion",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Sistema de recuperación preparado",
     required: true,
     applicability: { aircraftTypes: ["FIXED_WING"] },
@@ -128,6 +170,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-vertical",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Sistema de vuelo vertical revisado",
     required: true,
     applicability: { aircraftTypes: ["VTOL"] },
@@ -135,6 +178,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-transicion",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Transición vertical/crucero verificada",
     required: true,
     applicability: { aircraftTypes: ["VTOL"] },
@@ -142,6 +186,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-rotor",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Rotor principal revisado",
     required: true,
     applicability: { aircraftTypes: ["HELICOPTER"] },
@@ -149,6 +194,7 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "aero-colaptil",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Colaptil revisado",
     required: true,
     applicability: { aircraftTypes: ["HELICOPTER"] },
@@ -158,12 +204,14 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "bat-cargada",
     category: "BATERIA",
+    kind: "OPERATIONAL",
     title: "Batería cargada",
     required: true,
   },
   {
     id: "bat-instalada",
     category: "BATERIA",
+    kind: "OPERATIONAL",
     title: "Batería instalada correctamente",
     required: true,
   },
@@ -172,46 +220,55 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "ent-zona",
     category: "ENTORNO",
+    kind: "OPERATIONAL",
     title: "Zona de vuelo revisada",
     required: true,
   },
   {
     id: "ent-obstaculos",
     category: "ENTORNO",
+    kind: "GOOD_PRACTICE",
     title: "Obstáculos identificados",
     required: true,
   },
   {
     id: "ent-personas",
     category: "ENTORNO",
-    title: "Personas y terceros considerados",
+    kind: "REGULATORY",
+    title: "Terceros considerados en la zona de operación",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "ent-populated",
     category: "ENTORNO",
-    title: "Zona poblada: verificar autorización",
-    description: "DAN 151: operaciones sobre áreas pobladas requieren autorización específica de DGAC",
+    kind: "REGULATORY",
+    title: "Zona poblada: verificar requisitos aplicables",
+    description: "Revisar requisitos para operaciones en áreas pobladas según normativa DGAC",
     required: true,
     context: { populatedArea: true },
+    regulatoryReference: DAN_151_REF,
   },
 
   // ── CLIMA ──
   {
     id: "cli-pronostico",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Pronóstico revisado",
     required: true,
   },
   {
     id: "cli-viento",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Condiciones de viento revisadas",
     required: true,
   },
   {
     id: "cli-visibilidad",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Visibilidad revisada",
     required: true,
   },
@@ -220,28 +277,33 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "op-ubicacion",
     category: "OPERACION",
+    kind: "OPERATIONAL",
     title: "Ubicación confirmada",
     required: true,
   },
   {
     id: "op-limites",
     category: "OPERACION",
+    kind: "GOOD_PRACTICE",
     title: "Límites personales revisados",
     required: true,
   },
   {
     id: "op-noche",
     category: "OPERACION",
+    kind: "REGULATORY",
     title: "Requisitos nocturnos verificados",
-    description: "DAN 91: operaciones nocturnas requieren autorización y equipamiento específico",
+    description: "Si aplica, verificar requisitos para operación nocturna",
     required: true,
     context: { night: true },
+    regulatoryReference: DAN_91_REF,
   },
 
   // ── SEGURIDAD ──
   {
     id: "seg-emergencia",
     category: "SEGURIDAD",
+    kind: "GOOD_PRACTICE",
     title: "Plan de emergencia definido",
     description: "Procedimientos de emergencia y zonas de aterrizaje alternativas",
     required: true,
@@ -249,34 +311,41 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     id: "seg-coordinacion",
     category: "SEGURIDAD",
+    kind: "OPERATIONAL",
     title: "Coordinación con servicios de tránsito aéreo",
-    description: "DAN 91: coordinar con ATS si aplica para la zona de operación",
+    description: "Si aplica para la zona de operación",
     required: false,
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "seg-mirador",
     category: "SEGURIDAD",
+    kind: "REGULATORY",
     title: "Punto de observación (VLOS) confirmado",
-    description: "DAN 91: mantener contacto visual con la aeronave en todo momento",
+    description: "Mantener contacto visual con la aeronave durante la operación",
     required: true,
+    regulatoryReference: DAN_91_REF,
   },
 
   // ── POST_VUELO ──
   {
     id: "post-inspeccion",
     category: "POST_VUELO",
+    kind: "GOOD_PRACTICE",
     title: "Aeronave inspeccionada post-vuelo",
     required: false,
   },
   {
     id: "post-baterias",
     category: "POST_VUELO",
+    kind: "GOOD_PRACTICE",
     title: "Baterías registradas",
     required: false,
   },
   {
     id: "post-observaciones",
     category: "POST_VUELO",
+    kind: "GOOD_PRACTICE",
     title: "Observaciones registradas",
     required: false,
   },
@@ -306,10 +375,17 @@ export const CATEGORY_LABELS: Record<ChecklistCategory, string> = {
   POST_VUELO: "Post-vuelo",
 };
 
+export const CHECKLIST_KIND_LABELS: Record<ChecklistKind, string> = {
+  REGULATORY: "Normativa",
+  OPERATIONAL: "Operacional",
+  GOOD_PRACTICE: "Buena práctica",
+};
+
 export const CONTEXTUAL_ITEMS: ChecklistItem[] = [
   {
     id: "cli-precipitacion",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Revisar condiciones de precipitación",
     required: true,
     context: { rain: true },
@@ -317,6 +393,7 @@ export const CONTEXTUAL_ITEMS: ChecklistItem[] = [
   {
     id: "cli-rafagas",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Revisar ráfagas",
     required: true,
     context: { strongWind: true },
@@ -324,13 +401,16 @@ export const CONTEXTUAL_ITEMS: ChecklistItem[] = [
   {
     id: "cli-noche",
     category: "OPERACION",
+    kind: "REGULATORY",
     title: "Revisar requisitos para operación nocturna",
     required: true,
     context: { night: true },
+    regulatoryReference: DAN_91_REF,
   },
   {
     id: "cli-visibilidad-baja",
     category: "CLIMA",
+    kind: "OPERATIONAL",
     title: "Revisar condiciones de visibilidad reducida",
     required: true,
     context: { lowVisibility: true },
@@ -338,10 +418,12 @@ export const CONTEXTUAL_ITEMS: ChecklistItem[] = [
   {
     id: "seg-populated",
     category: "SEGURIDAD",
+    kind: "REGULATORY",
     title: "Precauciones en zona poblada",
-    description: "DAN 151: verificar barrera física, zona de seguridad, prohibición de vuelo sobre personas ajenas",
+    description: "Revisar requisitos aplicables a operaciones en áreas pobladas",
     required: true,
     context: { populatedArea: true },
+    regulatoryReference: DAN_151_REF,
   },
 ];
 

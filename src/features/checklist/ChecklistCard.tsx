@@ -12,8 +12,9 @@ import {
   resetChecklist,
 } from "../../domain/checklist/engine";
 import { CHECKLIST_CATEGORIES_ORDER, CATEGORY_LABELS } from "../../domain/checklist/defaultChecklist";
+import { CHECKLIST_KIND_LABELS } from "../../domain/checklist/defaultChecklist";
 import { loadChecklistState, saveChecklistState, clearChecklistState } from "../../storage/checklists";
-import type { ChecklistState, ChecklistCategory } from "../../domain/checklist/types";
+import type { ChecklistState, ChecklistCategory, ChecklistKind } from "../../domain/checklist/types";
 import type { WeatherSnapshot } from "../../domain/weather";
 import type { SolarTimes } from "../../domain/solar";
 import type { FlightAssessment } from "../../domain/assessment/types";
@@ -27,9 +28,21 @@ interface ChecklistCardProps {
   aircraft: AircraftProfile | null;
 }
 
+function kindBadgeClass(kind: ChecklistKind): string {
+  switch (kind) {
+    case "REGULATORY":
+      return "bg-sky-950/40 text-sky-400 border border-sky-800/50";
+    case "OPERATIONAL":
+      return "bg-slate-800 text-slate-400 border border-slate-700";
+    case "GOOD_PRACTICE":
+      return "bg-emerald-950/40 text-emerald-400 border border-emerald-800/50";
+  }
+}
+
 export function ChecklistCard({ weather, solar, assessment, aircraft }: ChecklistCardProps) {
   const [states, setStates] = useState<ChecklistState[]>(() => loadChecklistState());
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [showRegulatoryInfo, setShowRegulatoryInfo] = useState<string | null>(null);
 
   useEffect(() => {
     saveChecklistState(states);
@@ -168,33 +181,68 @@ export function ChecklistCard({ weather, solar, assessment, aircraft }: Checklis
                   {visibleItems.map((item) => {
                     const s = stateMap.get(item.id);
                     const checked = s?.checked === true;
+                    const isExpanded = showRegulatoryInfo === item.id;
                     return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleToggle(item.id)}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                          checked
-                            ? "bg-slate-800/50 text-slate-400"
-                            : "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                        }`}
-                        aria-checked={checked}
-                        role="checkbox"
-                      >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-600">
-                          {checked && (
-                            <svg className="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                      <div key={item.id}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(item.id)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                            checked
+                              ? "bg-slate-800/50 text-slate-400"
+                              : "bg-slate-800 text-slate-200 hover:bg-slate-700"
+                          }`}
+                          aria-checked={checked}
+                          role="checkbox"
+                        >
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-600">
+                            {checked && (
+                              <svg className="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </span>
+                          <span className={checked ? "line-through" : ""}>
+                            {item.title}
+                          </span>
+                          {item.kind && (
+                            <span className={`ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${kindBadgeClass(item.kind)}`}>
+                              {CHECKLIST_KIND_LABELS[item.kind]}
+                            </span>
                           )}
-                        </span>
-                        <span className={checked ? "line-through" : ""}>
-                          {item.title}
-                        </span>
-                        {item.required && !checked && (
-                          <span className="ml-auto text-xs text-amber-500">*</span>
+                          {item.required && !checked && (
+                            <span className="shrink-0 text-xs text-amber-500">*</span>
+                          )}
+                        </button>
+                        {item.regulatoryReference && (
+                          <div className="flex items-center gap-2 px-3 py-1">
+                            <button
+                              type="button"
+                              onClick={() => setShowRegulatoryInfo(isExpanded ? null : item.id)}
+                              className="text-[10px] text-sky-500 hover:text-sky-400"
+                            >
+                              {isExpanded ? "▼" : "▶"} {t.checklist.referenceLabel}: {item.regulatoryReference.document}
+                            </button>
+                          </div>
                         )}
-                      </button>
+                        {isExpanded && item.regulatoryReference && (
+                          <div className="mx-3 mb-2 rounded-lg bg-slate-800/50 p-2 text-xs text-slate-400">
+                            <p>
+                              {item.regulatoryReference.document}
+                              {item.regulatoryReference.section && ` — ${item.regulatoryReference.section}`}
+                              {item.regulatoryReference.edition && ` (${item.regulatoryReference.edition})`}
+                            </p>
+                            <a
+                              href={item.regulatoryReference.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-block text-sky-500 hover:text-sky-400"
+                            >
+                              Ver fuente oficial ↗
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

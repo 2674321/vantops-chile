@@ -3,6 +3,8 @@ import type { AircraftProfile } from "../domain/assessment/aircraft";
 
 const LIMITS_KEY = "vantops:flightLimits";
 const AIRCRAFT_KEY = "vantops:activeAircraft";
+const MANUFACTURER_KEY = "vantops:selectedManufacturer";
+const MODEL_KEY = "vantops:selectedModel";
 
 export function loadFlightLimits(): FlightLimits {
   try {
@@ -41,5 +43,47 @@ export function saveActiveAircraft(aircraft: AircraftProfile): void {
     localStorage.setItem(AIRCRAFT_KEY, JSON.stringify(aircraft));
   } catch {
     // storage full or unavailable
+  }
+}
+
+export function loadSelectedManufacturer(): string | null {
+  try {
+    return localStorage.getItem(MANUFACTURER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSelectedManufacturer(id: string): void {
+  try {
+    localStorage.setItem(MANUFACTURER_KEY, id);
+  } catch {
+    // ignore
+  }
+}
+
+export function loadSelectedModel(): string | null {
+  try {
+    return localStorage.getItem(MODEL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSelectedModel(id: string): void {
+  try {
+    localStorage.setItem(MODEL_KEY, id);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearAircraftSelection(): void {
+  try {
+    localStorage.removeItem(AIRCRAFT_KEY);
+    localStorage.removeItem(MANUFACTURER_KEY);
+    localStorage.removeItem(MODEL_KEY);
+  } catch {
+    // ignore
   }
 }

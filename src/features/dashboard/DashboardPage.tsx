@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
 import { WeatherPanel, DataSourceBadge } from "../weather/WeatherPanel";
@@ -9,12 +9,14 @@ import { NearbyMetarCard } from "../observations/NearbyMetarCard";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { AssessmentCard } from "../assessment/AssessmentCard";
 import { ChecklistCard } from "../checklist/ChecklistCard";
+import { AircraftSelector } from "../aircraft/AircraftSelector";
 import { Button } from "../../components/ui/button";
 import { MapPin, Navigation, MapIcon } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
-import { useMemo } from "react";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
+import { applyAircraftLimits } from "../../domain/assessment/aircraft";
+import type { AircraftProfile } from "../../domain/assessment/aircraft";
 import { loadFlightLimits, loadActiveAircraft } from "../../storage/settings";
 import { esCL as t } from "../../i18n/es-CL";
 
@@ -22,8 +24,12 @@ export default function DashboardPage() {
   const { coordinate, saveCoordinate } = useLastCoordinate();
   const [manualLat, setManualLat] = useState("");
   const [manualLon, setManualLon] = useState("");
-  const [aircraft] = useState(() => loadActiveAircraft());
+  const [aircraft, setAircraft] = useState<AircraftProfile | null>(() => loadActiveAircraft());
   const queryClient = useQueryClient();
+
+  const handleAircraftChange = useCallback((newAircraft: AircraftProfile | null) => {
+    setAircraft(newAircraft);
+  }, []);
 
   const weatherQuery = useQuery({
     queryKey: ["weather", coordinate?.latitude, coordinate?.longitude],
@@ -44,7 +50,8 @@ export default function DashboardPage() {
 
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
-    const limits = loadFlightLimits();
+    const baseLimits = loadFlightLimits();
+    const limits = applyAircraftLimits(baseLimits, aircraft ?? undefined);
     return evaluateFlight({
       windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
       gustKmh: weatherQuery.data.current.windGustsKmh,
@@ -62,7 +69,7 @@ export default function DashboardPage() {
       temperatureMinC: limits.temperatureMinC,
       temperatureMaxC: limits.temperatureMaxC,
     });
-  }, [weatherQuery.data]);
+  }, [weatherQuery.data, aircraft]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +102,8 @@ export default function DashboardPage() {
         </h1>
         <p className="text-base text-slate-400">{t.tagline}</p>
       </header>
+
+      <AircraftSelector onAircraftChange={handleAircraftChange} />
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button onClick={handleGeolocation} className="h-12 text-base">

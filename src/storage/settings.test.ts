@@ -4,6 +4,11 @@ import {
   saveFlightLimits,
   loadActiveAircraft,
   saveActiveAircraft,
+  loadSelectedManufacturer,
+  saveSelectedManufacturer,
+  loadSelectedModel,
+  saveSelectedModel,
+  clearAircraftSelection,
 } from "./settings";
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
@@ -88,5 +93,32 @@ describe("aircraft profile persistence", () => {
     saveFlightLimits({ windMaxKmh: 30 });
     saveActiveAircraft({ id: "test", name: "Test" });
     expect(loadFlightLimits().windMaxKmh).toBe(30);
+  });
+});
+
+describe("manufacturer/model persistence", () => {
+  it("returns null when nothing stored", () => {
+    expect(loadSelectedManufacturer()).toBeNull();
+    expect(loadSelectedModel()).toBeNull();
+  });
+
+  it("saves and loads manufacturer", () => {
+    saveSelectedManufacturer("dji");
+    expect(loadSelectedManufacturer()).toBe("dji");
+  });
+
+  it("saves and loads model", () => {
+    saveSelectedModel("dji-mini-4-pro");
+    expect(loadSelectedModel()).toBe("dji-mini-4-pro");
+  });
+
+  it("clearAircraftSelection removes all keys", () => {
+    saveSelectedManufacturer("dji");
+    saveSelectedModel("dji-mini-4-pro");
+    saveActiveAircraft({ id: "test", name: "Test" });
+    clearAircraftSelection();
+    expect(loadSelectedManufacturer()).toBeNull();
+    expect(loadSelectedModel()).toBeNull();
+    expect(loadActiveAircraft()).toBeNull();
   });
 });

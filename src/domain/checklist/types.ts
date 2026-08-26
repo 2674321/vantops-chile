@@ -11,6 +11,19 @@ export type ChecklistCategory =
   | "SEGURIDAD"
   | "POST_VUELO";
 
+export type ChecklistKind =
+  | "REGULATORY"
+  | "OPERATIONAL"
+  | "GOOD_PRACTICE";
+
+export interface RegulatoryReference {
+  document: string;
+  section?: string;
+  edition?: string;
+  sourceUrl: string;
+  status: "verified" | "needs-review" | "historical";
+}
+
 export interface ChecklistApplicability {
   aircraftTypes?: AircraftType[];
 }
@@ -26,11 +39,13 @@ export interface ChecklistContext {
 export interface ChecklistItem {
   id: string;
   category: ChecklistCategory;
+  kind: ChecklistKind;
   title: string;
   description?: string;
   required: boolean;
   applicability?: ChecklistApplicability;
   context?: ChecklistContext;
+  regulatoryReference?: RegulatoryReference;
 }
 
 export interface ChecklistState {

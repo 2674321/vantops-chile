@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { evaluateFlight } from "./evaluator";
+import {
+  AIRCRAFT_CATALOG,
+  AIRCRAFT_TYPE_LABELS,
+  findManufacturer,
+  findModel,
+  createAircraftProfile,
+  applyAircraftLimits,
+} from "./aircraft";
 import type { FlightAssessmentInput } from "./types";
 
 const base: FlightAssessmentInput = {
@@ -146,5 +154,94 @@ describe("evaluateFlight", () => {
       cloudCoverPct: null,
     });
     expect(result.missingData.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("AIRCRAFT_CATALOG", () => {
+  it("has manufacturers", () => {
+    expect(AIRCRAFT_CATALOG.length).toBeGreaterThan(0);
+  });
+
+  it("includes DJI", () => {
+    const dji = findManufacturer("dji");
+    expect(dji).toBeDefined();
+    expect(dji?.name).toBe("DJI");
+    expect(dji?.models.length).toBeGreaterThan(0);
+  });
+
+  it("includes generic manufacturer", () => {
+    const generic = findManufacturer("generic");
+    expect(generic).toBeDefined();
+    expect(generic?.models.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("findModel finds a model by id", () => {
+    const model = findModel("dji-mini-4-pro");
+    expect(model).toBeDefined();
+    expect(model?.name).toBe("Mini 4 Pro");
+    expect(model?.type).toBe("MULTIROTOR");
+  });
+
+  it("findModel returns undefined for unknown id", () => {
+    expect(findModel("nonexistent")).toBeUndefined();
+  });
+
+  it("findManufacturer returns undefined for unknown id", () => {
+    expect(findManufacturer("nonexistent")).toBeUndefined();
+  });
+});
+
+describe("createAircraftProfile", () => {
+  it("creates profile from catalog", () => {
+    const profile = createAircraftProfile("dji", "dji-mini-4-pro");
+    expect(profile.id).toBe("dji-mini-4-pro");
+    expect(profile.name).toBe("Mini 4 Pro");
+    expect(profile.type).toBe("MULTIROTOR");
+    expect(profile.manufacturer).toBe("DJI");
+    expect(profile.model).toBe("Mini 4 Pro");
+  });
+
+  it("creates generic profile", () => {
+    const profile = createAircraftProfile("generic", "generic-multicopter");
+    expect(profile.id).toBe("generic-multicopter");
+    expect(profile.type).toBe("MULTIROTOR");
+    expect(profile.manufacturer).toBe("Genérico");
+  });
+
+  it("uses custom name when provided", () => {
+    const profile = createAircraftProfile("dji", "dji-mini-4-pro", "Mi drone");
+    expect(profile.name).toBe("Mi drone");
+  });
+});
+
+describe("applyAircraftLimits", () => {
+  it("returns base when no aircraft", () => {
+    const base = { windMaxKmh: 20 };
+    expect(applyAircraftLimits(base)).toEqual(base);
+  });
+
+  it("merges aircraft wind limits into base", () => {
+    const base = {};
+    const aircraft = { id: "test", name: "Test", windMaxKmh: 25, gustMaxKmh: 35 };
+    const result = applyAircraftLimits(base, aircraft);
+    expect(result.windMaxKmh).toBe(25);
+    expect(result.gustMaxKmh).toBe(35);
+  });
+
+  it("base limits take precedence over aircraft limits", () => {
+    const base = { windMaxKmh: 15 };
+    const aircraft = { id: "test", name: "Test", windMaxKmh: 25 };
+    const result = applyAircraftLimits(base, aircraft);
+    expect(result.windMaxKmh).toBe(15);
+  });
+});
+
+describe("AIRCRAFT_TYPE_LABELS", () => {
+  it("has labels for all types", () => {
+    expect(AIRCRAFT_TYPE_LABELS.MULTIROTOR).toBeTruthy();
+    expect(AIRCRAFT_TYPE_LABELS.FIXED_WING).toBeTruthy();
+    expect(AIRCRAFT_TYPE_LABELS.VTOL).toBeTruthy();
+    expect(AIRCRAFT_TYPE_LABELS.HELICOPTER).toBeTruthy();
+    expect(AIRCRAFT_TYPE_LABELS.OTHER).toBeTruthy();
   });
 });

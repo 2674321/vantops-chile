@@ -47,7 +47,7 @@ npm run build
 src/
   app/          App.tsx, ErrorBoundary
   domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate
-  domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator
+  domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator, aircraft (catalog)
   domain/checklist/   ChecklistItem, ChecklistState, engine, defaultChecklist
   providers/
     weather/        Open-Meteo forecast
@@ -56,6 +56,7 @@ src/
     observations/   VATSIM METAR, decoder, estaciones
   features/
     dashboard/      Pantalla principal
+    aircraft/       Selector de aeronave (fabricante → modelo → tipo)
     assessment/     AssessmentCard (semáforo de vuelo)
     checklist/      CheckListCard (checklist prevuelo)
     map/            Leaflet + OSM
@@ -64,9 +65,10 @@ src/
     solar/          SolarCard
     observations/   NearbyMetarCard
   hooks/          useLastCoordinate (localStorage)
-  storage/        settings.ts (flightLimits, aircraft), checklists.ts
+  storage/        settings.ts (flightLimits, aircraft, manufacturer, model), checklists.ts
   i18n/           es-CL
   components/     ui/ (button, card)
+references/       normativa-dgac/ (material de desarrollo, no normativa runtime)
 ```
 
 ## Flujo de datos
@@ -113,9 +115,9 @@ La UI nunca depende del JSON crudo de APIs externas.
 
 ## Fase 3 — R0.4 Checklist (completada)
 
-- **Checklist prevuelo interactiva**: 31 items en 8 categorías (Documentación, Equipo, Aeronave, Batería, Entorno, Clima, Operación, Post-vuelo)
+- **Checklist prevuelo interactiva**: 39 items en 9 categorías (Normativa, Documentación, Aeronave, Batería, Entorno, Clima, Operación, Seguridad, Post-vuelo)
 - **Checklist engine**: funciones puras para progreso, visibilidad, contexto, toggle, reset
-- **Items contextuales**: se muestran automáticamente según condiciones (lluvia, viento fuerte, baja visibilidad, operación nocturna)
+- **Items contextuales**: se muestran automáticamente según condiciones (lluvia, viento fuerte, baja visibilidad, operación nocturna, zona poblada)
 - **Items por tipo de aeronave**: multirrotor, ala fija, VTOL, helicóptero — items específicos se filtran automáticamente
 - **ChecklistApplicability**: modelo de aplicabilidad por tipo de aeronave
 - **Integración con Assessment**: el estado del assessment alimenta el contexto del checklist (warnings → items destacados)
@@ -126,7 +128,24 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Funcionamiento offline**: checklist opera sin conexión, sin depender de APIs externas
 - **Referencias normativas DGAC**: `references/normativa-dgac/` con README e INDEX para desarrollo
 - **About page**: sección "Normativa y fuentes oficiales" con enlace a DGAC
-- **142 tests** pasando (+26 nuevos: applicability 6, assessment-context 4, aircraft-type 6, warning 2, settings 9)
+- **150 tests** pasando (+26 nuevos: applicability 6, assessment-context 4, aircraft-type 6, warning 2, settings 9)
+
+## R0.4.1 — Regulatory Hardening + Aircraft Selector (completada)
+
+- **ChecklistItem.kind**: distinción REGULATORY / OPERATIONAL / GOOD_PRACTICE en modelo de datos
+- **RegulatoryReference**: metadata estructurada (documento, sección, edición, URL fuente, estado verificación)
+- **Referencias por item**: items normativos incluyen enlace a fuente oficial DGAC con expansión en UI
+- **Corrección de afirmaciones absolutas**: eliminada referencia universal a "400 ft AGL", METAR contextualizado como "revisar información meteorológica disponible"
+- **DAN 91 Ed. 4 / ENM 5 (JUL 2023)** y **DAN 151 Ed. 3 (MAY 2024)** como fuentes verificadas
+- **Selector de aeronave**: fabricante → modelo → tipo con 8 fabricantes y 30+ modelos
+- **Base de aeronaves**: DJI (13 modelos), Autel (3), Skydio (2), Parrot (2), SenseFly (1), Wingtra (1), Quantum Systems (1), Genérico (5)
+- **Modo genérico**: 5 perfiles genéricos para aeronaves no catalogadas
+- **Estado "modelo no disponible"**: fallback a perfil genérico con mensaje informativo
+- **Persistencia**: manufacturer, model, activeAircraft en localStorage
+- **applyAircraftLimits integrado**: límites del perfil de aeronave se fusionan con límites personales en assessment
+- **Dashboard refresh**: aircraft state se actualiza al cambiar selección sin recargar página
+- **About page actualizada**: disclaimer sobre finalidad informativa de referencias
+- **171 tests** pasando (+21 nuevos: aircraft catalog 6, createAircraftProfile 3, applyAircraftLimits 3, AIRCRAFT_TYPE_LABELS 1, regulatory references 3, checklist kind 1, storage manufacturer/model 4)
 
 ## Fuentes de datos
 

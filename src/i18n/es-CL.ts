@@ -46,7 +46,7 @@ export const esCL = {
       "Herramienta gratuita de apoyo para pilotos de RPAS/drones: consulta condiciones reales antes de volar y lleva tu bitácora local. Sin cuentas, sin rastreo.",
     normativeTitle: "Normativa y fuentes oficiales",
     normativeDescription:
-      "VantOPS utiliza referencias oficiales para apoyar la planificación. La normativa vigente debe consultarse directamente en la fuente oficial DGAC.",
+      "VantOPS utiliza referencias oficiales para apoyar la planificación. Las referencias de VantOPS tienen finalidad informativa y de apoyo a la planificación. Consulta siempre la versión vigente directamente en las fuentes oficiales de la DGAC.",
     disclaimerTitle: "Aviso importante",
     disclaimer:
       "VantOPS es una herramienta de apoyo a la planificación. No sustituye la normativa vigente, las publicaciones aeronáuticas, permisos, autorizaciones ni las instrucciones de las autoridades competentes (DGAC). El piloto es responsable de operar conforme a la normativa vigente.",
@@ -68,6 +68,24 @@ export const esCL = {
     populatedArea: "Zona poblada",
     normative: "Normativa",
     security: "Seguridad",
+    kindRegulatory: "Normativa",
+    kindOperational: "Operacional",
+    kindGoodPractice: "Buena práctica",
+    referenceLabel: "Referencia",
+  },
+  aircraft: {
+    title: "Mi aeronave",
+    manufacturer: "Fabricante",
+    model: " Modelo",
+    type: "Tipo",
+    selectManufacturer: "Seleccionar fabricante…",
+    selectModel: "Seleccionar modelo…",
+    customName: "Nombre personalizado (opcional)",
+    apply: "Aplicar",
+    clear: "Limpiar",
+    notAvailable: "Modelo no disponible todavía. Puedes continuar usando un perfil genérico.",
+    useGeneric: "Usar perfil genérico",
+    adaptedChecklist: "La checklist se adapta según el tipo de aeronave seleccionada.",
   },
   footer: {
     attributions: "Open-Meteo · OpenStreetMap · VATSIM METAR · SunCalc",

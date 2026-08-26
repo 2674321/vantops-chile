@@ -79,12 +79,44 @@ describe("getDefaultChecklist", () => {
     expect(secItems.some((i) => i.id === "seg-emergencia")).toBe(true);
     expect(secItems.some((i) => i.id === "seg-mirador")).toBe(true);
   });
+
+  it("every item has a kind field", () => {
+    const items = getDefaultChecklist();
+    expect(items.every((i) => ["REGULATORY", "OPERATIONAL", "GOOD_PRACTICE"].includes(i.kind))).toBe(true);
+  });
+
+  it("regulatory items have regulatoryReference", () => {
+    const items = getDefaultChecklist();
+    const regItems = items.filter((i) => i.kind === "REGULATORY");
+    expect(regItems.length).toBeGreaterThan(0);
+    expect(regItems.every((i) => i.regulatoryReference != null)).toBe(true);
+  });
+
+  it("regulatory references have required fields", () => {
+    const items = getDefaultChecklist();
+    const withRef = items.filter((i) => i.regulatoryReference);
+    for (const item of withRef) {
+      const ref = item.regulatoryReference;
+      expect(ref?.document).toBeTruthy();
+      expect(ref?.sourceUrl).toBeTruthy();
+      expect(ref?.status).toMatch(/^(verified|needs-review|historical)$/);
+    }
+  });
+
+  it("no item has 400 ft AGL as universal limit", () => {
+    const items = getDefaultChecklist();
+    const absoluteItems = items.filter(
+      (i) => i.description?.includes("max 400 ft") || i.title.includes("max 400 ft")
+    );
+    expect(absoluteItems.length).toBe(0);
+  });
 });
 
 describe("isApplicable", () => {
   const multirotorItem: ChecklistItem = {
     id: "test-multi",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Test multirotor",
     required: true,
     applicability: { aircraftTypes: ["MULTIROTOR"] },
@@ -93,6 +125,7 @@ describe("isApplicable", () => {
   const fixedWingItem: ChecklistItem = {
     id: "test-fixed",
     category: "AERONAVE",
+    kind: "OPERATIONAL",
     title: "Test fixed wing",
     required: true,
     applicability: { aircraftTypes: ["FIXED_WING", "VTOL"] },
@@ -101,6 +134,7 @@ describe("isApplicable", () => {
   const universalItem: ChecklistItem = {
     id: "test-universal",
     category: "DOCUMENTACION",
+    kind: "OPERATIONAL",
     title: "Test universal",
     required: true,
   };
