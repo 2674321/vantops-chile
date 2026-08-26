@@ -13,7 +13,7 @@ export class ObservationError extends Error {
 }
 
 function parseObsTimeFromRaw(raw: string): string {
-  const dayHourMatch = raw.match(/\b(\d{2})(\d{2})Z\b/);
+  const dayHourMatch = raw.match(/\b(\d{2})(\d{2})(\d{2})Z\b/);
   if (!dayHourMatch) return "";
   const day = Number.parseInt(dayHourMatch[1], 10);
   const hour = Number.parseInt(dayHourMatch[2], 10);

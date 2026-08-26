@@ -75,4 +75,10 @@ describe("decodeMetar", () => {
     expect(m.tempC).toBe(-5);
     expect(m.dewC).toBe(-8);
   });
+
+  it("parses visibility with variable wind direction", () => {
+    const m = decodeMetar("METAR SCEL 261600Z 32005KT 290V010 8000 -SHRA FEW007 SCT040 OVC090 12/11 Q1014");
+    expect(m.visibilityM).toBe(8000);
+    expect(m.visibilityLabel).toBe("8000 m");
+  });
 });

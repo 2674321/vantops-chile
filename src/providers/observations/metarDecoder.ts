@@ -29,7 +29,7 @@ function parseMetersOrCavok(
   const afterWind = text.slice(
     (windMatch.index ?? 0) + windMatch[0].length
   );
-  const visMatch = afterWind.match(/^ (\d{4}) /);
+  const visMatch = afterWind.match(/\b(\d{4})\b/);
   if (visMatch) {
     const val = Number.parseInt(visMatch[1], 10);
     if (val === 9999) return { meters: 10_000, label: "≥10 km" };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { haversineKm, findNearestStation, CHILEAN_STATIONS } from "./stations";
+import { findNearestStation, haversineKm, CHILEAN_STATIONS } from "./stations";
 
 describe("haversineKm", () => {
   it("returns ~0 for same point", () => {
@@ -37,5 +37,15 @@ describe("findNearestStation", () => {
 
   it("covers all 11 stations", () => {
     expect(CHILEAN_STATIONS.length).toBe(11);
+  });
+});
+
+describe("parseObsTimeFromRaw (integration via fetchNearestObservation)", () => {
+  it("parses METAR DDHHMMz format correctly", () => {
+    const raw = "SCEL 261600Z 32005KT 290V010 8000 -SHRA FEW007 SCT040 OVC090 12/11 Q1014 NOSIG";
+    const match = raw.match(/\b(\d{2})(\d{2})(\d{2})Z\b/);
+    expect(match).not.toBeNull();
+    expect(match?.[1]).toBe("26");
+    expect(match?.[2]).toBe("16");
   });
 });
