@@ -1,4 +1,5 @@
 import type { ChecklistItem, ChecklistCategory } from "./types";
+import type { AircraftType } from "../assessment/aircraft";
 
 export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
@@ -38,6 +39,14 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
     category: "AERONAVE",
     title: "Hélices revisadas",
     required: true,
+    applicability: { aircraftTypes: ["MULTIROTOR", "HELICOPTER"] },
+  },
+  {
+    id: "aero-motores",
+    category: "AERONAVE",
+    title: "Motores revisados",
+    required: true,
+    applicability: { aircraftTypes: ["MULTIROTOR"] },
   },
   {
     id: "aero-estructura",
@@ -56,6 +65,63 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
     category: "AERONAVE",
     title: "RTH configurado",
     required: true,
+    applicability: { aircraftTypes: ["MULTIROTOR"] },
+  },
+  {
+    id: "aero-superficies",
+    category: "AERONAVE",
+    title: "Superficies de control revisadas",
+    required: true,
+    applicability: { aircraftTypes: ["FIXED_WING", "VTOL"] },
+  },
+  {
+    id: "aero-propulsion",
+    category: "AERONAVE",
+    title: "Propulsión revisada",
+    required: true,
+    applicability: { aircraftTypes: ["FIXED_WING"] },
+  },
+  {
+    id: "aero-lanzamiento",
+    category: "AERONAVE",
+    title: "Sistema de lanzamiento preparado",
+    required: true,
+    applicability: { aircraftTypes: ["FIXED_WING"] },
+  },
+  {
+    id: "aero-recuperacion",
+    category: "AERONAVE",
+    title: "Sistema de recuperación preparado",
+    required: true,
+    applicability: { aircraftTypes: ["FIXED_WING"] },
+  },
+  {
+    id: "aero-vertical",
+    category: "AERONAVE",
+    title: "Sistema de vuelo vertical revisado",
+    required: true,
+    applicability: { aircraftTypes: ["VTOL"] },
+  },
+  {
+    id: "aero-transicion",
+    category: "AERONAVE",
+    title: "Transición vertical/crucero verificada",
+    required: true,
+    applicability: { aircraftTypes: ["VTOL"] },
+  },
+  {
+    id: "aero-rotor",
+    category: "AERONAVE",
+    title: "Rotor principal revisado",
+    required: true,
+    applicability: { aircraftTypes: ["HELICOPTER"] },
+  },
+  {
+    id: "aero-colaptil",
+    category: "AERONAVE",
+    title: "Colaptil revisado",
+    required: true,
+    applicability: { aircraftTypes: ["HELICOPTER"] },
   },
   {
     id: "bat-cargada",
@@ -189,3 +255,13 @@ export const CONTEXTUAL_ITEMS: ChecklistItem[] = [
     context: { lowVisibility: true },
   },
 ];
+
+export function isApplicable(
+  item: ChecklistItem,
+  aircraftType?: AircraftType
+): boolean {
+  if (!item.applicability) return true;
+  if (!item.applicability.aircraftTypes) return true;
+  if (!aircraftType) return true;
+  return item.applicability.aircraftTypes.includes(aircraftType);
+}

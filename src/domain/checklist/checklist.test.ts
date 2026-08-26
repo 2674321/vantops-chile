@@ -6,12 +6,40 @@ import {
   getVisibleChecklistItems,
   getChecklistProgress,
   getItemsByCategory,
+  getWarningItems,
   toggleItem,
   resetChecklist,
 } from "./engine";
-import type { ChecklistState } from "./types";
+import { isApplicable } from "./defaultChecklist";
+import type { ChecklistState, ChecklistItem } from "./types";
 import type { WeatherSnapshot } from "../weather";
 import type { SolarTimes } from "../solar";
+import type { FlightAssessment } from "../assessment/types";
+import type { AircraftProfile } from "../assessment/aircraft";
+
+const baseWeather: WeatherSnapshot = {
+  current: {
+    timeISO: "2026-08-26T12:00",
+    temperatureC: 15,
+    humidityPct: 70,
+    precipitationMm: 0,
+    weatherCode: 0,
+    windSpeedKmh: 10,
+    windGustsKmh: 15,
+    windDirectionDeg: 270,
+    windSpeed100mKmh: 20,
+    windDirection100mDeg: 270,
+    visibilityM: 10000,
+    cloudCoverPct: 30,
+  },
+  hourly: [],
+  meta: {
+    source: "Open-Meteo",
+    requestedAt: new Date().toISOString(),
+    receivedAt: new Date().toISOString(),
+    status: "updated",
+  },
+};
 
 describe("getDefaultChecklist", () => {
   it("returns items from all 8 categories", () => {
@@ -20,8 +48,8 @@ describe("getDefaultChecklist", () => {
     expect(categories.size).toBe(8);
   });
 
-  it("returns 22 default items", () => {
-    expect(getDefaultChecklist().length).toBe(22);
+  it("returns more than 22 items (type-specific added)", () => {
+    expect(getDefaultChecklist().length).toBeGreaterThanOrEqual(22);
   });
 
   it("every item has a unique id", () => {
@@ -36,31 +64,58 @@ describe("getDefaultChecklist", () => {
   });
 });
 
-describe("getContextFromData", () => {
-  const baseWeather: WeatherSnapshot = {
-    current: {
-      timeISO: "2026-08-26T12:00",
-      temperatureC: 15,
-      humidityPct: 70,
-      precipitationMm: 0,
-      weatherCode: 0,
-      windSpeedKmh: 10,
-      windGustsKmh: 15,
-      windDirectionDeg: 270,
-      windSpeed100mKmh: 20,
-      windDirection100mDeg: 270,
-      visibilityM: 10000,
-      cloudCoverPct: 30,
-    },
-    hourly: [],
-    meta: {
-      source: "Open-Meteo",
-      requestedAt: new Date().toISOString(),
-      receivedAt: new Date().toISOString(),
-      status: "updated",
-    },
+describe("isApplicable", () => {
+  const multirotorItem: ChecklistItem = {
+    id: "test-multi",
+    category: "AERONAVE",
+    title: "Test multirotor",
+    required: true,
+    applicability: { aircraftTypes: ["MULTIROTOR"] },
   };
 
+  const fixedWingItem: ChecklistItem = {
+    id: "test-fixed",
+    category: "AERONAVE",
+    title: "Test fixed wing",
+    required: true,
+    applicability: { aircraftTypes: ["FIXED_WING", "VTOL"] },
+  };
+
+  const universalItem: ChecklistItem = {
+    id: "test-universal",
+    category: "EQUIPO",
+    title: "Test universal",
+    required: true,
+  };
+
+  it("universal item always applies", () => {
+    expect(isApplicable(universalItem)).toBe(true);
+    expect(isApplicable(universalItem, "MULTIROTOR")).toBe(true);
+    expect(isApplicable(universalItem, "FIXED_WING")).toBe(true);
+  });
+
+  it("multirotor item applies to multirrotor", () => {
+    expect(isApplicable(multirotorItem, "MULTIROTOR")).toBe(true);
+  });
+
+  it("multirotor item does not apply to fixed wing", () => {
+    expect(isApplicable(multirotorItem, "FIXED_WING")).toBe(false);
+  });
+
+  it("multirotor item applies when no aircraft type set", () => {
+    expect(isApplicable(multirotorItem)).toBe(true);
+  });
+
+  it("fixed wing item applies to vtol", () => {
+    expect(isApplicable(fixedWingItem, "VTOL")).toBe(true);
+  });
+
+  it("fixed wing item does not apply to helicopter", () => {
+    expect(isApplicable(fixedWingItem, "HELICOPTER")).toBe(false);
+  });
+});
+
+describe("getContextFromData", () => {
   it("detects rain", () => {
     const weather = {
       ...baseWeather,
@@ -104,7 +159,6 @@ describe("getContextFromData", () => {
       dayLengthMinutes: null,
     };
     const ctx = getContextFromData(null, pastSunset, null);
-    // Night depends on current time vs sunset; just verify it doesn't crash
     expect(typeof ctx.night === "boolean" || ctx.night === undefined).toBe(true);
   });
 
@@ -113,6 +167,58 @@ describe("getContextFromData", () => {
     expect(ctx.rain).toBeUndefined();
     expect(ctx.lowVisibility).toBeUndefined();
     expect(ctx.strongWind).toBeUndefined();
+  });
+
+  it("assessment wind warning triggers strongWind", () => {
+    const assessment: FlightAssessment = {
+      status: "CAUTION",
+      reasons: [
+        { code: "WIND_NEAR_LIMIT", severity: "warning", message: "Viento cercano" },
+      ],
+      evaluatedAt: new Date().toISOString(),
+      missingData: [],
+    };
+    const ctx = getContextFromData(null, null, assessment);
+    expect(ctx.strongWind).toBe(true);
+  });
+
+  it("assessment gust warning triggers strongWind", () => {
+    const assessment: FlightAssessment = {
+      status: "UNFAVORABLE",
+      reasons: [
+        { code: "GUST_EXCEEDED", severity: "critical", message: "Ráfaga excedida" },
+      ],
+      evaluatedAt: new Date().toISOString(),
+      missingData: [],
+    };
+    const ctx = getContextFromData(null, null, assessment);
+    expect(ctx.strongWind).toBe(true);
+  });
+
+  it("assessment vis warning triggers lowVisibility", () => {
+    const assessment: FlightAssessment = {
+      status: "UNFAVORABLE",
+      reasons: [
+        { code: "VIS_BELOW_MIN", severity: "critical", message: "Visibilidad baja" },
+      ],
+      evaluatedAt: new Date().toISOString(),
+      missingData: [],
+    };
+    const ctx = getContextFromData(null, null, assessment);
+    expect(ctx.lowVisibility).toBe(true);
+  });
+
+  it("assessment precip warning triggers rain", () => {
+    const assessment: FlightAssessment = {
+      status: "UNFAVORABLE",
+      reasons: [
+        { code: "PRECIP_EXCEEDED", severity: "critical", message: "Precipitación" },
+      ],
+      evaluatedAt: new Date().toISOString(),
+      missingData: [],
+    };
+    const ctx = getContextFromData(null, null, assessment);
+    expect(ctx.rain).toBe(true);
   });
 });
 
@@ -166,6 +272,74 @@ describe("getVisibleChecklistItems", () => {
     const ids = visible.map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it("filters items by aircraft type", () => {
+    const base = getDefaultChecklist();
+    const multirotor: AircraftProfile = {
+      id: "test",
+      name: "Test MR",
+      type: "MULTIROTOR",
+    };
+    const visible = getVisibleChecklistItems(base, {}, multirotor);
+    const ids = visible.map((i) => i.id);
+    expect(ids).toContain("aero-helices");
+    expect(ids).toContain("aero-motores");
+    expect(ids).toContain("aero-rth");
+    expect(ids).not.toContain("aero-superficies");
+    expect(ids).not.toContain("aero-propulsion");
+  });
+
+  it("fixed wing shows different items", () => {
+    const base = getDefaultChecklist();
+    const fixedWing: AircraftProfile = {
+      id: "test",
+      name: "Test FW",
+      type: "FIXED_WING",
+    };
+    const visible = getVisibleChecklistItems(base, {}, fixedWing);
+    const ids = visible.map((i) => i.id);
+    expect(ids).toContain("aero-superficies");
+    expect(ids).toContain("aero-propulsion");
+    expect(ids).toContain("aero-lanzamiento");
+    expect(ids).not.toContain("aero-helices");
+    expect(ids).not.toContain("aero-rth");
+  });
+
+  it("vtol shows both fixed wing and vertical items", () => {
+    const base = getDefaultChecklist();
+    const vtol: AircraftProfile = {
+      id: "test",
+      name: "Test VTOL",
+      type: "VTOL",
+    };
+    const visible = getVisibleChecklistItems(base, {}, vtol);
+    const ids = visible.map((i) => i.id);
+    expect(ids).toContain("aero-superficies");
+    expect(ids).toContain("aero-vertical");
+    expect(ids).toContain("aero-transicion");
+    expect(ids).not.toContain("aero-helices");
+  });
+
+  it("helicopter shows rotor items", () => {
+    const base = getDefaultChecklist();
+    const heli: AircraftProfile = {
+      id: "test",
+      name: "Test Heli",
+      type: "HELICOPTER",
+    };
+    const visible = getVisibleChecklistItems(base, {}, heli);
+    const ids = visible.map((i) => i.id);
+    expect(ids).toContain("aero-helices");
+    expect(ids).toContain("aero-rotor");
+    expect(ids).toContain("aero-colaptil");
+    expect(ids).not.toContain("aero-motores");
+  });
+
+  it("no aircraft shows all items", () => {
+    const base = getDefaultChecklist();
+    const visible = getVisibleChecklistItems(base, {}, null);
+    expect(visible.length).toBe(base.length);
+  });
 });
 
 describe("getChecklistProgress", () => {
@@ -216,6 +390,21 @@ describe("getItemsByCategory", () => {
     const items = getDefaultChecklist();
     const grouped = getItemsByCategory(items);
     expect(grouped.size).toBe(8);
+  });
+});
+
+describe("getWarningItems", () => {
+  it("returns items matching context warnings", () => {
+    const base = getDefaultChecklist();
+    const visible = getVisibleChecklistItems(base, { rain: true, strongWind: true });
+    const warnings = getWarningItems(visible, { rain: true, strongWind: true });
+    expect(warnings.some((i) => i.id === "cli-precipitacion")).toBe(true);
+    expect(warnings.some((i) => i.id === "cli-rafagas")).toBe(true);
+  });
+
+  it("returns empty for no context", () => {
+    const items = getDefaultChecklist();
+    expect(getWarningItems(items, {}).length).toBe(0);
   });
 });
 

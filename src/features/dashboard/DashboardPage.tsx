@@ -15,13 +15,14 @@ import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { useMemo } from "react";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
-import { loadFlightLimits } from "../../storage/settings";
+import { loadFlightLimits, loadActiveAircraft } from "../../storage/settings";
 import { esCL as t } from "../../i18n/es-CL";
 
 export default function DashboardPage() {
   const { coordinate, saveCoordinate } = useLastCoordinate();
   const [manualLat, setManualLat] = useState("");
   const [manualLon, setManualLon] = useState("");
+  const [aircraft] = useState(() => loadActiveAircraft());
   const queryClient = useQueryClient();
 
   const weatherQuery = useQuery({
@@ -225,6 +226,7 @@ export default function DashboardPage() {
             weather={weatherQuery.data ?? null}
             solar={solarTimes}
             assessment={assessment}
+            aircraft={aircraft}
           />
         </section>
       )}

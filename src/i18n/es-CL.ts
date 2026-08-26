@@ -44,6 +44,9 @@ export const esCL = {
     title: "Acerca de VantOPS Chile",
     whatIs:
       "Herramienta gratuita de apoyo para pilotos de RPAS/drones: consulta condiciones reales antes de volar y lleva tu bitácora local. Sin cuentas, sin rastreo.",
+    normativeTitle: "Normativa y fuentes oficiales",
+    normativeDescription:
+      "VantOPS utiliza referencias oficiales para apoyar la planificación. La normativa vigente debe consultarse directamente en la fuente oficial DGAC.",
     disclaimerTitle: "Aviso importante",
     disclaimer:
       "VantOPS es una herramienta de apoyo a la planificación. No sustituye la normativa vigente, las publicaciones aeronáuticas, permisos, autorizaciones ni las instrucciones de las autoridades competentes (DGAC). El piloto es responsable de operar conforme a la normativa vigente.",

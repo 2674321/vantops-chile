@@ -1,3 +1,5 @@
+import type { AircraftType } from "../assessment/aircraft";
+
 export type ChecklistCategory =
   | "DOCUMENTACION"
   | "EQUIPO"
@@ -7,6 +9,10 @@ export type ChecklistCategory =
   | "CLIMA"
   | "OPERACION"
   | "POST_VUELO";
+
+export interface ChecklistApplicability {
+  aircraftTypes?: AircraftType[];
+}
 
 export interface ChecklistContext {
   rain?: boolean;
@@ -21,6 +27,7 @@ export interface ChecklistItem {
   title: string;
   description?: string;
   required: boolean;
+  applicability?: ChecklistApplicability;
   context?: ChecklistContext;
 }
 

@@ -32,9 +32,23 @@ export function AboutPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>{t.about.normativeTitle}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-slate-300">
+          <p>{t.about.normativeDescription}</p>
+          <p>
+            <ExternalLink href="https://www.dgac.gob.cl/normativa/reglamentacion-aeronautica/normas-dan-nueva/">
+              Abrir normativa DGAC ↗
+            </ExternalLink>
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{t.about.disclaimerTitle}</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-warn/90">{t.about.disclaimer}</CardContent>
+        <CardContent className="text-sm text-amber-300/80">{t.about.disclaimer}</CardContent>
       </Card>
 
       <Card>

@@ -113,15 +113,20 @@ La UI nunca depende del JSON crudo de APIs externas.
 
 ## Fase 3 — R0.4 Checklist (completada)
 
-- **Checklist prevuelo interactiva**: 22 items en 8 categorías (Documentación, Equipo, Aeronave, Batería, Entorno, Clima, Operación, Post-vuelo)
+- **Checklist prevuelo interactiva**: 31 items en 8 categorías (Documentación, Equipo, Aeronave, Batería, Entorno, Clima, Operación, Post-vuelo)
 - **Checklist engine**: funciones puras para progreso, visibilidad, contexto, toggle, reset
 - **Items contextuales**: se muestran automáticamente según condiciones (lluvia, viento fuerte, baja visibilidad, operación nocturna)
-- **Integración con Assessment**: el estado del assessment alimenta el contexto del checklist
+- **Items por tipo de aeronave**: multirrotor, ala fija, VTOL, helicóptero — items específicos se filtran automáticamente
+- **ChecklistApplicability**: modelo de aplicabilidad por tipo de aeronave
+- **Integración con Assessment**: el estado del assessment alimenta el contexto del checklist (warnings → items destacados)
+- **Priorización visual**: items de alerta aparecen destacados en la sección "Revisiones importantes"
 - **Persistencia**: estado del checklist guardado en localStorage, sobrevive recarga de página
 - **Reset con confirmación**: permite reiniciar sin afectar aeronave, límites ni ubicación
 - **Progreso visual**: barra de progreso + porcentaje + indicadores de obligatorios restantes
 - **Funcionamiento offline**: checklist opera sin conexión, sin depender de APIs externas
-- **116 tests** pasando (+36 nuevos: engine 28, persistence 8)
+- **Referencias normativas DGAC**: `references/normativa-dgac/` con README e INDEX para desarrollo
+- **About page**: sección "Normativa y fuentes oficiales" con enlace a DGAC
+- **142 tests** pasando (+26 nuevos: applicability 6, assessment-context 4, aircraft-type 6, warning 2, settings 9)
 
 ## Fuentes de datos
 
@@ -140,6 +145,13 @@ La UI nunca depende del JSON crudo de APIs externas.
 - No sustituye permisos, AIS, DGAC ni normativa vigente
 - Los límites de evaluación son por defecto vacíos; el piloto debe configurar sus propios parámetros
 - El checklist es una guía de verificación personal, no constituye certificación ni cumplimiento normativo
+- Las referencias normativas en `references/` son material de desarrollo, no normativa vigente
+
+## Normativa oficial
+
+https://www.dgac.gob.cl/normativa/reglamentacion-aeronautica/normas-dan-nueva/
+
+Las referencias normativas almacenadas en `references/normativa-dgac/` son material de desarrollo y no sustituyen la documentación oficial vigente.
 
 ## Privacidad
 

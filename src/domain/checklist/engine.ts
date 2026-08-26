@@ -5,10 +5,11 @@ import type {
   ChecklistContext,
   ChecklistCategory,
 } from "./types";
-import { DEFAULT_CHECKLIST, CONTEXTUAL_ITEMS } from "./defaultChecklist";
+import { DEFAULT_CHECKLIST, CONTEXTUAL_ITEMS, isApplicable } from "./defaultChecklist";
 import type { WeatherSnapshot } from "../weather";
 import type { SolarTimes } from "../solar";
 import type { FlightAssessment } from "../assessment/types";
+import type { AircraftProfile } from "../assessment/aircraft";
 
 export function getDefaultChecklist(): ChecklistItem[] {
   return [...DEFAULT_CHECKLIST];
@@ -17,7 +18,7 @@ export function getDefaultChecklist(): ChecklistItem[] {
 export function getContextFromData(
   weather: WeatherSnapshot | null,
   solar: SolarTimes | null,
-  _assessment: FlightAssessment | null
+  assessment: FlightAssessment | null
 ): ChecklistContext {
   const ctx: ChecklistContext = {};
 
@@ -31,6 +32,26 @@ export function getContextFromData(
   if (solar?.sunrise && solar?.sunset) {
     const now = new Date();
     if (now < solar.sunrise || now > solar.sunset) ctx.night = true;
+  }
+
+  if (assessment) {
+    const hasWindWarning = assessment.reasons.some(
+      (r) => r.code.startsWith("WIND") && r.severity !== "info"
+    );
+    const hasGustWarning = assessment.reasons.some(
+      (r) => r.code.startsWith("GUST") && r.severity !== "info"
+    );
+    if (hasWindWarning || hasGustWarning) ctx.strongWind = true;
+
+    const hasVisWarning = assessment.reasons.some(
+      (r) => r.code.startsWith("VIS") && r.severity !== "info"
+    );
+    if (hasVisWarning) ctx.lowVisibility = true;
+
+    const hasPrecipWarning = assessment.reasons.some(
+      (r) => r.code.startsWith("PRECIP") && r.severity !== "info"
+    );
+    if (hasPrecipWarning) ctx.rain = true;
   }
 
   return ctx;
@@ -49,12 +70,15 @@ export function getContextualItems(context: ChecklistContext): ChecklistItem[] {
 
 export function getVisibleChecklistItems(
   base: ChecklistItem[],
-  context: ChecklistContext
+  context: ChecklistContext,
+  aircraft?: AircraftProfile | null
 ): ChecklistItem[] {
+  const aircraftType = aircraft?.type;
+  const filtered = base.filter((item) => isApplicable(item, aircraftType));
   const contextual = getContextualItems(context);
-  const allIds = new Set(base.map((i) => i.id));
+  const allIds = new Set(filtered.map((i) => i.id));
   const extras = contextual.filter((i) => !allIds.has(i.id));
-  return [...base, ...extras];
+  return [...filtered, ...extras];
 }
 
 export function getChecklistProgress(
@@ -84,6 +108,19 @@ export function getItemsByCategory(
     map.set(item.category, list);
   }
   return map;
+}
+
+export function getWarningItems(
+  items: ChecklistItem[],
+  context: ChecklistContext
+): ChecklistItem[] {
+  return items.filter((item) => {
+    if (item.context?.rain && context.rain) return true;
+    if (item.context?.strongWind && context.strongWind) return true;
+    if (item.context?.lowVisibility && context.lowVisibility) return true;
+    if (item.context?.night && context.night) return true;
+    return false;
+  });
 }
 
 export function toggleItem(
