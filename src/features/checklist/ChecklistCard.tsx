@@ -141,11 +141,12 @@ export function ChecklistCard({ weather, solar, assessment, aircraft }: Checklis
                         : "bg-amber-950/40 text-amber-300 hover:bg-amber-900/40"
                     }`}
                     aria-checked={checked}
+                    // biome-ignore lint/a11y/useSemanticElements: button with aria-checked for custom styled checkbox
                     role="checkbox"
                   >
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-amber-600">
                       {checked && (
-                        <svg className="h-3.5 w-3.5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-3.5 w-3.5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -193,11 +194,12 @@ export function ChecklistCard({ weather, solar, assessment, aircraft }: Checklis
                               : "bg-slate-800 text-slate-200 hover:bg-slate-700"
                           }`}
                           aria-checked={checked}
+                          // biome-ignore lint/a11y/useSemanticElements: button with aria-checked for custom styled checkbox
                           role="checkbox"
                         >
                           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-600">
                             {checked && (
-                              <svg className="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                              <svg className="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                               </svg>
                             )}

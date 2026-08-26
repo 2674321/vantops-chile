@@ -74,9 +74,9 @@ describe("aircraft profile persistence", () => {
     saveActiveAircraft(aircraft);
     const loaded = loadActiveAircraft();
     expect(loaded).not.toBeNull();
-    expect(loaded!.id).toBe("dji-mini");
-    expect(loaded!.name).toBe("DJI Mini 4 Pro");
-    expect(loaded!.type).toBe("MULTIROTOR");
+    expect(loaded?.id).toBe("dji-mini");
+    expect(loaded?.name).toBe("DJI Mini 4 Pro");
+    expect(loaded?.type).toBe("MULTIROTOR");
   });
 
   it("rejects invalid shape", () => {

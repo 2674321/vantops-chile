@@ -24,8 +24,8 @@ describe("isValidLatitude", () => {
     expect(isValidLatitude(91)).toBe(false);
   });
   it("rejects non-finite", () => {
-    expect(isValidLatitude(NaN)).toBe(false);
-    expect(isValidLatitude(Infinity)).toBe(false);
+    expect(isValidLatitude(Number.NaN)).toBe(false);
+    expect(isValidLatitude(Number.POSITIVE_INFINITY)).toBe(false);
   });
 });
 
@@ -131,10 +131,10 @@ describe("regression: negative sign preservation", () => {
 
     const deserialized = deserializeCoordinate(serialized);
     expect(deserialized).not.toBeNull();
-    expect(deserialized!.latitude).toBe(-33.4521);
-    expect(deserialized!.longitude).toBe(-70.6536);
+    expect(deserialized?.latitude).toBe(-33.4521);
+    expect(deserialized?.longitude).toBe(-70.6536);
 
-    const formatted = formatCoordinate(deserialized!);
+    const formatted = formatCoordinate(deserialized ?? { latitude: 0, longitude: 0 });
     expect(formatted).toBe("-33.45210, -70.65360");
   });
 
@@ -142,15 +142,15 @@ describe("regression: negative sign preservation", () => {
     const coord: Coordinate = { latitude: 33.4521, longitude: 70.6536 };
     const serialized = serializeCoordinate(coord);
     const deserialized = deserializeCoordinate(serialized);
-    expect(deserialized!.latitude).toBe(33.4521);
-    expect(deserialized!.longitude).toBe(70.6536);
+    expect(deserialized?.latitude).toBe(33.4521);
+    expect(deserialized?.longitude).toBe(70.6536);
   });
 
   it("Arica coordinates (extreme north Chile)", () => {
     const arica: Coordinate = { latitude: -18.35, longitude: -70.33 };
     const serialized = serializeCoordinate(arica);
     const deserialized = deserializeCoordinate(serialized);
-    expect(deserialized!.latitude).toBe(-18.35);
-    expect(deserialized!.longitude).toBe(-70.33);
+    expect(deserialized?.latitude).toBe(-18.35);
+    expect(deserialized?.longitude).toBe(-70.33);
   });
 });
