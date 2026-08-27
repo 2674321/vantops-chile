@@ -524,3 +524,49 @@ describe("resetChecklist", () => {
     expect(resetChecklist()).toEqual([]);
   });
 });
+
+describe("ChecklistItem comment field", () => {
+  it("METAR item has comment", () => {
+    const items = getDefaultChecklist();
+    const metar = items.find((i) => i.id === "norm-metar");
+    expect(metar?.comment).toBeTruthy();
+  });
+
+  it("norm-credencial has comment", () => {
+    const items = getDefaultChecklist();
+    const cred = items.find((i) => i.id === "norm-credencial");
+    expect(cred?.comment).toBeTruthy();
+  });
+
+  it("norm-seguro has comment", () => {
+    const items = getDefaultChecklist();
+    const seg = items.find((i) => i.id === "norm-seguro");
+    expect(seg?.comment).toBeTruthy();
+  });
+
+  it("norm-airspace has comment", () => {
+    const items = getDefaultChecklist();
+    const air = items.find((i) => i.id === "norm-airspace");
+    expect(air?.comment).toBeTruthy();
+  });
+
+  it("norm-populated has comment", () => {
+    const items = getDefaultChecklist();
+    const pop = items.find((i) => i.id === "norm-populated");
+    expect(pop?.comment).toBeTruthy();
+  });
+});
+
+describe("ChecklistItem ifisUrl field", () => {
+  it("METAR item has ifisUrl", () => {
+    const items = getDefaultChecklist();
+    const metar = items.find((i) => i.id === "norm-metar");
+    expect(metar?.ifisUrl).toBe("https://aipchile.dgac.gob.cl");
+  });
+
+  it("items without IFIS have no ifisUrl", () => {
+    const items = getDefaultChecklist();
+    const normCred = items.find((i) => i.id === "norm-credencial");
+    expect(normCred?.ifisUrl).toBeUndefined();
+  });
+});

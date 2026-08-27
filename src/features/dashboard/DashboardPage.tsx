@@ -18,6 +18,7 @@ import { evaluateFlight } from "../../domain/assessment/evaluator";
 import { applyAircraftLimits } from "../../domain/assessment/aircraft";
 import type { AircraftProfile } from "../../domain/assessment/aircraft";
 import { loadFlightLimits, loadActiveAircraft } from "../../storage/settings";
+import { fetchNearestObservation } from "../../providers/observations/noaaObservation";
 import { esCL as t } from "../../i18n/es-CL";
 
 export default function DashboardPage() {
@@ -47,6 +48,16 @@ export default function DashboardPage() {
         : null,
     [coordinate]
   );
+
+  const metarQuery = useQuery({
+    queryKey: ["metar-icao", coordinate?.latitude, coordinate?.longitude],
+    queryFn: () => fetchNearestObservation(coordinate?.latitude ?? 0, coordinate?.longitude ?? 0),
+    enabled: coordinate !== null,
+    staleTime: 30 * 60_000,
+    retry: 1,
+  });
+
+  const stationIcao = metarQuery.data?.stationIcao;
 
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
@@ -236,6 +247,7 @@ export default function DashboardPage() {
             solar={solarTimes}
             assessment={assessment}
             aircraft={aircraft}
+            stationIcao={stationIcao}
           />
         </section>
       )}

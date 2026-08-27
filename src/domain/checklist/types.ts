@@ -42,10 +42,12 @@ export interface ChecklistItem {
   kind: ChecklistKind;
   title: string;
   description?: string;
+  comment?: string;
   required: boolean;
   applicability?: ChecklistApplicability;
   context?: ChecklistContext;
   regulatoryReference?: RegulatoryReference;
+  ifisUrl?: string;
 }
 
 export interface ChecklistState {

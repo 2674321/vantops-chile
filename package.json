@@ -1,7 +1,7 @@
 {
   "name": "vantops-chile",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "description": "PWA gratuita de planificación y bitácora para pilotos RPAS — datos reales, privacidad primero",
   "license": "MIT",

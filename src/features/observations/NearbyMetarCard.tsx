@@ -4,6 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/ca
 import { DataSourceBadge, windDirectionLabel } from "../weather/WeatherPanel";
 import { Radio } from "lucide-react";
 import { minutesSince } from "../../domain/sourceMeta";
+import { esCL as t } from "../../i18n/es-CL";
+
+const IFIS_BASE = "https://aipchile.dgac.gob.cl";
+
+function ifisUrl(icao?: string): string {
+  return icao ? `${IFIS_BASE}/metar/${icao}` : IFIS_BASE;
+}
 
 export function NearbyMetarCard({
   latitude,
@@ -23,16 +30,16 @@ export function NearbyMetarCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Radio className="h-4 w-4 text-sky-400" />
-          Observación METAR cercana
+          {t.metar.title}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading && (
-          <p className="text-sm text-slate-400">Consultando NOAA…</p>
+          <p className="text-sm text-slate-400">{t.metar.consulting}</p>
         )}
         {error && (
           <p className="text-sm text-red-400">
-            Sin datos de observación ({(error as Error).message})
+            {t.metar.noData} ({(error as Error).message})
           </p>
         )}
         {data && !data.observation && (
@@ -104,18 +111,40 @@ export function NearbyMetarCard({
                 </div>
               )}
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              {data.observation.observedAtLocal
-                ? `Obs: ${data.observation.observedAtLocal} local`
-                : ""}
-              {data.observation.observedAtISO
-                ? ` (${data.observation.observedAtISO.slice(11, 16)} UTC)`
-                : ""}
-              {data.observation.observedAtISO
-                ? ` · hace ${minutesSince(data.observation.observedAtISO)} min`
-                : ""}
-            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                {data.observation.observedAtLocal
+                  ? `Obs: ${data.observation.observedAtLocal} local`
+                  : ""}
+                {data.observation.observedAtISO
+                  ? ` (${data.observation.observedAtISO.slice(11, 16)} UTC)`
+                  : ""}
+                {data.observation.observedAtISO
+                  ? ` · hace ${minutesSince(data.observation.observedAtISO)} min`
+                  : ""}
+              </p>
+              <a
+                href={ifisUrl(data.stationIcao)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-sky-500 hover:text-sky-400"
+              >
+                {t.metar.openIfis}
+              </a>
+            </div>
           </>
+        )}
+        {data && !data.observation && (
+          <div className="mt-2">
+            <a
+              href={IFIS_BASE}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-sky-500 hover:text-sky-400"
+            >
+              {t.metar.openIfisGeneral}
+            </a>
+          </div>
         )}
         {data && <DataSourceBadge meta={data.meta} />}
       </CardContent>
