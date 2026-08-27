@@ -1,10 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane } from "lucide-react";
+import { Plane, BookOpen } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { AboutPage } from "../features/about/AboutPage";
 import DashboardPage from "../features/dashboard/DashboardPage";
+import { LogbookPage } from "../features/logbook/LogbookPage";
+import { FlightDetailPage } from "../features/logbook/FlightDetailPage";
+import { FlightForm } from "../features/logbook/FlightForm";
+import { BatteryPage } from "../features/logbook/BatteryPage";
+import { ExportImportPage } from "../features/logbook/ExportImportPage";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 const queryClient = new QueryClient({
@@ -35,18 +40,32 @@ export function App() {
                   <Plane aria-hidden className="h-4 w-4" />
                   {t.appName}
                 </NavLink>
-                <NavLink to="/acerca" className={navLinkClass}>
-                  {t.nav.about}
-                </NavLink>
+                <div className="flex gap-1">
+                  <NavLink to="/bitacora" className={navLinkClass}>
+                    <BookOpen aria-hidden className="h-4 w-4" />
+                    {t.nav.logbook}
+                  </NavLink>
+                  <NavLink to="/acerca" className={navLinkClass}>
+                    {t.nav.about}
+                  </NavLink>
+                </div>
               </div>
             </nav>
 
             <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/acerca" element={<AboutPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-6">
+                <Routes>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/bitacora" element={<LogbookPage />} />
+                  <Route path="/bitacora/nuevo" element={<FlightForm />} />
+                  <Route path="/bitacora/:id" element={<FlightDetailPage />} />
+                  <Route path="/bitacora/:id/editar" element={<FlightForm />} />
+                  <Route path="/bitacora/baterias" element={<BatteryPage />} />
+                  <Route path="/bitacora/exportar" element={<ExportImportPage />} />
+                  <Route path="/acerca" element={<AboutPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </div>
             </main>
           </div>
         </HashRouter>
