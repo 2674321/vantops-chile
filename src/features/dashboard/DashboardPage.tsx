@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
 import { WeatherPanel, DataSourceBadge } from "../weather/WeatherPanel";
@@ -11,22 +12,38 @@ import { AssessmentCard } from "../assessment/AssessmentCard";
 import { ChecklistCard } from "../checklist/ChecklistCard";
 import { AircraftSelector } from "../aircraft/AircraftSelector";
 import { Button } from "../../components/ui/button";
-import { MapPin, Navigation, MapIcon } from "lucide-react";
+import { MapPin, Navigation, MapIcon, Plane, Battery } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
 import { applyAircraftLimits } from "../../domain/assessment/aircraft";
 import type { AircraftProfile } from "../../domain/assessment/aircraft";
-import { loadFlightLimits, loadActiveAircraft } from "../../storage/settings";
+import { loadActiveAircraft } from "../../storage/settings";
 import { fetchNearestObservation } from "../../providers/observations/noaaObservation";
 import { esCL as t } from "../../i18n/es-CL";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 
 export default function DashboardPage() {
   const { coordinate, saveCoordinate } = useLastCoordinate();
   const [manualLat, setManualLat] = useState("");
   const [manualLon, setManualLon] = useState("");
-  const [aircraft, setAircraft] = useState<AircraftProfile | null>(() => loadActiveAircraft());
+  const [aircraft, setAircraft] = useState<AircraftProfile | null>(null);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
+  const [showRestored, setShowRestored] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadActiveAircraft().then(setAircraft);
+  }, []);
+
+  useEffect(() => {
+    if (online) {
+      setShowRestored(true);
+      const timer = setTimeout(() => setShowRestored(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [online]);
 
   const handleAircraftChange = useCallback((newAircraft: AircraftProfile | null) => {
     setAircraft(newAircraft);
@@ -61,8 +78,7 @@ export default function DashboardPage() {
 
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
-    const baseLimits = loadFlightLimits();
-    const limits = applyAircraftLimits(baseLimits, aircraft ?? undefined);
+    const limits = applyAircraftLimits({}, aircraft ?? undefined);
     return evaluateFlight({
       windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
       gustKmh: weatherQuery.data.current.windGustsKmh,
@@ -107,6 +123,23 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-7 px-5 py-10 sm:px-6">
+      {!online && (
+        <Card>
+          <CardContent className="space-y-1 py-3 text-center">
+            <p className="text-sm font-medium text-amber-300">{t.offline.offline}</p>
+            <p className="text-xs text-slate-400">{t.offline.bannerMessage}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {showRestored && online && (
+        <Card>
+          <CardContent className="py-2 text-center">
+            <p className="text-xs text-emerald-400">{t.offline.restored}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <header className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           {t.appName}
@@ -115,6 +148,26 @@ export default function DashboardPage() {
       </header>
 
       <AircraftSelector onAircraftChange={handleAircraftChange} />
+
+      <Card>
+        <CardContent className="py-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Acciones rápidas</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/bitacora/nuevo")} className="flex flex-col items-center gap-1 py-3">
+              <Plane className="h-4 w-4" />
+              <span className="text-xs">{t.logbook.registerFlight}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/lugares")} className="flex flex-col items-center gap-1 py-3">
+              <MapPin className="h-4 w-4" />
+              <span className="text-xs">{t.places.title}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/bitacora/baterias")} className="flex flex-col items-center gap-1 py-3">
+              <Battery className="h-4 w-4" />
+              <span className="text-xs">{t.battery.title}</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button onClick={handleGeolocation} className="h-12 text-base">

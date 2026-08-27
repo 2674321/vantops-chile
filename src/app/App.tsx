@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane, BookOpen } from "lucide-react";
+import { Plane, BookOpen, MapPin, WifiOff, Wifi } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
@@ -9,8 +9,10 @@ import { LogbookPage } from "../features/logbook/LogbookPage";
 import { FlightDetailPage } from "../features/logbook/FlightDetailPage";
 import { FlightForm } from "../features/logbook/FlightForm";
 import { BatteryPage } from "../features/logbook/BatteryPage";
+import { PlacesPage } from "../features/places/PlacesPage";
 import { ExportImportPage } from "../features/logbook/ExportImportPage";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,14 +42,19 @@ export function App() {
                   <Plane aria-hidden className="h-4 w-4" />
                   {t.appName}
                 </NavLink>
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1">
                   <NavLink to="/bitacora" className={navLinkClass}>
                     <BookOpen aria-hidden className="h-4 w-4" />
                     {t.nav.logbook}
                   </NavLink>
+                  <NavLink to="/lugares" className={navLinkClass}>
+                    <MapPin aria-hidden className="h-4 w-4" />
+                    {t.nav.places}
+                  </NavLink>
                   <NavLink to="/acerca" className={navLinkClass}>
                     {t.nav.about}
                   </NavLink>
+                  <OnlineIndicator />
                 </div>
               </div>
             </nav>
@@ -62,6 +69,7 @@ export function App() {
                   <Route path="/bitacora/:id/editar" element={<FlightForm />} />
                   <Route path="/bitacora/baterias" element={<BatteryPage />} />
                   <Route path="/bitacora/exportar" element={<ExportImportPage />} />
+                  <Route path="/lugares" element={<PlacesPage />} />
                   <Route path="/acerca" element={<AboutPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
@@ -71,5 +79,24 @@ export function App() {
         </HashRouter>
       </ErrorBoundary>
     </QueryClientProvider>
+  );
+}
+
+function OnlineIndicator() {
+  const online = useOnlineStatus();
+  return (
+    <span
+      className="flex items-center gap-1 rounded px-2 py-1 text-xs"
+      title={online ? t.offline.online : t.offline.offline}
+    >
+      {online ? (
+        <Wifi className="h-3 w-3 text-emerald-400" />
+      ) : (
+        <WifiOff className="h-3 w-3 text-red-400" />
+      )}
+      <span className={online ? "text-emerald-400" : "text-red-400"}>
+        {online ? t.offline.online : t.offline.offline}
+      </span>
+    </span>
   );
 }

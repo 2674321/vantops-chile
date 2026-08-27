@@ -114,7 +114,24 @@ export interface BatteryRecord {
   name: string;
   cycleCount: number;
   notes?: string;
+  lastUsedAt?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedPlace {
+  id: string;
+  name: string;
+  coordinate: Coordinate;
+  notes?: string;
+  favorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SettingRecord {
+  id: string;
+  value: string;
   updatedAt: string;
 }
 

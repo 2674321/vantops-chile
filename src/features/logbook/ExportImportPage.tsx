@@ -11,7 +11,7 @@ import { esCL as t } from "../../i18n/es-CL";
 export function ExportImportPage() {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<BackupData | null>(null);
-  const [importResult, setImportResult] = useState<{ flights: number; batteries: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ flights: number; batteries: number; places: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +109,9 @@ export function ExportImportPage() {
               <div className="space-y-1 text-sm text-slate-400">
                 <p>{t.export.flights(preview.flights.length)}</p>
                 <p>{t.export.batteries(preview.batteries.length)}</p>
+                {Array.isArray(preview.places) && preview.places.length > 0 && (
+                  <p>{preview.places.length} lugares</p>
+                )}
                 <p>{t.export.version(preview.appVersion)}</p>
                 <p>{t.export.importedAt(new Date(preview.exportedAt).toLocaleDateString("es-CL"))}</p>
               </div>
@@ -127,6 +130,7 @@ export function ExportImportPage() {
             <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-3">
               <p className="text-sm text-emerald-300">
                 {t.export.importSuccess(importResult.flights, importResult.batteries)}
+                {importResult.places > 0 && ` · ${importResult.places} lugares`}
               </p>
             </div>
           )}

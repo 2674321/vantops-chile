@@ -6,6 +6,8 @@ import {
 import type {
   FlightRecord,
   BatteryRecord,
+  SavedPlace,
+  SettingRecord,
   OperationType,
   FlightIncidentType,
 } from "./types";
@@ -166,6 +168,63 @@ describe("BatteryRecord structure", () => {
       updatedAt: now,
     };
     expect(battery.notes).toBe("Nueva");
+  });
+
+  it("battery with lastUsedAt", () => {
+    const now = new Date().toISOString();
+    const battery: BatteryRecord = {
+      id: "bat-test-3",
+      name: "Batería 3",
+      cycleCount: 5,
+      lastUsedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    expect(battery.lastUsedAt).toBe(now);
+  });
+});
+
+describe("SavedPlace structure", () => {
+  it("can create a valid place", () => {
+    const now = new Date().toISOString();
+    const place: SavedPlace = {
+      id: "place-1",
+      name: "Club de vuelo",
+      coordinate: { latitude: -33.4521, longitude: -70.6536 },
+      createdAt: now,
+      updatedAt: now,
+    };
+    expect(place.name).toBe("Club de vuelo");
+    expect(place.coordinate.latitude).toBe(-33.4521);
+  });
+
+  it("place with optional fields", () => {
+    const now = new Date().toISOString();
+    const place: SavedPlace = {
+      id: "place-2",
+      name: "Casa",
+      coordinate: { latitude: -33.45, longitude: -70.65 },
+      notes: "Dirección principal",
+      favorite: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    expect(place.favorite).toBe(true);
+    expect(place.notes).toBe("Dirección principal");
+  });
+});
+
+describe("SettingRecord structure", () => {
+  it("can create a valid setting", () => {
+    const now = new Date().toISOString();
+    const setting: SettingRecord = {
+      id: "lastCoordinate",
+      value: JSON.stringify({ latitude: -33.4521, longitude: -70.6536 }),
+      updatedAt: now,
+    };
+    expect(setting.id).toBe("lastCoordinate");
+    const coord = JSON.parse(setting.value);
+    expect(coord.latitude).toBe(-33.4521);
   });
 });
 

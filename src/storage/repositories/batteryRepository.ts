@@ -58,3 +58,14 @@ export async function incrementCycles(id: string): Promise<void> {
     });
   }
 }
+
+export async function markBatteryUsed(id: string): Promise<void> {
+  const db = getDB();
+  const battery = await db.batteries.get(id);
+  if (battery) {
+    await db.batteries.update(id, {
+      lastUsedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+}

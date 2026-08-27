@@ -4,6 +4,7 @@ export const esCL = {
   nav: {
     home: "Inicio",
     logbook: "Bitácora",
+    places: "Lugares",
     about: "Acerca",
   },
   dashboard: {
@@ -55,6 +56,11 @@ export const esCL = {
     privacyTitle: "Privacidad",
     privacy:
       "Tus datos se guardan solo en este dispositivo. No usamos analytics ni telemetría. No necesitas crear una cuenta.",
+    offlineTitle: "Funcionamiento sin conexión",
+    offlineDescription:
+      "VantOPS puede funcionar parcialmente sin conexión. Los datos meteorológicos y aeronáuticos en tiempo real requieren conexión a internet.",
+    offlineFunctions:
+      "Disponible offline: bitácora, checklist, baterías, lugares, configuración, cálculo solar, datos previamente almacenados.",
     officialSourcesTitle: "Fuentes oficiales",
     officialSources:
       "Para información aeronáutica oficial consulta el portal IFIS de la DGAC.",
@@ -135,6 +141,7 @@ export const esCL = {
     checklist: "Checklist",
     battery: "Batería",
     batteryOptional: "Batería (opcional)",
+    batteryNotAvailable: "Batería no disponible",
     operationType: "Tipo de operación",
     notes: "Observaciones",
     incidents: "Incidencias",
@@ -164,6 +171,7 @@ export const esCL = {
     noBatteries: "Sin baterías registradas",
     addBattery: "Nueva batería",
     editBattery: "Editar batería",
+    saveChanges: "Guardar cambios",
     deleteBattery: "Eliminar batería",
     deleteConfirm: "¿Eliminar esta batería? Esta acción no se puede deshacer.",
     deleteCancel: "Cancelar",
@@ -171,7 +179,32 @@ export const esCL = {
     cycles: "Ciclos",
     registerCycle: "Registrar ciclo",
     notes: "Notas",
+    lastUsed: "Último uso",
+    neverUsed: "Sin uso registrado",
     createdAt: "Creada",
+  },
+  places: {
+    title: "Mis lugares",
+    noPlaces: "Sin lugares guardados",
+    addPlace: "Nuevo lugar",
+    editPlace: "Editar lugar",
+    savePlace: "Guardar lugar",
+    deletePlace: "Eliminar lugar",
+    deleteConfirm: "¿Eliminar este lugar? Esta acción no se puede deshacer.",
+    deleteCancel: "Cancelar",
+    name: "Nombre",
+    usePlace: "Usar",
+    notes: "Notas",
+    favorite: "Favorito",
+    selectPlace: "Seleccionar lugar…",
+  },
+  offline: {
+    online: "En línea",
+    offline: "Sin conexión",
+    restored: "Conexión restaurada",
+    bannerMessage: "Sin conexión. Las funciones locales siguen disponibles.",
+    localFunctions: "Bitácora, checklist, baterías, lugares, configuración disponibles.",
+    externalRequired: "Los datos meteorológicos en tiempo real requieren conexión.",
   },
   export: {
     title: "Exportar / Importar",

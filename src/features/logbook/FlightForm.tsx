@@ -4,7 +4,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { createFlight, getFlight, updateFlight } from "../../storage/repositories/flightRepository";
-import { listBatteries } from "../../storage/repositories/batteryRepository";
+import { listBatteries, markBatteryUsed } from "../../storage/repositories/batteryRepository";
 import type { FlightRecord, BatteryRecord, OperationType, FlightIncident, FlightIncidentType } from "../../domain/logbook/types";
 import { OPERATION_TYPE_LABELS, INCIDENT_TYPE_LABELS } from "../../domain/logbook/types";
 import { esCL as t } from "../../i18n/es-CL";
@@ -78,9 +78,15 @@ export function FlightForm() {
 
     if (isEdit && id) {
       await updateFlight(id, data);
+      if (batteryId) {
+        markBatteryUsed(batteryId).catch(() => {});
+      }
       navigate(`/bitacora/${id}`);
     } else {
       const flight = await createFlight(data);
+      if (batteryId) {
+        markBatteryUsed(batteryId).catch(() => {});
+      }
       navigate(`/bitacora/${flight.id}`);
     }
   }

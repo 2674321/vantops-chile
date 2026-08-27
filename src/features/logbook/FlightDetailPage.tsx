@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { ArrowLeft, Trash2, Edit, MapPin, Clock, Plane, Cloud, Radio, ClipboardCheck, Battery } from "lucide-react";
 import { getFlight, deleteFlight } from "../../storage/repositories/flightRepository";
-import type { FlightRecord } from "../../domain/logbook/types";
+import { getBattery } from "../../storage/repositories/batteryRepository";
+import type { FlightRecord, BatteryRecord } from "../../domain/logbook/types";
 import { formatCoordinate } from "../../domain/coordinate";
 import { esCL as t } from "../../i18n/es-CL";
 
@@ -40,6 +41,7 @@ export function FlightDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [flight, setFlight] = useState<FlightRecord | null>(null);
+  const [battery, setBattery] = useState<BatteryRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
 
@@ -47,6 +49,9 @@ export function FlightDetailPage() {
     if (!id) return;
     getFlight(id).then((f) => {
       setFlight(f ?? null);
+      if (f?.batteryId) {
+        getBattery(f.batteryId).then((b) => setBattery(b ?? null));
+      }
       setLoading(false);
     });
   }, [id]);
@@ -236,7 +241,8 @@ export function FlightDetailPage() {
           <CardContent className="flex items-center gap-2 py-3 text-sm">
             <Battery className="h-4 w-4 text-sky-400" />
             <span className="text-slate-300">
-              {t.logbook.battery}: {flight.batteryId}
+              {t.logbook.battery}: {battery ? battery.name : t.logbook.batteryNotAvailable}
+              {battery && ` (${battery.cycleCount} ${t.battery.cycles})`}
               {flight.batteryStartPct != null && ` (${flight.batteryStartPct}%)`}
               {flight.batteryEndPct != null && ` → ${flight.batteryEndPct}%`}
             </span>

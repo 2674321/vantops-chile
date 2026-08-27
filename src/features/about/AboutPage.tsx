@@ -81,6 +81,16 @@ export function AboutPage() {
         <CardContent className="text-sm text-slate-300">{t.about.privacy}</CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.about.offlineTitle}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-slate-300">
+          <p>{t.about.offlineDescription}</p>
+          <p className="text-xs text-slate-400">{t.about.offlineFunctions}</p>
+        </CardContent>
+      </Card>
+
       <footer className="space-y-1 pt-2 text-center text-xs text-slate-500">
         <p>
           Código:{" "}

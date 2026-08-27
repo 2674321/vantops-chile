@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import {
@@ -24,10 +24,17 @@ interface AircraftSelectorProps {
 }
 
 export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
-  const [currentAircraft, setCurrentAircraft] = useState<AircraftProfile | null>(() => loadActiveAircraft());
+  const [currentAircraft, setCurrentAircraft] = useState<AircraftProfile | null>(null);
   const [selectedManufacturer, setSelectedManufacturer] = useState<string | null>(() => loadSelectedManufacturer());
   const [selectedModel, setSelectedModel] = useState<string | null>(() => loadSelectedModel());
   const [customName, setCustomName] = useState("");
+
+  useEffect(() => {
+    loadActiveAircraft().then((aircraft) => {
+      setCurrentAircraft(aircraft);
+      if (aircraft) onAircraftChange(aircraft);
+    });
+  }, [onAircraftChange]);
 
   const manufacturer = useMemo(
     () => (selectedManufacturer ? findManufacturer(selectedManufacturer) : undefined),

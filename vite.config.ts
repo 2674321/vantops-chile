@@ -14,6 +14,7 @@ export default defineConfig(({ command }) => ({
       manifest: {
         name: "VantOPS Chile",
         short_name: "VantOPS",
+        id: "/vantops-chile/",
         description: "Planificación de vuelo RPAS con datos reales",
         theme_color: "#020617",
         background_color: "#020617",
@@ -31,6 +32,26 @@ export default defineConfig(({ command }) => ({
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
+          },
+        ],
+        shortcuts: [
+          {
+            name: "Registrar vuelo",
+            short_name: "Vuelo",
+            url: "/vantops-chile/#/bitacora/nuevo",
+            icons: [{ src: "icon-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Consultar condiciones",
+            short_name: "Clima",
+            url: "/vantops-chile/",
+            icons: [{ src: "icon-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Bitácora",
+            short_name: "Bitácora",
+            url: "/vantops-chile/#/bitacora",
+            icons: [{ src: "icon-192.png", sizes: "192x192" }],
           },
         ],
       },

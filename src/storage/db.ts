@@ -1,18 +1,25 @@
 import Dexie, { type Table } from "dexie";
-import type { FlightRecord, BatteryRecord } from "../domain/logbook/types";
+import type { FlightRecord, BatteryRecord, SavedPlace, SettingRecord } from "../domain/logbook/types";
 
 const DB_NAME = "vantops";
-const DB_VERSION = 1;
 
 export class VantOpsDB extends Dexie {
   flights!: Table<FlightRecord, string>;
   batteries!: Table<BatteryRecord, string>;
+  places!: Table<SavedPlace, string>;
+  settings!: Table<SettingRecord, string>;
 
   constructor() {
     super(DB_NAME);
-    this.version(DB_VERSION).stores({
+    this.version(1).stores({
       flights: "id, startedAt, createdAt, aircraftId, batteryId",
       batteries: "id, name, createdAt",
+    });
+    this.version(2).stores({
+      flights: "id, startedAt, createdAt, aircraftId, batteryId",
+      batteries: "id, name, createdAt",
+      places: "id, name, createdAt",
+      settings: "id",
     });
   }
 }

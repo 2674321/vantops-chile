@@ -1,34 +1,29 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Coordinate } from "../domain/coordinate";
+import { loadLastCoordinate, saveLastCoordinateToIDB } from "../storage/settings";
 
 const STORAGE_KEY = "vantops:lastCoordinate";
 
 export function useLastCoordinate() {
-  const [coordinate, setCoordinate] = useState<Coordinate | null>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as Coordinate;
-      if (
-        typeof parsed.latitude === "number" &&
-        typeof parsed.longitude === "number"
-      ) {
-        return parsed;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  });
+  const [coordinate, setCoordinate] = useState<Coordinate | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    loadLastCoordinate().then((c) => {
+      setCoordinate(c);
+      setLoaded(true);
+    });
+  }, []);
 
   const saveCoordinate = useCallback((c: Coordinate) => {
     setCoordinate(c);
+    saveLastCoordinateToIDB(c).catch(() => {});
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
     } catch {
-      // storage full or unavailable — ignore
+      // ignore
     }
   }, []);
 
-  return { coordinate, saveCoordinate };
+  return { coordinate, saveCoordinate, loaded };
 }
