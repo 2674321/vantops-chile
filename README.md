@@ -2,7 +2,11 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v0.6.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+
+## Capturas
+
+![Dashboard VantOPS](docs/screenshots/dashboard.png)
 
 ## Stack
 
@@ -15,7 +19,8 @@ PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales
 - Open-Meteo (clima + elevación)
 - SunCalc (posición solar local)
 - VATSIM METAR (observaciones)
-- vite-plugin-pwa (service worker + manifest)
+- vite-plugin-pwa (service worker + manifest, workbox)
+- Persistencia local: localStorage + IndexedDB (Dexie)
 - Biome (lint)
 - Vitest (tests)
 - GitHub Actions + GitHub Pages
@@ -64,8 +69,11 @@ src/
     elevation/      ElevationCard
     solar/          SolarCard
     observations/   NearbyMetarCard
+    logbook/        Bitácora de vuelos, baterías, export/import (Dexie)
+    places/         Lugares guardados
   hooks/          useLastCoordinate (localStorage)
   storage/        settings.ts (flightLimits, aircraft, manufacturer, model), checklists.ts
+                  repositories/ (Dexie: vuelos, baterías, lugares, settings)
   i18n/           es-CL
   components/     ui/ (button, card)
 references/       normativa-dgac/ (material de desarrollo, no normativa runtime)
@@ -146,6 +154,25 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Dashboard refresh**: aircraft state se actualiza al cambiar selección sin recargar página
 - **About page actualizada**: disclaimer sobre finalidad informativa de referencias
 - **171 tests** pasando (+21 nuevos: aircraft catalog 6, createAircraftProfile 3, applyAircraftLimits 3, AIRCRAFT_TYPE_LABELS 1, regulatory references 3, checklist kind 1, storage manufacturer/model 4)
+
+## R0.4.2 — UX Checklist + Referencias Contextuales (completada)
+
+- Mejoras de usabilidad del checklist prevuelo y referencias normativas contextuales.
+
+## R0.5.0 — Logbook + IndexedDB/Dexie (completada)
+
+- **Bitácora de vuelos** con registro local (fecha, duración, aeronave, notas) persistida en IndexedDB vía Dexie.
+- **Módulo de baterías**: registro y seguimiento de packs de baterías con conteo de ciclos.
+- **Migración y versionado de datos** locales con tests.
+- **Export/Import** de la bitácora (JSON) para respaldo y transferencia entre dispositivos.
+- Dashboard y páginas de bitácora, detalle de vuelo y baterías.
+
+## R0.6.0 — PWA/Offline + Saved Places + Hardening (completada)
+
+- **PWA instalable** con soporte offline real: service worker y runtime caching (NetworkFirst, TTL 10 min) para Open-Meteo y VATSIM METAR.
+- **Lugares guardados**: selección y persistencia de lugares frecuentes en el mapa.
+- **Indicador online/offline** en la app.
+- **Hardening** de error handling, límites de evaluación y consistencia de datos.
 
 ## Fuentes de datos
 
