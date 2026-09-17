@@ -17,8 +17,17 @@ export interface CurrentWeather {
 
 export interface HourlyWeather {
   timeISO: string;
+  temperatureC: number | null;
+  humidityPct: number | null;
+  precipitationMm: number | null;
+  weatherCode: number | null;
+  windSpeedKmh: number | null;
+  windGustsKmh: number | null;
+  windDirectionDeg: number | null;
   windSpeed100mKmh: number | null;
   windDirection100mDeg: number | null;
+  visibilityM: number | null;
+  cloudCoverPct: number | null;
 }
 
 export interface WeatherSnapshot {

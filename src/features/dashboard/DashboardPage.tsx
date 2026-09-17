@@ -3,26 +3,35 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
 import { WeatherPanel, DataSourceBadge } from "../weather/WeatherPanel";
+import { WeatherTimeline } from "../weather/WeatherTimeline";
 import { ElevationCard } from "../elevation/ElevationCard";
 import { SolarCard } from "../solar/SolarCard";
 import { NearbyMetarCard } from "../observations/NearbyMetarCard";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { AssessmentCard } from "../assessment/AssessmentCard";
+import { OperationWindowCard } from "../assessment/OperationWindowCard";
 import { ChecklistCard } from "../checklist/ChecklistCard";
 import { AircraftSelector } from "../aircraft/AircraftSelector";
+import { InstallPromptCard } from "../pwa/InstallPromptCard";
+import { LocationSearch } from "./LocationSearch";
+import { OperationZoneControl } from "./OperationZoneControl";
 import { Button } from "../../components/ui/button";
 import { MapPin, Navigation, MapIcon, Plane, Battery, Settings2, AlertTriangle } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
+import { assessHourlyForecast } from "../../domain/assessment/hourly";
+import { findOperationWindow } from "../../domain/assessment/operationWindow";
 import { applyAircraftLimits } from "../../domain/assessment/aircraft";
 import type { AircraftProfile } from "../../domain/assessment/aircraft";
 import type { FlightLimits } from "../../domain/assessment/limits";
-import { loadActiveAircraft, loadFlightLimits } from "../../storage/settings";
+import {
+  loadActiveAircraft,
+  loadFlightLimits,
+  loadOperationRadius,
+  saveOperationRadius,
+} from "../../storage/settings";
 import { fetchNearestObservation } from "../../providers/observations/vatsimObservation";
-import { searchLocation } from "../../providers/geocoding/nominatimGeocoding";
-import type { GeocodingResult } from "../../providers/geocoding/nominatimGeocoding";
-import { NOMINATIM_ATTRIBUTION } from "../../providers/geocoding/nominatimGeocoding";
 import { esCL as t } from "../../i18n/es-CL";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 
@@ -34,13 +43,9 @@ export default function DashboardPage() {
   const [manualLon, setManualLon] = useState("");
   const [aircraft, setAircraft] = useState<AircraftProfile | null>(null);
   const [flightLimits, setFlightLimits] = useState<FlightLimits>({});
+  const [operationRadius, setOperationRadius] = useState<number | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [manualError, setManualError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [searchExecuted, setSearchExecuted] = useState(false);
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const [showRestored, setShowRestored] = useState(false);
@@ -49,6 +54,12 @@ export default function DashboardPage() {
   useEffect(() => {
     loadActiveAircraft().then(setAircraft);
     loadFlightLimits().then(setFlightLimits);
+    loadOperationRadius().then(setOperationRadius);
+  }, []);
+
+  const handleRadiusChange = useCallback((radiusMeters: number) => {
+    setOperationRadius(radiusMeters);
+    void saveOperationRadius(radiusMeters);
   }, []);
 
   useEffect(() => {
@@ -90,9 +101,13 @@ export default function DashboardPage() {
 
   const stationIcao = metarQuery.data?.stationIcao;
 
+  const effectiveLimits = useMemo(
+    () => applyAircraftLimits(flightLimits, aircraft ?? undefined),
+    [flightLimits, aircraft]
+  );
+
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
-    const limits = applyAircraftLimits(flightLimits, aircraft ?? undefined);
     return evaluateFlight({
       windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
       gustKmh: weatherQuery.data.current.windGustsKmh,
@@ -103,14 +118,24 @@ export default function DashboardPage() {
       visibilityM: weatherQuery.data.current.visibilityM,
       humidityPct: weatherQuery.data.current.humidityPct,
       cloudCoverPct: weatherQuery.data.current.cloudCoverPct,
-      windMaxKmh: limits.windMaxKmh,
-      gustMaxKmh: limits.gustMaxKmh,
-      precipitationMaxMm: limits.precipitationMaxMm,
-      visibilityMinMeters: limits.visibilityMinMeters,
-      temperatureMinC: limits.temperatureMinC,
-      temperatureMaxC: limits.temperatureMaxC,
+      windMaxKmh: effectiveLimits.windMaxKmh,
+      gustMaxKmh: effectiveLimits.gustMaxKmh,
+      precipitationMaxMm: effectiveLimits.precipitationMaxMm,
+      visibilityMinMeters: effectiveLimits.visibilityMinMeters,
+      temperatureMinC: effectiveLimits.temperatureMinC,
+      temperatureMaxC: effectiveLimits.temperatureMaxC,
     });
-  }, [weatherQuery.data, aircraft, flightLimits]);
+  }, [weatherQuery.data, effectiveLimits]);
+
+  const hourlyAssessments = useMemo(
+    () => assessHourlyForecast(weatherQuery.data?.hourly ?? [], effectiveLimits),
+    [weatherQuery.data, effectiveLimits]
+  );
+
+  const operationWindow = useMemo(
+    () => findOperationWindow(weatherQuery.data?.hourly ?? [], effectiveLimits),
+    [weatherQuery.data, effectiveLimits]
+  );
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,34 +182,6 @@ export default function DashboardPage() {
     );
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchError(null);
-    setSearchResults([]);
-    const query = searchQuery.trim();
-    if (query === "") {
-      setSearchError("Ingresa una dirección, localidad o lugar para buscar.");
-      return;
-    }
-    setSearching(true);
-    try {
-      const results = await searchLocation(query);
-      setSearchResults(results);
-      setSearchExecuted(true);
-      if (results.length === 0) {
-        setSearchError("Sin resultados. Usa coordenadas manuales o el mapa.");
-      }
-    } catch (err) {
-      setSearchError(
-        err instanceof Error && err.name === "AbortError"
-          ? "La búsqueda tardó demasiado. Revisa tu conexión e intenta nuevamente."
-          : "No se pudo buscar la ubicación. Verifica tu conexión."
-      );
-    } finally {
-      setSearching(false);
-    }
-  };
-
   return (
     <div className="mx-auto w-full max-w-2xl space-y-7 px-5 py-10 sm:px-6">
       {!online && (
@@ -210,6 +207,8 @@ export default function DashboardPage() {
         </h1>
         <p className="text-base text-slate-400">{t.tagline}</p>
       </header>
+
+      <InstallPromptCard />
 
       <AircraftSelector onAircraftChange={handleAircraftChange} />
 
@@ -268,69 +267,7 @@ export default function DashboardPage() {
             </p>
           )}
 
-          <form
-            className="mb-4 space-y-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3"
-            onSubmit={handleSearch}
-          >
-            <label htmlFor="location-search" className="mb-1 block text-xs font-medium text-slate-400">
-              Buscar dirección, localidad o lugar
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="location-search"
-                type="search"
-                autoComplete="off"
-                className="h-11 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
-                placeholder="Totoralillo, Coquimbo"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSearchError(null);
-                }}
-              />
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={searching}
-                className="shrink-0"
-              >
-                {searching ? "Buscando…" : "Buscar"}
-              </Button>
-            </div>
-
-            {searchError && (
-              <p role="alert" className="text-sm text-amber-300">
-                {searchError}
-              </p>
-            )}
-
-            {searchResults.length > 0 && (
-              <ul className="space-y-1" aria-label="Resultados de búsqueda">
-                {searchResults.map((result) => (
-                  <li key={result.placeId}>
-                    <button
-                      type="button"
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-left text-sm text-slate-300 hover:border-sky-600 hover:text-sky-300"
-                      onClick={() => {
-                        saveCoordinate({ latitude: result.latitude, longitude: result.longitude });
-                        setSearchQuery("");
-                        setSearchResults([]);
-                        setSearchExecuted(false);
-                      }}
-                    >
-                      {result.displayName}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {searchExecuted && searchResults.length === 0 && !searchError && (
-              <p className="text-xs text-slate-500">Sin resultados para mostrar.</p>
-            )}
-
-            <p className="text-[11px] text-slate-600">{NOMINATIM_ATTRIBUTION}</p>
-          </form>
+          <LocationSearch onSelect={saveCoordinate} />
 
           <form
             className="grid gap-3 sm:grid-cols-2"
@@ -393,9 +330,15 @@ export default function DashboardPage() {
           >
             <MapPicker
               coordinate={coordinate}
+              radiusMeters={operationRadius}
               onPick={saveCoordinate}
             />
           </Suspense>
+
+          <OperationZoneControl
+            radiusMeters={operationRadius}
+            onChange={handleRadiusChange}
+          />
 
           {weatherQuery.isLoading && (
             <Card>
@@ -435,6 +378,24 @@ export default function DashboardPage() {
                 />
               </CardContent>
             </Card>
+          )}
+
+          {weatherQuery.data && (
+            <Card>
+              <CardContent className="py-5">
+                <WeatherTimeline
+                  hours={weatherQuery.data.hourly}
+                  assessments={hourlyAssessments}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {weatherQuery.data && (
+            <OperationWindowCard
+              window={operationWindow}
+              onGoSettings={() => navigate("/ajustes")}
+            />
           )}
 
           <ElevationCard

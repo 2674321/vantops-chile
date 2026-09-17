@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Coordinate } from "../../domain/coordinate";
 
 interface MapPickerProps {
   coordinate: Coordinate;
+  radiusMeters?: number | null;
   onPick: (c: Coordinate) => void;
 }
 
@@ -16,7 +17,7 @@ function Recenter({ coordinate }: { coordinate: Coordinate }) {
   return null;
 }
 
-export default function MapPicker({ coordinate, onPick }: MapPickerProps) {
+export default function MapPicker({ coordinate, radiusMeters, onPick }: MapPickerProps) {
   return (
     <div className="relative z-0 overflow-hidden rounded-xl border border-slate-800">
       <style>{".leaflet-container{width:100%;height:100%;background:#020617}"}</style>
@@ -33,6 +34,19 @@ export default function MapPicker({ coordinate, onPick }: MapPickerProps) {
           className="brightness-75 contrast-125"
         />
         <Recenter coordinate={coordinate} />
+        {radiusMeters != null && radiusMeters > 0 && (
+          <Circle
+            center={[coordinate.latitude, coordinate.longitude]}
+            radius={radiusMeters}
+            pathOptions={{
+              color: "#38bdf8",
+              fillColor: "#38bdf8",
+              fillOpacity: 0.08,
+              weight: 1.5,
+              dashArray: "6 6",
+            }}
+          />
+        )}
         <CircleMarker
           center={[coordinate.latitude, coordinate.longitude]}
           radius={10}

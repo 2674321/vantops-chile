@@ -2,13 +2,16 @@ import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
 import { loadSetting, saveSetting } from "./repositories/settingsRepository";
 import type { Coordinate } from "../domain/coordinate";
+import { isValidRadiusMeters, validateRadiusMeters } from "../domain/operationZone";
 
 const LIMITS_KEY = "flightLimits";
 const AIRCRAFT_KEY = "activeAircraft";
 const LAST_COORD_KEY = "lastCoordinate";
+const OPERATION_RADIUS_KEY = "operationZoneRadius";
 
 const LS_LIMITS_KEY = "vantops:flightLimits";
 const LS_AIRCRAFT_KEY = "vantops:activeAircraft";
+const LS_OPERATION_RADIUS_KEY = "vantops:operationZoneRadius";
 const LS_MANUFACTURER_KEY = "vantops:selectedManufacturer";
 const LS_MODEL_KEY = "vantops:selectedModel";
 const LS_LAST_COORD_KEY = "vantops:lastCoordinate";
@@ -134,4 +137,34 @@ export async function loadLastCoordinate(): Promise<Coordinate | null> {
 
 export async function saveLastCoordinateToIDB(c: Coordinate): Promise<void> {
   await saveSetting(LAST_COORD_KEY, c);
+}
+
+export async function loadOperationRadius(): Promise<number | null> {
+  const idb = await loadSetting<number>(OPERATION_RADIUS_KEY);
+  if (typeof idb === "number" && isValidRadiusMeters(idb)) return idb;
+  try {
+    const raw = localStorage.getItem(LS_OPERATION_RADIUS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "number" && isValidRadiusMeters(parsed)) {
+      await saveSetting(OPERATION_RADIUS_KEY, parsed);
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveOperationRadius(radiusMeters: number): Promise<void> {
+  const validation = validateRadiusMeters(radiusMeters);
+  if (!validation.ok) {
+    throw new Error(validation.error);
+  }
+  await saveSetting(OPERATION_RADIUS_KEY, radiusMeters);
+  try {
+    localStorage.setItem(LS_OPERATION_RADIUS_KEY, JSON.stringify(radiusMeters));
+  } catch {
+    // ignore
+  }
 }

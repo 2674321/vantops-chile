@@ -249,6 +249,47 @@ describe("validateBackup", () => {
     expect(validateBackup(backup)).toBe(false);
   });
 
+  it("accepts a numeric operation radius setting", () => {
+    const backup = {
+      format: "vantops-backup",
+      version: 1,
+      flights: [],
+      batteries: [],
+      settings: { operationZoneRadius: 1000 },
+    };
+    expect(validateBackup(backup)).toBe(true);
+  });
+
+  it("rejects a non-numeric operation radius setting", () => {
+    const backup = {
+      format: "vantops-backup",
+      version: 1,
+      flights: [],
+      batteries: [],
+      settings: { operationZoneRadius: "1000" },
+    };
+    expect(validateBackup(backup)).toBe(false);
+  });
+
+  it("rejects a non-finite operation radius setting", () => {
+    const backup = {
+      format: "vantops-backup",
+      version: 1,
+      flights: [],
+      batteries: [],
+      settings: { operationZoneRadius: null },
+    };
+    expect(validateBackup(backup)).toBe(false);
+  });
+
+  it("countImportableSettings counts operationZoneRadius", () => {
+    expect(
+      countImportableSettings({
+        operationZoneRadius: 1000,
+      })
+    ).toBe(1);
+  });
+
   it("countImportableSettings counts only compatible keys", () => {
     expect(countImportableSettings(undefined)).toBe(0);
     expect(countImportableSettings({})).toBe(0);

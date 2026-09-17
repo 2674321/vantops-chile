@@ -8,6 +8,8 @@ import {
   loadSelectedModel,
   saveSelectedModel,
   clearAircraftSelection,
+  loadOperationRadius,
+  saveOperationRadius,
 } from "./settings";
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
@@ -151,5 +153,37 @@ describe("manufacturer/model persistence", () => {
     expect(loadSelectedModel()).toBeNull();
     const result = await loadActiveAircraft();
     expect(result).toBeNull();
+  });
+});
+
+describe("operation radius persistence", () => {
+  it("returns null when nothing stored", async () => {
+    expect(await loadOperationRadius()).toBeNull();
+  });
+
+  it("saves and reloads a valid radius", async () => {
+    await saveOperationRadius(1000);
+    expect(await loadOperationRadius()).toBe(1000);
+  });
+
+  it("loads a radius previously mirrored in localStorage", async () => {
+    store["vantops:operationZoneRadius"] = JSON.stringify(2000);
+    expect(await loadOperationRadius()).toBe(2000);
+  });
+
+  it("ignores invalid persisted radii", async () => {
+    store["vantops:operationZoneRadius"] = JSON.stringify(0);
+    expect(await loadOperationRadius()).toBeNull();
+    store["vantops:operationZoneRadius"] = JSON.stringify(-5);
+    expect(await loadOperationRadius()).toBeNull();
+    store["vantops:operationZoneRadius"] = JSON.stringify(999999);
+    expect(await loadOperationRadius()).toBeNull();
+    store["vantops:operationZoneRadius"] = "not-json";
+    expect(await loadOperationRadius()).toBeNull();
+  });
+
+  it("rejects saving an invalid radius", async () => {
+    await expect(saveOperationRadius(0)).rejects.toThrow(/mayor que cero/);
+    await expect(saveOperationRadius(-100)).rejects.toThrow();
   });
 });

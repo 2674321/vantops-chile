@@ -35,7 +35,8 @@ npm run dev
 ## Tests
 
 ```bash
-npm test
+npm test                 # suite unitaria e integración local (sin red)
+npm run test:integration # incluye pruebas contra APIs reales (RUN_INTEGRATION=1)
 ```
 
 ## Build de producción
@@ -51,32 +52,35 @@ npm run build
 ```
 src/
   app/          App.tsx, ErrorBoundary
-  domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate
-  domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator, aircraft (catalog)
+  domain/       Modelos: weather, elevation, solar, observation, sourceMeta, coordinate, operationZone, pwaInstall
+  domain/assessment/  FlightAssessment, FlightLimits, rules, evaluator, hourly, operationWindow, aircraft (catalog)
   domain/checklist/   ChecklistItem, ChecklistState, engine, defaultChecklist
   providers/
-    weather/        Open-Meteo forecast
+    weather/        Open-Meteo forecast (actual + horario)
     elevation/      Open-Meteo Elevation API
     solar/          SunCalc (cálculo local)
     observations/   VATSIM METAR, decoder, estaciones
     geocoding/      Nominatim (búsqueda de ubicación, OSM)
   features/
-    dashboard/      Pantalla principal
+    dashboard/      Pantalla principal, LocationSearch, OperationZoneControl
     settings/       Ajustes (límites del piloto)
     aircraft/       Selector de aeronave (fabricante → modelo → tipo)
-    assessment/     AssessmentCard (semáforo de vuelo)
+    assessment/     AssessmentCard, OperationWindowCard (ventana estimada)
     checklist/      CheckListCard (checklist prevuelo)
-    logbook/        Bitácora, baterías, exportar/importar
+    logbook/        Bitácora, baterías, exportar/importar (JSON + CSV)
     places/         Lugares guardados
-    map/            Leaflet + OSM (lazy)
-    weather/        WeatherPanel
+    pwa/            InstallPromptCard
+    map/            Leaflet + OSM + círculo de zona (lazy)
+    weather/        WeatherPanel, WeatherTimeline
     elevation/      ElevationCard
     solar/          SolarCard
     observations/   NearbyMetarCard
-  hooks/          useLastCoordinate (localStorage)
-  storage/        Dexie/IndexedDB (db.ts, export.ts, repositories/), settings.ts, checklists.ts
+  hooks/          useLastCoordinate, useOnlineStatus, useInstallPrompt
+  storage/        Dexie/IndexedDB (db.ts, export.ts, csvExport.ts, repositories/), settings.ts, checklists.ts
+  lib/            download.ts (descargas de cliente)
   i18n/           es-CL
   components/     ui/ (button, card)
+  test/           fixtures compartidos de tests
 references/       normativa-dgac/ (material de desarrollo, no normativa runtime)
 ```
 
@@ -188,6 +192,19 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Navegación responsive** (320–390 px) con pestañas desplazables
 - **259 tests** pasando (+88: assessment 9, export/validación 11, integración IndexedDB 8, geocodificación 11, VATSIM 8, settings 3, y base previa)
 
+## R0.8.0 — Flight Planning Core / Weather Timeline / Reliability (completada)
+
+- **Zona de planificación**: dominio `OperationZone` (centro + radio) con presets 500 m / 1 km / 2 km y radio personalizado; rango técnico 50 m–50 km (no es un límite legal)
+- **Círculo en el mapa** (`react-leaflet` `Circle`) sincronizado con el radio; el centro sigue siendo la única fuente `lastCoordinate`
+- **Pronóstico horario ampliado**: temperatura, humedad, precipitación, código, viento 10 m/100 m, ráfagas, dirección, visibilidad y nubosidad (`number | null`)
+- **Línea de tiempo horaria** mobile-first con desplazamiento horizontal, hora local, dirección textual y estado por hora que no depende solo del color
+- **Ventana de operación** (`findOperationWindow`) que reutiliza `evaluateFlight`; resultados tipados `ok` / `no-favorable` / `needs-limits` / `insufficient-data` y lenguaje orientativo ("según tus parámetros"), nunca autoritativo
+- **Evaluación horaria** (`assessment/hourly.ts`) respetando `windReferenceHeight` (10 m o 100 m)
+- **Instalación PWA** con lógica de dominio pura (`pwaInstall.ts`) y hook `useInstallPrompt` (standalone, `beforeinstallprompt`, pista iOS, descarte con enfriamiento de 14 días)
+- **Exportación CSV de bitácora** (RFC 4180, BOM UTF-8, escapado correcto) junto al respaldo JSON
+- **Confiabilidad**: tests de elevación sin Internet (fetch simulado) + verificación real opt-in (`npm run test:integration`); timeouts de 8 s en Open-Meteo clima y elevación
+- **334 tests** (333 pasando + 1 integración opt-in), lint y typecheck limpios; bundle principal 289.7 kB (gzip 92.4 kB)
+
 ## Fuentes de datos
 
 | Fuente | Uso | Licencia |
@@ -203,6 +220,8 @@ La UI nunca depende del JSON crudo de APIs externas.
 - El METAR más cercano se calcula entre 11 aeródromos principales; no cubre todos los campos de Chile
 - La fuente oficial chilena (DMC/meteochile) no se integra aún por estabilidad de su API
 - La elevación es un punto único; no genera curvas de perfil de vuelo
+- La zona de planificación es un área de referencia orientativa; no determina autorizaciones, restricciones ni zonas legales
+- La ventana de operación es una estimación según los parámetros del piloto y los datos disponibles; no constituye autorización de vuelo
 - No sustituye permisos, AIS, DGAC ni normativa vigente
 - Los límites de evaluación son por defecto vacíos; el piloto debe configurar sus propios parámetros
 - El checklist es una guía de verificación personal, no constituye certificación ni cumplimiento normativo

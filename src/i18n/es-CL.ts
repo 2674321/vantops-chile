@@ -43,6 +43,60 @@ export const esCL = {
     attribution: "Datos: Open-Meteo · Licencia CC BY 4.0",
     noData: "—",
   },
+  operationZone: {
+    title: "Zona de planificación",
+    description:
+      "Define un radio alrededor del punto para estimar el área de referencia de tu planificación.",
+    radiusLabel: "Radio de la zona",
+    customLabel: "Radio personalizado (metros)",
+    apply: "Aplicar radio",
+    minHint: "Mínimo 50 m",
+    maxHint: "Máximo 50 km (límite técnico de la aplicación)",
+    invalidNumber: "Ingresa un radio numérico.",
+    disclaimer:
+      "La zona representa un área de planificación y no implica autorización para operar dentro de ella.",
+  },
+  timeline: {
+    title: "Pronóstico por hora",
+    subtitle: "Próximas horas en horario local",
+    empty: "Sin datos horarios disponibles.",
+    hour: "Hora",
+    wind: "Viento",
+    gusts: "Ráfagas",
+    precipitation: "Precip.",
+    temperature: "Temp.",
+    visibility: "Visibilidad",
+    cloudCover: "Nubosidad",
+    now: "ahora",
+    favorable: "Favorable",
+    caution: "Precaución",
+    unfavorable: "Desfavorable",
+    noData: "Sin datos",
+  },
+  operationWindow: {
+    title: "Ventana de operación",
+    needsLimits:
+      "Configura tus límites de vuelo en Ajustes para estimar una franja con mejores condiciones.",
+    insufficientData:
+      "No hay suficientes datos horarios para estimar una franja de operación.",
+    noFavorable:
+      "No se identifican condiciones favorables según tus parámetros en las próximas horas.",
+    favorable: (start: string, end: string) =>
+      `Franja con mejores condiciones según tus parámetros: ${start}–${end}.`,
+    caution: (start: string, end: string) =>
+      `Franja con condiciones aceptables bajo precaución según tus parámetros: ${start}–${end}.`,
+    disclaimer:
+      "Estimación orientativa según los datos disponibles. No constituye autorización de vuelo.",
+    goSettings: "Ir a Ajustes",
+  },
+  install: {
+    action: "Instalar app",
+    title: "Instalar VantOPS",
+    description:
+      "Agrega VantOPS a la pantalla de inicio para abrirla sin navegador y con acceso rápido.",
+    iosHint: "En iOS: Compartir → Añadir a pantalla de inicio.",
+    dismiss: "Ahora no",
+  },
   about: {
     title: "Acerca de VantOPS Chile",
     whatIs:
@@ -222,6 +276,12 @@ export const esCL = {
     importError: "Error al importar el respaldo",
     invalidFile: "Archivo no válido",
     privacyNote: "Tus datos de bitácora permanecen en este dispositivo. Exporta periódicamente un respaldo.",
+    csvTitle: "Exportar bitácora a CSV",
+    csvDescription:
+      "Genera una hoja de cálculo con tus vuelos registrados. Un archivo por vez, sin conexión.",
+    csvAction: "Exportar CSV",
+    csvEmpty: "Aún no hay vuelos registrados para exportar.",
+    csvError: "No se pudo generar el archivo CSV.",
   },
   footer: {
     attributions: "Open-Meteo · OpenStreetMap · VATSIM METAR · SunCalc",

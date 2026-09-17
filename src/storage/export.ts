@@ -1,5 +1,6 @@
 import { getDB } from "./db";
 import { listSettings, saveSetting } from "./repositories/settingsRepository";
+import { downloadTextFile } from "../lib/download";
 import { isValidCoordinate } from "../domain/coordinate";
 import type { FlightRecord, BatteryRecord, SavedPlace } from "../domain/logbook/types";
 
@@ -12,7 +13,10 @@ const IMPORTABLE_SETTING_KEYS = new Set([
   "flightLimits",
   "activeAircraft",
   "lastCoordinate",
+  "operationZoneRadius",
 ]);
+
+const NUMERIC_SETTING_KEYS = new Set(["operationZoneRadius"]);
 
 export interface BackupData {
   format: typeof BACKUP_FORMAT;
@@ -119,6 +123,9 @@ function validateSettings(value: unknown): boolean {
     const entry = value[key];
     if (entry === null || entry === undefined) return false;
     if (Array.isArray(entry)) return false;
+    if (NUMERIC_SETTING_KEYS.has(key) && (typeof entry !== "number" || !Number.isFinite(entry))) {
+      return false;
+    }
   }
   return true;
 }
@@ -244,6 +251,9 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
       if (Object.prototype.hasOwnProperty.call(settings, key)) {
         const value = settings[key];
         if (value === null || value === undefined || Array.isArray(value)) continue;
+        if (NUMERIC_SETTING_KEYS.has(key) && (typeof value !== "number" || !Number.isFinite(value))) {
+          continue;
+        }
         await saveSetting(key, value);
         summary.settings++;
       }
@@ -260,13 +270,9 @@ export function countImportableSettings(settings: Record<string, unknown> | unde
 
 export function downloadBackup(backup: BackupData): void {
   const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `vantops-backup-${backup.exportedAt.slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadTextFile(
+    `vantops-backup-${backup.exportedAt.slice(0, 10)}.json`,
+    json,
+    "application/json"
+  );
 }

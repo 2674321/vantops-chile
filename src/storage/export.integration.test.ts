@@ -68,7 +68,7 @@ describe("export → import → equivalence", () => {
     expect(restoredPlaces[0]).toMatchObject({ id: place.id, name: "Club Aéreo" });
   });
 
-  it("restores compatible settings (flightLimits, activeAircraft, lastCoordinate)", async () => {
+  it("restores compatible settings (flightLimits, activeAircraft, lastCoordinate, operationZoneRadius)", async () => {
     const db = getDB();
     await db.settings.put({
       id: "flightLimits",
@@ -86,18 +86,29 @@ describe("export → import → equivalence", () => {
       updatedAt: "2026-09-01T00:00:00Z",
     });
     await db.settings.put({
+      id: "operationZoneRadius",
+      value: JSON.stringify(1000),
+      updatedAt: "2026-09-01T00:00:00Z",
+    });
+    await db.settings.put({
       id: "ephemeralEphemeral",
       value: JSON.stringify({ nota: "no se debe restaurar" }),
       updatedAt: "2026-09-01T00:00:00Z",
     });
 
     const backup = await exportBackup("0.7.0");
-    expect(Object.keys(backup.settings).sort()).toEqual(["activeAircraft", "ephemeralEphemeral", "flightLimits", "lastCoordinate"]);
+    expect(Object.keys(backup.settings).sort()).toEqual([
+      "activeAircraft",
+      "ephemeralEphemeral",
+      "flightLimits",
+      "lastCoordinate",
+      "operationZoneRadius",
+    ]);
 
     await wipeDatabase();
 
     const summary = await importBackup(backup);
-    expect(summary.settings).toBe(3);
+    expect(summary.settings).toBe(4);
 
     const limits = await loadSetting<{ windMaxKmh: number }>("flightLimits");
     expect(limits?.windMaxKmh).toBe(30);
@@ -105,6 +116,8 @@ describe("export → import → equivalence", () => {
     expect(aircraft?.id).toBe("a1");
     const coord = await loadSetting<{ latitude: number }>("lastCoordinate");
     expect(coord?.latitude).toBe(-33.45);
+    const radius = await loadSetting<number>("operationZoneRadius");
+    expect(radius).toBe(1000);
     const ephemeral = await loadSetting("ephemeralEphemeral");
     expect(ephemeral).toBeNull();
   });

@@ -2,6 +2,7 @@ import type { ElevationResult } from "../../domain/elevation";
 import type { DataSourceMeta } from "../../domain/sourceMeta";
 
 const BASE = "https://api.open-meteo.com/v1/elevation";
+const REQUEST_TIMEOUT_MS = 8000;
 
 export class ElevationError extends Error {
   constructor(message: string) {
@@ -30,11 +31,25 @@ export async function fetchElevation(
     throw new ElevationError("Coordenadas inválidas");
   }
   const requestedAt = new Date().toISOString();
-  const res = await fetch(buildElevationUrl(lat, lon));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(buildElevationUrl(lat, lon), { signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ElevationError("Timeout al consultar Open-Meteo Elevation");
+    }
+    throw new ElevationError("No se pudo contactar Open-Meteo Elevation");
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) throw new ElevationError(`HTTP ${res.status}`);
-  const data: OpenMeteoElevationResponse = await res.json();
+  const data = (await res.json()) as OpenMeteoElevationResponse;
   const meters = data.elevation?.[0] ?? null;
-  if (meters === null) throw new ElevationError("Sin datos de elevación");
+  if (typeof meters !== "number" || !Number.isFinite(meters)) {
+    throw new ElevationError("Sin datos de elevación");
+  }
   const meta: DataSourceMeta = {
     source: "Open-Meteo Elevation",
     requestedAt,

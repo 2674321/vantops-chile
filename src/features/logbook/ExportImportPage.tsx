@@ -2,9 +2,12 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { ArrowLeft, Download, Upload, FileSpreadsheet } from "lucide-react";
 import { exportBackup, importBackup, inspectBackup, downloadBackup, countImportableSettings, CURRENT_BACKUP_VERSION, MAX_BACKUP_VERSION, BackupValidationError } from "../../storage/export";
 import type { BackupData, ImportSummary } from "../../storage/export";
+import { listFlights } from "../../storage/repositories/flightRepository";
+import { flightsToCsv } from "../../storage/csvExport";
+import { downloadTextFile } from "../../lib/download";
 import { APP_VERSION } from "../../version";
 import { esCL as t } from "../../i18n/es-CL";
 
@@ -13,11 +16,32 @@ export function ExportImportPage() {
   const [preview, setPreview] = useState<BackupData | null>(null);
   const [importResult, setImportResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [csvMessage, setCsvMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleExport() {
     const backup = await exportBackup(APP_VERSION);
     downloadBackup(backup);
+  }
+
+  async function handleCsvExport() {
+    setError(null);
+    setCsvMessage(null);
+    try {
+      const flights = await listFlights(1000);
+      if (flights.length === 0) {
+        setCsvMessage(t.export.csvEmpty);
+        return;
+      }
+      const csv = flightsToCsv(flights);
+      downloadTextFile(
+        `vantops-bitacora-${new Date().toISOString().slice(0, 10)}.csv`,
+        csv,
+        "text/csv;charset=utf-8"
+      );
+    } catch {
+      setError(t.export.csvError);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -81,6 +105,25 @@ export function ExportImportPage() {
             <Download className="mr-2 h-4 w-4" />
             {t.export.exportData}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileSpreadsheet className="h-4 w-4 text-sky-400" />
+            {t.export.csvTitle}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-400">{t.export.csvDescription}</p>
+          <Button variant="outline" onClick={handleCsvExport}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            {t.export.csvAction}
+          </Button>
+          {csvMessage && (
+            <p className="text-sm text-slate-400">{csvMessage}</p>
+          )}
         </CardContent>
       </Card>
 

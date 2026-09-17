@@ -32,8 +32,17 @@ describe("mapWeatherResponse", () => {
     },
     hourly: {
       time: ["2026-08-26T10:00", "2026-08-26T11:00"],
+      temperature_2m: [11.5, 13.2],
+      relative_humidity_2m: [85, 82],
+      precipitation: [0.1, 0.3],
+      weather_code: [3, 61],
+      wind_speed_10m: [10, 13],
+      wind_gusts_10m: [16, 20],
+      wind_direction_10m: [325, 330],
       wind_speed_100m: [22, 24.5],
       wind_direction_100m: [340, 345],
+      visibility: [9000, 8000],
+      cloud_cover: [40, 45],
     },
   };
 
@@ -57,9 +66,34 @@ describe("mapWeatherResponse", () => {
     expect(snapshot.hourly[1].windDirection100mDeg).toBe(345);
   });
 
+  it("maps expanded hourly fields", () => {
+    const snapshot = mapWeatherResponse(payload);
+    const first = snapshot.hourly[0];
+    expect(first.timeISO).toBe("2026-08-26T10:00");
+    expect(first.temperatureC).toBe(11.5);
+    expect(first.humidityPct).toBe(85);
+    expect(first.precipitationMm).toBe(0.1);
+    expect(first.weatherCode).toBe(3);
+    expect(first.windSpeedKmh).toBe(10);
+    expect(first.windGustsKmh).toBe(16);
+    expect(first.windDirectionDeg).toBe(325);
+    expect(first.visibilityM).toBe(9000);
+    expect(first.cloudCoverPct).toBe(40);
+  });
+
   it("handles missing hourly data", () => {
     const snapshot = mapWeatherResponse({ current: payload.current });
     expect(snapshot.hourly).toHaveLength(0);
+  });
+
+  it("defaults missing hourly series to null without throwing", () => {
+    const snapshot = mapWeatherResponse({
+      current: payload.current,
+      hourly: { time: ["2026-08-26T10:00"], wind_speed_100m: [22] },
+    });
+    expect(snapshot.hourly[0].windSpeed100mKmh).toBe(22);
+    expect(snapshot.hourly[0].temperatureC).toBeNull();
+    expect(snapshot.hourly[0].weatherCode).toBeNull();
   });
 
   it("handles null values in current", () => {
