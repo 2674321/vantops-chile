@@ -9,6 +9,7 @@ import {
   applyAircraftLimits,
 } from "./aircraft";
 import type { FlightAssessmentInput } from "./types";
+import type { FlightLimits } from "./limits";
 
 const base: FlightAssessmentInput = {
   windSpeedKmh: 10,
@@ -233,6 +234,89 @@ describe("applyAircraftLimits", () => {
     const aircraft = { id: "test", name: "Test", windMaxKmh: 25 };
     const result = applyAircraftLimits(base, aircraft);
     expect(result.windMaxKmh).toBe(15);
+  });
+});
+
+describe("evaluateFlight boundary conditions (límites exactos/frontera)", () => {
+  it("wind exactly at max is not exceeded (just below the critical threshold)", () => {
+    const result = evaluateFlight({ ...base, windSpeedKmh: 30, windMaxKmh: 30 });
+    expect(result.status).not.toBe("UNFAVORABLE");
+    expect(result.reasons.some((r) => r.code === "WIND_EXCEEDED")).toBe(false);
+    expect(result.reasons.some((r) => r.code === "WIND_NEAR_LIMIT")).toBe(true);
+  });
+
+  it("wind one unit above max is exceeded", () => {
+    const result = evaluateFlight({ ...base, windSpeedKmh: 31, windMaxKmh: 30 });
+    expect(result.status).toBe("UNFAVORABLE");
+    expect(result.reasons.some((r) => r.code === "WIND_EXCEEDED")).toBe(true);
+  });
+
+  it("gust exactly at max is not exceeded (just below the critical threshold)", () => {
+    const result = evaluateFlight({ ...base, gustKmh: 40, gustMaxKmh: 40 });
+    expect(result.status).not.toBe("UNFAVORABLE");
+    expect(result.reasons.some((r) => r.code === "GUST_EXCEEDED")).toBe(false);
+    expect(result.reasons.some((r) => r.code === "GUST_NEAR_LIMIT")).toBe(true);
+  });
+
+  it("visibility exactly at minimum passes", () => {
+    const result = evaluateFlight({ ...base, visibilityM: 5000, visibilityMinMeters: 5000 });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.reasons.some((r) => r.code === "VIS_BELOW_MIN")).toBe(false);
+  });
+
+  it("temperature exactly at min passes", () => {
+    const result = evaluateFlight({ ...base, temperatureC: 5, temperatureMinC: 5 });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.reasons.some((r) => r.code === "TEMP_BELOW_MIN")).toBe(false);
+  });
+
+  it("precipitation exactly at max passes", () => {
+    const result = evaluateFlight({ ...base, precipitationMm: 2, precipitationMaxMm: 2 });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.reasons.some((r) => r.code === "PRECIP_EXCEEDED")).toBe(false);
+  });
+});
+
+describe("combining pilot limits with aircraft limits", () => {
+  it("pilot limits take precedence over aircraft limits in assessment", () => {
+    const pilotLimits: FlightLimits = { windMaxKmh: 20, gustMaxKmh: 25 };
+    const aircraft = {
+      id: "test",
+      name: "Test",
+      windMaxKmh: 40,
+      gustMaxKmh: 50,
+    };
+    const limits = applyAircraftLimits(pilotLimits, aircraft);
+    expect(limits.windMaxKmh).toBe(20);
+    expect(limits.gustMaxKmh).toBe(25);
+
+    const result = evaluateFlight({
+      ...base,
+      windSpeedKmh: 25,
+      ...limits,
+    });
+    expect(result.status).toBe("UNFAVORABLE");
+    expect(result.reasons.some((r) => r.code === "WIND_EXCEEDED")).toBe(true);
+  });
+
+  it("aircraft limits contribute when pilot has not configured that criterion", () => {
+    const pilotLimits: FlightLimits = {};
+    const aircraft = {
+      id: "test",
+      name: "Test",
+      windMaxKmh: 30,
+      gustMaxKmh: 40,
+    };
+    const limits = applyAircraftLimits(pilotLimits, aircraft);
+    const result = evaluateFlight({ ...base, ...limits });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.reasons.some((r) => r.code === "WIND_OK")).toBe(true);
+  });
+
+  it("no limits anywhere means NO_DATA", () => {
+    const limits = applyAircraftLimits({}, undefined);
+    const result = evaluateFlight({ ...base, ...limits });
+    expect(result.status).toBe("NO_DATA");
   });
 });
 

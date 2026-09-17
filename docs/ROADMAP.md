@@ -2,7 +2,7 @@
 
 > **VantOPS Chile** es una aplicación web/PWA orientada a pilotos de RPAS/drones en Chile, diseñada para planificar operaciones, consultar condiciones reales, evaluar riesgos básicos de vuelo y mantener una bitácora local.
 >
-> **Estado actual:** Planificación  
+> **Estado actual:** MVP `0.7.0` — Fases 0–5 completadas (cierre MVP)  
 > **Objetivo inicial:** MVP `1.0.0`  
 > **Nombre elegido:** VantOPS (Chile)  
 > **Nombre sugerido del repositorio:** `vantops-chile`  
@@ -482,9 +482,11 @@ alturas, temperatura/punto de rocío y presión QNH.
 
 Fuentes técnicas:
 
-- **DMC · meteochile.gob.cl** — fuente nacional oficial.
+- **DMC · meteochile.gob.cl** — fuente nacional oficial (pendiente de integración).
 - **NOAA aviationweather.gov** — espejo mundial gratuito (JSON/TXT, sin clave),
   respaldo estable para obtención y decodificación.
+- **VATSIM METAR · metar.vatsim.net** — fuente **implementada** actualmente
+  (texto METAR/SPECI simple, sin clave).
 
 Reglas horarias:
 
@@ -502,9 +504,10 @@ Magallanes:  UTC-3 permanente
 Rapa Nui:    UTC-6 estándar / UTC-5 verano
 ```
 
-Estado: **Fase 1** — tarjeta «Observación más cercana» (aeródromo con METAR
-más próximo a la zona), implementada como `WeatherObservationProvider` con
-respaldo DMC ↔ NOAA según estabilidad verificada en desarrollo.
+Estado: **Fase 1 completada** — tarjeta «Observación más cercana» (aeródromo con METAR
+más próximo a la zona), implementada como provider desacoplado
+(`vatsimObservation`) con fuente real **VATSIM METAR** y decodificador propio.
+La integración de DMC/NOAA queda como trabajo futuro según estabilidad verificada.
 
 ---
 
@@ -2426,17 +2429,17 @@ Debe ser configurable.
 ## Fase 0 — Base técnica
 
 ```text
-[ ] crear repo
-[ ] React
-[ ] Vite
-[ ] TypeScript
-[ ] Tailwind
-[ ] shadcn
-[ ] estructura
-[ ] lint
-[ ] tests
-[ ] CI
-[ ] GitHub Pages
+[x] crear repo
+[x] React
+[x] Vite
+[x] TypeScript
+[x] Tailwind
+[x] shadcn
+[x] estructura
+[x] lint
+[x] tests
+[x] CI
+[x] GitHub Pages
 ```
 
 **Resultado:**
@@ -2448,15 +2451,15 @@ PWA mínima pública.
 # 106. Fase 1 — Datos reales
 
 ```text
-[ ] Open-Meteo
-[ ] mapa OSM
-[ ] Leaflet
-[ ] ubicación
-[ ] clima
-[ ] SunCalc
-[ ] elevación
-[ ] timestamps
-[ ] estados de fuente
+[x] Open-Meteo
+[x] mapa OSM
+[x] Leaflet
+[x] ubicación
+[x] clima
+[x] SunCalc
+[x] elevación
+[x] timestamps
+[x] estados de fuente
 ```
 
 **Resultado:**
@@ -2468,12 +2471,12 @@ El usuario puede consultar condiciones reales.
 # 107. Fase 2 — Planificación
 
 ```text
-[ ] zona de vuelo
-[ ] radio
-[ ] evaluación
-[ ] semáforo
-[ ] motivos
-[ ] configuración del dron
+[x] zona de vuelo
+[x] radio
+[x] evaluación
+[x] semáforo
+[x] motivos
+[x] configuración del dron
 ```
 
 **Resultado:**
@@ -2485,11 +2488,11 @@ Herramienta de apoyo a decisión.
 # 108. Fase 3 — Checklist
 
 ```text
-[ ] checklist
-[ ] categorías
-[ ] persistencia
-[ ] checklist contextual
-[ ] completitud
+[x] checklist
+[x] categorías
+[x] persistencia
+[x] checklist contextual
+[x] completitud
 ```
 
 ---
@@ -2497,11 +2500,11 @@ Herramienta de apoyo a decisión.
 # 109. Fase 4 — Bitácora
 
 ```text
-[ ] vuelos
-[ ] aeronaves
-[ ] baterías
-[ ] exportación JSON
-[ ] importación
+[x] vuelos
+[x] aeronaves
+[x] baterías
+[x] exportación JSON
+[x] importación
 ```
 
 ---
@@ -2509,13 +2512,13 @@ Herramienta de apoyo a decisión.
 # 110. Fase 5 — PWA completa
 
 ```text
-[ ] offline
-[ ] service worker
+[x] offline
+[x] service worker
 [ ] install prompt
-[ ] iconos
+[x] iconos
 [ ] splash
-[ ] cache
-[ ] recuperación
+[x] cache
+[x] recuperación
 ```
 
 ---
@@ -4814,6 +4817,9 @@ pero debe evaluarse cuidadosamente por:
 
 # 230. Estado actual
 
+> **Snapshot histórico (pre-implementación).** El estado vigente está al inicio
+> del documento: MVP `0.7.0` con Fases 0–5 completadas.
+
 ```text
 Proyecto: VantOPS Chile
 Estado: planificación
@@ -5376,7 +5382,7 @@ TIPO
 PWA de planificación y apoyo a operaciones RPAS
 
 ESTADO
-Planificación
+MVP 0.7.0 (Fases 0–5 completadas)
 
 MVP
 1.0.0
@@ -5465,7 +5471,7 @@ PDF
 | VANT-026 | Geocodificación | Nominatim + coordenadas manuales | ✅ |
 | VANT-027 | Altura del viento | Evaluar a 10 m; mostrar 100 m informativo | ✅ |
 | VANT-028 | Tiempos | Almacenar UTC; mostrar hora local + Zulu | ✅ |
-| VANT-029 | METAR/SPECI | Tarjeta «Observación más cercana» (DMC ↔ NOAA), Fase 1 | ✅ |
+| VANT-029 | METAR/SPECI | Tarjeta «Observación más cercana» (VATSIM METAR implementado; DMC/NOAA futuro), Fase 1 | ✅ |
 | VANT-030 | Métrica de adopción | Sin analytics: issues, stars, feedback de comunidades | ✅ |
 | VANT-031 | OpenAIP | Espacio aéreo | ⏳ V2 |
 | VANT-032 | CONAF | Incendios activos | ⏳ V2 |

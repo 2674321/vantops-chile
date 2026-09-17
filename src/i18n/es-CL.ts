@@ -5,6 +5,7 @@ export const esCL = {
     home: "Inicio",
     logbook: "Bitácora",
     places: "Lugares",
+    settings: "Ajustes",
     about: "Acerca",
   },
   dashboard: {

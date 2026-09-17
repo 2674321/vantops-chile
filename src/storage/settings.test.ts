@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   loadFlightLimits,
+  saveFlightLimits,
   loadActiveAircraft,
   loadSelectedManufacturer,
   saveSelectedManufacturer,
@@ -57,6 +58,36 @@ describe("flight limits persistence", () => {
     store["vantops:flightLimits"] = "not-json";
     const result = await loadFlightLimits();
     expect(result).toEqual({});
+  });
+
+  it("saveFlightLimits persists and can be reloaded (recarga de configuración)", async () => {
+    const limits: FlightLimits = {
+      windMaxKmh: 35,
+      gustMaxKmh: 45,
+      precipitationMaxMm: 1,
+      visibilityMinMeters: 4000,
+      temperatureMinC: -5,
+      temperatureMaxC: 40,
+    };
+    await saveFlightLimits(limits);
+    const result = await loadFlightLimits();
+    expect(result).toEqual(limits);
+  });
+
+  it("saving empty limits persists empty configuration", async () => {
+    await saveFlightLimits({});
+    const result = await loadFlightLimits();
+    expect(result).toEqual({});
+  });
+
+  it("reloads limits across multiple save/load cycles", async () => {
+    await saveFlightLimits({ windMaxKmh: 15 });
+    expect((await loadFlightLimits()).windMaxKmh).toBe(15);
+    await saveFlightLimits({ windMaxKmh: 50, gustMaxKmh: 60 });
+    const result = await loadFlightLimits();
+    expect(result.windMaxKmh).toBe(50);
+    expect(result.gustMaxKmh).toBe(60);
+    expect(result.precipitationMaxMm).toBeUndefined();
   });
 });
 

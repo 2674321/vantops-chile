@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft, Download, Upload } from "lucide-react";
-import { exportBackup, importBackup, validateBackup, downloadBackup } from "../../storage/export";
-import type { BackupData } from "../../storage/export";
+import { exportBackup, importBackup, inspectBackup, downloadBackup, countImportableSettings, CURRENT_BACKUP_VERSION, MAX_BACKUP_VERSION, BackupValidationError } from "../../storage/export";
+import type { BackupData, ImportSummary } from "../../storage/export";
 import { APP_VERSION } from "../../version";
 import { esCL as t } from "../../i18n/es-CL";
 
 export function ExportImportPage() {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<BackupData | null>(null);
-  const [importResult, setImportResult] = useState<{ flights: number; batteries: number; places: number } | null>(null);
+  const [importResult, setImportResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -30,13 +30,16 @@ export function ExportImportPage() {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string);
-        if (!validateBackup(data)) {
-          setError(t.export.invalidFile);
+        const inspection = inspectBackup(data);
+        if (!inspection.ok) {
+          setError(inspection.error);
+          setPreview(null);
           return;
         }
-        setPreview(data);
+        setPreview(inspection.data);
       } catch {
         setError(t.export.invalidFile);
+        setPreview(null);
       }
     };
     reader.readAsText(file);
@@ -49,10 +52,12 @@ export function ExportImportPage() {
       const result = await importBackup(preview);
       setImportResult(result);
       setPreview(null);
-    } catch {
-      setError(t.export.importError);
+    } catch (err) {
+      setError(err instanceof BackupValidationError ? err.message : t.export.importError);
     }
   }
+
+  const settingsCount = preview ? countImportableSettings(preview.settings) : 0;
 
   return (
     <div className="space-y-4">
@@ -100,7 +105,7 @@ export function ExportImportPage() {
           </Button>
 
           {error && (
-            <p className="text-sm text-red-400">{error}</p>
+            <p role="alert" className="text-sm text-red-400">{error}</p>
           )}
 
           {preview && (
@@ -112,9 +117,23 @@ export function ExportImportPage() {
                 {Array.isArray(preview.places) && preview.places.length > 0 && (
                   <p>{preview.places.length} lugares</p>
                 )}
+                {settingsCount > 0 && (
+                  <p>
+                    {settingsCount} configuraciones (límites de vuelo, aeronave activa, última ubicación)
+                  </p>
+                )}
                 <p>{t.export.version(preview.appVersion)}</p>
                 <p>{t.export.importedAt(new Date(preview.exportedAt).toLocaleDateString("es-CL"))}</p>
+                {typeof preview.version === "number" && preview.version !== CURRENT_BACKUP_VERSION && (
+                  <p className="text-amber-300">
+                    Versión de formato respaldo: {preview.version} (compatible: hasta {MAX_BACKUP_VERSION})
+                  </p>
+                )}
               </div>
+              <p className="mt-2 text-xs text-slate-500">
+                La importación reemplaza registros con fecha de actualización más reciente y restaura
+                la configuración compatible. No elimina datos locales existentes.
+              </p>
               <div className="mt-3 flex gap-2">
                 <Button size="sm" onClick={handleImport}>
                   {t.export.confirmImport}
@@ -129,8 +148,9 @@ export function ExportImportPage() {
           {importResult && (
             <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-3">
               <p className="text-sm text-emerald-300">
-                {t.export.importSuccess(importResult.flights, importResult.batteries)}
+                Importados: {importResult.flights} vuelos · {importResult.batteries} baterías
                 {importResult.places > 0 && ` · ${importResult.places} lugares`}
+                {importResult.settings > 0 && ` · ${importResult.settings} configuraciones`}
               </p>
             </div>
           )}

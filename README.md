@@ -59,21 +59,22 @@ src/
     elevation/      Open-Meteo Elevation API
     solar/          SunCalc (cálculo local)
     observations/   VATSIM METAR, decoder, estaciones
+    geocoding/      Nominatim (búsqueda de ubicación, OSM)
   features/
     dashboard/      Pantalla principal
+    settings/       Ajustes (límites del piloto)
     aircraft/       Selector de aeronave (fabricante → modelo → tipo)
     assessment/     AssessmentCard (semáforo de vuelo)
     checklist/      CheckListCard (checklist prevuelo)
-    map/            Leaflet + OSM
+    logbook/        Bitácora, baterías, exportar/importar
+    places/         Lugares guardados
+    map/            Leaflet + OSM (lazy)
     weather/        WeatherPanel
     elevation/      ElevationCard
     solar/          SolarCard
     observations/   NearbyMetarCard
-    logbook/        Bitácora de vuelos, baterías, export/import (Dexie)
-    places/         Lugares guardados
   hooks/          useLastCoordinate (localStorage)
-  storage/        settings.ts (flightLimits, aircraft, manufacturer, model), checklists.ts
-                  repositories/ (Dexie: vuelos, baterías, lugares, settings)
+  storage/        Dexie/IndexedDB (db.ts, export.ts, repositories/), settings.ts, checklists.ts
   i18n/           es-CL
   components/     ui/ (button, card)
 references/       normativa-dgac/ (material de desarrollo, no normativa runtime)
@@ -84,7 +85,7 @@ references/       normativa-dgac/ (material de desarrollo, no normativa runtime)
 ```
 UI (features/)
   → Provider adapter (providers/)
-    → External API (Open-Meteo, NOAA, SunCalc)
+    → External API (Open-Meteo, VATSIM METAR, Nominatim/OSM, SunCalc)
   → Domain model (domain/)
   → DataSourceMeta (status, timestamps, fuente)
 ```
@@ -174,12 +175,26 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Indicador online/offline** en la app.
 - **Hardening** de error handling, límites de evaluación y consistencia de datos.
 
+## R0.7.0 — MVP Closure / Settings / Data Integrity / Location Search (completada)
+
+- **Ajustes** (`/ajustes`): preferencias del piloto con límites de viento, ráfaga, precipitación, visibilidad y temperatura; campo vacío = no configurado
+- **Límites reales aplicados**: el panel combina los límites del piloto con el perfil de aeronave (`applyAircraftLimits`) — corrige la evaluación que antes ignoraba la configuración
+- **Búsqueda de ubicación por nombre** con Nominatim (OSM): solo por acción explícita, caché, máximo 1 req/segundo, timeout, atribución visible; se mantienen GPS, coordenadas manuales y clic en mapa
+- **Integridad del respaldo**: backup v1 con formato/versión, validación profunda (`inspectBackup`) y **restauración de configuración** en lista blanca
+- **Importación transaccional** en IndexedDB con resolución de conflictos por `updatedAt`; ningún respaldo inválido deja cambios parciales
+- **Errores de geolocalización diferenciados** (permiso denegado / no disponible / timeout)
+- **Provider de observaciones renombrado** a `vatsimObservation` (la fuente real es `metar.vatsim.net`)
+- **Code-splitting**: rutas secundarias y Leaflet bajo demanda; bundle principal de ~653 kB → ~285 kB
+- **Navegación responsive** (320–390 px) con pestañas desplazables
+- **259 tests** pasando (+88: assessment 9, export/validación 11, integración IndexedDB 8, geocodificación 11, VATSIM 8, settings 3, y base previa)
+
 ## Fuentes de datos
 
 | Fuente | Uso | Licencia |
 |--------|-----|----------|
 | [Open-Meteo](https://open-meteo.com/) | Clima forecast + elevación | CC BY 4.0 |
 | [OpenStreetMap](https://www.openstreetmap.org/) | Mapa base | ODbL |
+| [Nominatim](https://nominatim.openstreetmap.org/) | Búsqueda de ubicación por nombre | Datos © OpenStreetMap (ODbL) |
 | [VATSIM METAR](https://metar.vatsim.net/) | METAR observaciones | Público |
 | [SunCalc](https://suncalc.org/) | Posición solar | BSD-2 |
 
@@ -203,7 +218,7 @@ Las referencias normativas almacenadas en `references/normativa-dgac/` son mater
 
 - Sin analytics ni telemetría
 - Sin cuentas obligatorias
-- Datos guardados solo en el dispositivo (localStorage)
+- Datos guardados solo en el dispositivo (IndexedDB + localStorage)
 - Sin tracking de terceros
 
 ## Disclaimer

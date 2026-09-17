@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchNearestObservation } from "../../providers/observations/noaaObservation";
+import { fetchNearestObservation } from "../../providers/observations/vatsimObservation";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { DataSourceBadge, windDirectionLabel } from "../weather/WeatherPanel";
 import { Radio } from "lucide-react";

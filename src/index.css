@@ -15,4 +15,13 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
   }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

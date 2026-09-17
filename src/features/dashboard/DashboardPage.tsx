@@ -1,9 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
 import { WeatherPanel, DataSourceBadge } from "../weather/WeatherPanel";
-import MapPicker from "../map/LocationMap";
 import { ElevationCard } from "../elevation/ElevationCard";
 import { SolarCard } from "../solar/SolarCard";
 import { NearbyMetarCard } from "../observations/NearbyMetarCard";
@@ -12,22 +11,36 @@ import { AssessmentCard } from "../assessment/AssessmentCard";
 import { ChecklistCard } from "../checklist/ChecklistCard";
 import { AircraftSelector } from "../aircraft/AircraftSelector";
 import { Button } from "../../components/ui/button";
-import { MapPin, Navigation, MapIcon, Plane, Battery } from "lucide-react";
+import { MapPin, Navigation, MapIcon, Plane, Battery, Settings2, AlertTriangle } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
 import { applyAircraftLimits } from "../../domain/assessment/aircraft";
 import type { AircraftProfile } from "../../domain/assessment/aircraft";
-import { loadActiveAircraft } from "../../storage/settings";
-import { fetchNearestObservation } from "../../providers/observations/noaaObservation";
+import type { FlightLimits } from "../../domain/assessment/limits";
+import { loadActiveAircraft, loadFlightLimits } from "../../storage/settings";
+import { fetchNearestObservation } from "../../providers/observations/vatsimObservation";
+import { searchLocation } from "../../providers/geocoding/nominatimGeocoding";
+import type { GeocodingResult } from "../../providers/geocoding/nominatimGeocoding";
+import { NOMINATIM_ATTRIBUTION } from "../../providers/geocoding/nominatimGeocoding";
 import { esCL as t } from "../../i18n/es-CL";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+
+const MapPicker = lazy(() => import("../map/LocationMap"));
 
 export default function DashboardPage() {
   const { coordinate, saveCoordinate } = useLastCoordinate();
   const [manualLat, setManualLat] = useState("");
   const [manualLon, setManualLon] = useState("");
   const [aircraft, setAircraft] = useState<AircraftProfile | null>(null);
+  const [flightLimits, setFlightLimits] = useState<FlightLimits>({});
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchExecuted, setSearchExecuted] = useState(false);
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const [showRestored, setShowRestored] = useState(false);
@@ -35,6 +48,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadActiveAircraft().then(setAircraft);
+    loadFlightLimits().then(setFlightLimits);
   }, []);
 
   useEffect(() => {
@@ -78,7 +92,7 @@ export default function DashboardPage() {
 
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
-    const limits = applyAircraftLimits({}, aircraft ?? undefined);
+    const limits = applyAircraftLimits(flightLimits, aircraft ?? undefined);
     return evaluateFlight({
       windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
       gustKmh: weatherQuery.data.current.windGustsKmh,
@@ -96,29 +110,79 @@ export default function DashboardPage() {
       temperatureMinC: limits.temperatureMinC,
       temperatureMaxC: limits.temperatureMaxC,
     });
-  }, [weatherQuery.data, aircraft]);
+  }, [weatherQuery.data, aircraft, flightLimits]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setManualError(null);
     const lat = Number.parseFloat(manualLat);
     const lon = Number.parseFloat(manualLon);
-    if (Number.isNaN(lat) || Number.isNaN(lon)) return;
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+    if (Number.isNaN(lat) || Number.isNaN(lon)) {
+      setManualError("Ingresa valores numéricos válidos para latitud y longitud.");
+      return;
+    }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setManualError("Coordenadas inválidas. Revisa los valores ingresados.");
+      return;
+    }
     saveCoordinate({ latitude: lat, longitude: lon });
   };
 
   const handleGeolocation = () => {
-    if (!navigator.geolocation) return;
+    setGeoError(null);
+    if (!navigator.geolocation) {
+      setGeoError("Geolocalización no disponible en este dispositivo.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setGeoError(null);
         saveCoordinate({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
       },
-      () => {},
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoError("Permiso de ubicación rechazado. Puedes ingresar coordenadas manualmente.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setGeoError("Ubicación no disponible en este dispositivo.");
+        } else if (err.code === err.TIMEOUT) {
+          setGeoError("Tiempo agotado al obtener la ubicación. Intenta nuevamente.");
+        } else {
+          setGeoError("Error desconocido al obtener la ubicación.");
+        }
+      },
       { timeout: 10_000, maximumAge: 60_000 }
     );
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchError(null);
+    setSearchResults([]);
+    const query = searchQuery.trim();
+    if (query === "") {
+      setSearchError("Ingresa una dirección, localidad o lugar para buscar.");
+      return;
+    }
+    setSearching(true);
+    try {
+      const results = await searchLocation(query);
+      setSearchResults(results);
+      setSearchExecuted(true);
+      if (results.length === 0) {
+        setSearchError("Sin resultados. Usa coordenadas manuales o el mapa.");
+      }
+    } catch (err) {
+      setSearchError(
+        err instanceof Error && err.name === "AbortError"
+          ? "La búsqueda tardó demasiado. Revisa tu conexión e intenta nuevamente."
+          : "No se pudo buscar la ubicación. Verifica tu conexión."
+      );
+    } finally {
+      setSearching(false);
+    }
   };
 
   return (
@@ -174,7 +238,21 @@ export default function DashboardPage() {
           <Navigation className="mr-2 h-4 w-4" />
           {t.dashboard.useMyLocation}
         </Button>
+        <Button variant="outline" onClick={() => navigate("/ajustes")} className="h-12 text-base">
+          <Settings2 className="mr-2 h-4 w-4" />
+          Ajustes
+        </Button>
       </div>
+
+      {geoError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-300"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{geoError}</span>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -189,6 +267,71 @@ export default function DashboardPage() {
               {coordinate.latitude.toFixed(5)}, {coordinate.longitude.toFixed(5)}
             </p>
           )}
+
+          <form
+            className="mb-4 space-y-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3"
+            onSubmit={handleSearch}
+          >
+            <label htmlFor="location-search" className="mb-1 block text-xs font-medium text-slate-400">
+              Buscar dirección, localidad o lugar
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="location-search"
+                type="search"
+                autoComplete="off"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
+                placeholder="Totoralillo, Coquimbo"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchError(null);
+                }}
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={searching}
+                className="shrink-0"
+              >
+                {searching ? "Buscando…" : "Buscar"}
+              </Button>
+            </div>
+
+            {searchError && (
+              <p role="alert" className="text-sm text-amber-300">
+                {searchError}
+              </p>
+            )}
+
+            {searchResults.length > 0 && (
+              <ul className="space-y-1" aria-label="Resultados de búsqueda">
+                {searchResults.map((result) => (
+                  <li key={result.placeId}>
+                    <button
+                      type="button"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-left text-sm text-slate-300 hover:border-sky-600 hover:text-sky-300"
+                      onClick={() => {
+                        saveCoordinate({ latitude: result.latitude, longitude: result.longitude });
+                        setSearchQuery("");
+                        setSearchResults([]);
+                        setSearchExecuted(false);
+                      }}
+                    >
+                      {result.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {searchExecuted && searchResults.length === 0 && !searchError && (
+              <p className="text-xs text-slate-500">Sin resultados para mostrar.</p>
+            )}
+
+            <p className="text-[11px] text-slate-600">{NOMINATIM_ATTRIBUTION}</p>
+          </form>
+
           <form
             className="grid gap-3 sm:grid-cols-2"
             onSubmit={handleManualSubmit}
@@ -217,6 +360,12 @@ export default function DashboardPage() {
               {t.dashboard.showWeather}
             </Button>
           </form>
+
+          {manualError && (
+            <p role="alert" className="text-sm text-red-400">
+              {manualError}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -233,10 +382,20 @@ export default function DashboardPage() {
 
       {coordinate && (
         <section className="space-y-6">
-          <MapPicker
-            coordinate={coordinate}
-            onPick={saveCoordinate}
-          />
+          <Suspense
+            fallback={
+              <Card>
+                <CardContent className="py-10 text-center text-sm text-slate-400">
+                  Cargando mapa…
+                </CardContent>
+              </Card>
+            }
+          >
+            <MapPicker
+              coordinate={coordinate}
+              onPick={saveCoordinate}
+            />
+          </Suspense>
 
           {weatherQuery.isLoading && (
             <Card>
