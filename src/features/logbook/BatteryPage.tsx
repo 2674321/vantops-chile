@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { ArrowLeft, Plus, Trash2, RotateCw, Edit } from "lucide-react";
 import { listBatteries, createBattery, deleteBattery, incrementCycles, updateBattery } from "../../storage/repositories/batteryRepository";
 import type { BatteryRecord } from "../../domain/logbook/types";
+import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
 
 function formatDate(iso?: string): string {
@@ -20,6 +21,10 @@ export function BatteryPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const toast = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +35,8 @@ export function BatteryPage() {
     try {
       const b = await listBatteries();
       setBatteries(b);
+    } catch {
+      toast.error(t.feedback.loadError);
     } finally {
       setLoading(false);
     }
@@ -38,6 +45,7 @@ export function BatteryPage() {
   function resetForm() {
     setFormName("");
     setFormNotes("");
+    setNameError(null);
     setShowAdd(false);
     setEditId(null);
   }
@@ -46,35 +54,67 @@ export function BatteryPage() {
     setEditId(bat.id);
     setFormName(bat.name);
     setFormNotes(bat.notes ?? "");
+    setNameError(null);
     setShowAdd(false);
   }
 
   async function handleSubmit() {
-    if (!formName.trim()) return;
-    if (editId) {
-      await updateBattery(editId, {
-        name: formName.trim(),
-        notes: formNotes || undefined,
-      });
-    } else {
-      await createBattery({
-        name: formName.trim(),
-        notes: formNotes || undefined,
-      });
+    if (saving) return;
+    if (!formName.trim()) {
+      setNameError(t.feedback.nameRequired);
+      return;
     }
-    resetForm();
-    await loadBatteries();
+
+    setSaving(true);
+    try {
+      if (editId) {
+        await updateBattery(editId, {
+          name: formName.trim(),
+          notes: formNotes || undefined,
+        });
+        toast.success(t.feedback.batteryUpdated);
+      } else {
+        await createBattery({
+          name: formName.trim(),
+          notes: formNotes || undefined,
+        });
+        toast.success(t.feedback.batteryCreated);
+      }
+      resetForm();
+      await loadBatteries();
+    } catch {
+      toast.error(t.feedback.batteryOperationError);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete(id: string) {
-    await deleteBattery(id);
-    setDeleteId(null);
-    await loadBatteries();
+    setBusyId(id);
+    try {
+      await deleteBattery(id);
+      setDeleteId(null);
+      toast.success(t.feedback.batteryDeleted);
+      await loadBatteries();
+    } catch {
+      toast.error(t.feedback.batteryOperationError);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function handleCycle(id: string) {
-    await incrementCycles(id);
-    await loadBatteries();
+    if (busyId === id) return;
+    setBusyId(id);
+    try {
+      await incrementCycles(id);
+      toast.success(t.feedback.batteryCycleRegistered);
+      await loadBatteries();
+    } catch {
+      toast.error(t.feedback.batteryOperationError);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   if (loading) {
@@ -88,11 +128,11 @@ export function BatteryPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")}>
+        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")} aria-label="Volver a la bitácora">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg font-semibold text-slate-100">{t.battery.title}</h2>
-        <Button size="sm" className="ml-auto" onClick={() => { setShowAdd(!showAdd); setEditId(null); }}>
+        <Button size="sm" className="ml-auto" onClick={() => { setShowAdd(!showAdd); setEditId(null); setNameError(null); }}>
           <Plus className="mr-1 h-4 w-4" />
           {t.battery.addBattery}
         </Button>
@@ -101,24 +141,44 @@ export function BatteryPage() {
       {(showAdd || editId) && (
         <Card>
           <CardContent className="space-y-3 py-4">
-            <input
-              type="text"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder={t.battery.name}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            />
-            <input
-              type="text"
-              value={formNotes}
-              onChange={(e) => setFormNotes(e.target.value)}
-              placeholder={t.battery.notes}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            />
+            <div>
+              <label htmlFor="battery-name" className="mb-1 block text-xs text-slate-400">{t.battery.name}</label>
+              <input
+                id="battery-name"
+                type="text"
+                value={formName}
+                onChange={(e) => {
+                  setFormName(e.target.value);
+                  setNameError(null);
+                }}
+                aria-invalid={Boolean(nameError)}
+                aria-describedby={nameError ? "battery-name-error" : undefined}
+                className={`w-full rounded-lg border bg-slate-950 px-3 py-2 text-sm text-slate-200 ${nameError ? "border-red-700" : "border-slate-700"}`}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              />
+              {nameError && (
+                <p id="battery-name-error" role="alert" className="mt-1 text-xs text-red-400">
+                  {nameError}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="battery-notes" className="mb-1 block text-xs text-slate-400">{t.battery.notes}</label>
+              <input
+                id="battery-notes"
+                type="text"
+                value={formNotes}
+                onChange={(e) => setFormNotes(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+              />
+            </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSubmit}>{editId ? t.battery.saveChanges : t.battery.addBattery}</Button>
-              <Button size="sm" variant="outline" onClick={resetForm}>{t.battery.deleteCancel}</Button>
+              <Button size="sm" onClick={handleSubmit} disabled={saving}>
+                {saving ? t.feedback.saving : editId ? t.battery.saveChanges : t.battery.addBattery}
+              </Button>
+              <Button size="sm" variant="outline" onClick={resetForm} disabled={saving}>
+                {t.battery.deleteCancel}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -149,23 +209,39 @@ export function BatteryPage() {
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => handleCycle(bat.id)} title={t.battery.registerCycle}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleCycle(bat.id)}
+                      disabled={busyId === bat.id}
+                      aria-label={t.battery.registerCycle}
+                    >
                       <RotateCw className="h-4 w-4 text-sky-400" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => startEdit(bat)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => startEdit(bat)}
+                      aria-label={t.battery.editBattery}
+                    >
                       <Edit className="h-4 w-4 text-slate-400" />
                     </Button>
                     {deleteId === bat.id ? (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline" onClick={() => setDeleteId(null)}>
+                        <Button size="sm" variant="outline" onClick={() => setDeleteId(null)} disabled={busyId === bat.id}>
                           {t.battery.deleteCancel}
                         </Button>
-                        <Button size="sm" onClick={() => handleDelete(bat.id)}>
-                          {t.battery.deleteBattery}
+                        <Button size="sm" onClick={() => handleDelete(bat.id)} disabled={busyId === bat.id}>
+                          {busyId === bat.id ? t.feedback.saving : t.battery.deleteBattery}
                         </Button>
                       </div>
                     ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setDeleteId(bat.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeleteId(bat.id)}
+                        aria-label={t.battery.deleteBattery}
+                      >
                         <Trash2 className="h-4 w-4 text-red-400" />
                       </Button>
                     )}

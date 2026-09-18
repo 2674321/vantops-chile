@@ -24,6 +24,56 @@ export function validateCoordinate(c: Coordinate): void {
   }
 }
 
+export type CoordinateAxis = "latitude" | "longitude";
+
+export type CoordinateInputError = "empty" | "not-a-number" | "out-of-range";
+
+export type CoordinateParseResult =
+  | { ok: true; value: number }
+  | { ok: false; error: CoordinateInputError };
+
+export type CoordinateFieldsResult =
+  | { ok: true; coordinate: Coordinate }
+  | {
+      ok: false;
+      errors: { latitude?: CoordinateInputError; longitude?: CoordinateInputError };
+    };
+
+const DECIMAL_PATTERN = /^[+-]?(\d+(\.\d+)?|\.\d+)$/;
+
+export function parseCoordinateInput(raw: string, axis: CoordinateAxis): CoordinateParseResult {
+  const trimmed = raw.trim();
+  if (trimmed === "") return { ok: false, error: "empty" };
+
+  const normalized = trimmed.replace(",", ".");
+  if (!DECIMAL_PATTERN.test(normalized)) return { ok: false, error: "not-a-number" };
+
+  const value = Number(normalized);
+  if (!Number.isFinite(value)) return { ok: false, error: "not-a-number" };
+
+  const inRange = axis === "latitude" ? isValidLatitude(value) : isValidLongitude(value);
+  if (!inRange) return { ok: false, error: "out-of-range" };
+
+  return { ok: true, value };
+}
+
+export function parseCoordinateFields(
+  latitudeRaw: string,
+  longitudeRaw: string,
+): CoordinateFieldsResult {
+  const latitude = parseCoordinateInput(latitudeRaw, "latitude");
+  const longitude = parseCoordinateInput(longitudeRaw, "longitude");
+
+  if (latitude.ok && longitude.ok) {
+    return { ok: true, coordinate: { latitude: latitude.value, longitude: longitude.value } };
+  }
+
+  const errors: { latitude?: CoordinateInputError; longitude?: CoordinateInputError } = {};
+  if (!latitude.ok) errors.latitude = latitude.error;
+  if (!longitude.ok) errors.longitude = longitude.error;
+  return { ok: false, errors };
+}
+
 export function formatCoordinate(c: Coordinate): string {
   return `${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)}`;
 }

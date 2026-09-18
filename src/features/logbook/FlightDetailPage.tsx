@@ -7,6 +7,7 @@ import { getFlight, deleteFlight } from "../../storage/repositories/flightReposi
 import { getBattery } from "../../storage/repositories/batteryRepository";
 import type { FlightRecord, BatteryRecord } from "../../domain/logbook/types";
 import { formatCoordinate } from "../../domain/coordinate";
+import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
 
 function formatDuration(seconds?: number): string {
@@ -40,10 +41,12 @@ function statusLabel(status?: string): string {
 export function FlightDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [flight, setFlight] = useState<FlightRecord | null>(null);
   const [battery, setBattery] = useState<BatteryRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -57,9 +60,16 @@ export function FlightDetailPage() {
   }, [id]);
 
   async function handleDelete() {
-    if (!id) return;
-    await deleteFlight(id);
-    navigate("/bitacora");
+    if (!id || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteFlight(id);
+      toast.success(t.feedback.flightDeleted);
+      navigate("/bitacora");
+    } catch {
+      toast.error(t.feedback.flightDeleteError);
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -83,15 +93,15 @@ export function FlightDetailPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")}>
+        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")} aria-label="Volver a la bitácora">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg font-semibold text-slate-100">{t.logbook.flightDetail}</h2>
         <div className="ml-auto flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/bitacora/${id}/editar`)}>
+          <Button size="sm" variant="ghost" onClick={() => navigate(`/bitacora/${id}/editar`)} aria-label={t.logbook.editFlight}>
             <Edit className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowDelete(true)}>
+          <Button size="sm" variant="ghost" onClick={() => setShowDelete(true)} aria-label={t.logbook.deleteFlight}>
             <Trash2 className="h-4 w-4 text-red-400" />
           </Button>
         </div>
@@ -101,11 +111,11 @@ export function FlightDetailPage() {
         <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-3">
           <p className="mb-2 text-sm text-red-300">{t.logbook.deleteConfirm}</p>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setShowDelete(false)}>
+            <Button size="sm" variant="outline" onClick={() => setShowDelete(false)} disabled={deleting}>
               {t.logbook.deleteCancel}
             </Button>
-            <Button size="sm" onClick={handleDelete}>
-              {t.logbook.deleteFlight}
+            <Button size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting ? t.feedback.saving : t.logbook.deleteFlight}
             </Button>
           </div>
         </div>

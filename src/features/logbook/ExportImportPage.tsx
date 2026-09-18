@@ -9,24 +9,40 @@ import { listFlights } from "../../storage/repositories/flightRepository";
 import { flightsToCsv } from "../../storage/csvExport";
 import { downloadTextFile } from "../../lib/download";
 import { APP_VERSION } from "../../version";
+import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
 
 export function ExportImportPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [preview, setPreview] = useState<BackupData | null>(null);
   const [importResult, setImportResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleExport() {
-    const backup = await exportBackup(APP_VERSION);
-    downloadBackup(backup);
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const backup = await exportBackup(APP_VERSION);
+      downloadBackup(backup);
+      toast.success(t.feedback.backupExported);
+    } catch {
+      setError(t.feedback.backupExportError);
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleCsvExport() {
+    if (exportingCsv) return;
     setError(null);
     setCsvMessage(null);
+    setExportingCsv(true);
     try {
       const flights = await listFlights(1000);
       if (flights.length === 0) {
@@ -39,8 +55,11 @@ export function ExportImportPage() {
         csv,
         "text/csv;charset=utf-8"
       );
+      toast.success(t.feedback.csvExported);
     } catch {
-      setError(t.export.csvError);
+      setError(t.feedback.csvError);
+    } finally {
+      setExportingCsv(false);
     }
   }
 
@@ -71,13 +90,17 @@ export function ExportImportPage() {
   }
 
   async function handleImport() {
-    if (!preview) return;
+    if (!preview || importing) return;
+    setImporting(true);
     try {
       const result = await importBackup(preview);
       setImportResult(result);
       setPreview(null);
+      toast.success(t.feedback.backupImported);
     } catch (err) {
       setError(err instanceof BackupValidationError ? err.message : t.export.importError);
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -86,7 +109,7 @@ export function ExportImportPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")}>
+        <Button size="sm" variant="ghost" onClick={() => navigate("/bitacora")} aria-label="Volver a la bitácora">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg font-semibold text-slate-100">{t.export.title}</h2>
@@ -101,9 +124,9 @@ export function ExportImportPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-400">{t.export.privacyNote}</p>
-          <Button onClick={handleExport}>
+          <Button onClick={handleExport} disabled={exporting}>
             <Download className="mr-2 h-4 w-4" />
-            {t.export.exportData}
+            {exporting ? t.feedback.exporting : t.export.exportData}
           </Button>
         </CardContent>
       </Card>
@@ -117,9 +140,9 @@ export function ExportImportPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-400">{t.export.csvDescription}</p>
-          <Button variant="outline" onClick={handleCsvExport}>
+          <Button variant="outline" onClick={handleCsvExport} disabled={exportingCsv}>
             <FileSpreadsheet className="mr-2 h-4 w-4" />
-            {t.export.csvAction}
+            {exportingCsv ? t.feedback.exporting : t.export.csvAction}
           </Button>
           {csvMessage && (
             <p className="text-sm text-slate-400">{csvMessage}</p>
@@ -178,10 +201,10 @@ export function ExportImportPage() {
                 la configuración compatible. No elimina datos locales existentes.
               </p>
               <div className="mt-3 flex gap-2">
-                <Button size="sm" onClick={handleImport}>
-                  {t.export.confirmImport}
+                <Button size="sm" onClick={handleImport} disabled={importing}>
+                  {importing ? t.feedback.importing : t.export.confirmImport}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setPreview(null)}>
+                <Button size="sm" variant="outline" onClick={() => setPreview(null)} disabled={importing}>
                   {t.export.cancelImport}
                 </Button>
               </div>

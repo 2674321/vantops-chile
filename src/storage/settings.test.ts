@@ -3,6 +3,7 @@ import {
   loadFlightLimits,
   saveFlightLimits,
   loadActiveAircraft,
+  saveActiveAircraft,
   loadSelectedManufacturer,
   saveSelectedManufacturer,
   loadSelectedModel,
@@ -14,13 +15,28 @@ import {
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
 
+const { idbStore, deleteMock } = vi.hoisted(() => ({
+  idbStore: new Map<string, string>(),
+  deleteMock: vi.fn(),
+}));
+
 vi.mock("./db", () => ({
   getDB: () => ({
     settings: {
-      get: vi.fn().mockResolvedValue(undefined),
-      put: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
-      toArray: vi.fn().mockResolvedValue([]),
+      get: vi.fn(async (key: string) => {
+        const value = idbStore.get(key);
+        return value === undefined ? undefined : { id: key, value, updatedAt: "" };
+      }),
+      put: vi.fn(async (record: { id: string; value: string }) => {
+        idbStore.set(record.id, record.value);
+      }),
+      delete: vi.fn(async (key: string) => {
+        idbStore.delete(key);
+        deleteMock(key);
+      }),
+      toArray: vi.fn(async () =>
+        [...idbStore.entries()].map(([id, value]) => ({ id, value, updatedAt: "" })),
+      ),
     },
   }),
 }));
@@ -29,6 +45,8 @@ let store: Record<string, string>;
 
 beforeEach(() => {
   store = {};
+  idbStore.clear();
+  deleteMock.mockClear();
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, value: string) => {
@@ -144,13 +162,23 @@ describe("manufacturer/model persistence", () => {
     expect(loadSelectedModel()).toBe("dji-mini-4-pro");
   });
 
-  it("clearAircraftSelection removes all keys", async () => {
+  it("clearAircraftSelection removes all keys including IndexedDB", async () => {
     saveSelectedManufacturer("dji");
     saveSelectedModel("dji-mini-4-pro");
     store["vantops:activeAircraft"] = JSON.stringify({ id: "test", name: "Test" });
-    clearAircraftSelection();
+    await saveActiveAircraft({
+      id: "test",
+      name: "Test",
+      type: "MULTIROTOR",
+      manufacturer: "DJI",
+      model: "Mini",
+    });
+
+    await clearAircraftSelection();
+
     expect(loadSelectedManufacturer()).toBeNull();
     expect(loadSelectedModel()).toBeNull();
+    expect(deleteMock).toHaveBeenCalledWith("activeAircraft");
     const result = await loadActiveAircraft();
     expect(result).toBeNull();
   });

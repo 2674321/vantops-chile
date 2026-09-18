@@ -4,6 +4,30 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 
 ## [No publicado]
 
+## [0.9.0] - 2026-09-17
+
+### Added
+- **Sistema de notificaciones (toasts) propio**: dominio puro (`toast.ts`) con variantes, duración por tipo (2.5–4 s éxito/info, 5–6 s aviso/error), deduplicación de mensajes repetidos y límite de 3 visibles; `ToastProvider`, `ToastViewport` y `useToast` propios, montados por encima de `<Routes>` para sobrevivir la navegación, con `role="status"`/`aria-live="polite"` y `role="alert"`/`aria-live="assertive"` según gravedad.
+- **Validación de coordenadas reutilizable** (`parseCoordinateInput`, `parseCoordinateFields`) que distingue vacío, no numérico y fuera de rango por eje, acepta `0,0` como coordenada válida y evita por completo el fallback a `0,0` ante entradas inválidas.
+- Validación de fechas de vuelo (`validateFlightTimes`) con error explícito si el fin es anterior al inicio, y de porcentaje de batería (`parseBatteryPercent`, entero 0–100; vacío permitido).
+- Detección pura de reconexión real offline→online (`detectReconnection`) que no dispara en la carga inicial ni en cada render.
+- Mensajes de retroalimentación centralizados (`feedback`) y helper `coordinateInputMessage` para errores de latitud/longitud.
+
+### Changed
+- **Feedback de acciones**: registrar/editar/eliminar vuelo, crear/editar/eliminar batería y ciclo, crear/editar/eliminar/favorito de lugar, guardar/borrar límites, exportar respaldo/CSV e importar respaldo ahora confirman con toast y muestran errores en lugar de fallar en silencio.
+- Estados de operación en curso: botones deshabilitados con etiqueta ("Guardando…", "Importando…", "Exportando…"), sin doble envío ni doble clic en registrar ciclo.
+- Formularios de vuelo y lugares usan labels visibles, `aria-invalid` y `aria-describedby`; botones de solo icono incorporan `aria-label`.
+- Confirmaciones destructivas inline para vuelo, batería, lugar, límites y aeronave activa, sin `window.confirm`.
+- El borrado de la aeronave activa ahora limpia también IndexedDB (antes solo `localStorage`, lo que provocaba que reapareciera al recargar).
+- El radio de la zona se guarda con manejo de error y reversión visual si IndexedDB falla, con toast de aviso.
+
+### Fixed
+- **P0:** los formularios de vuelo y lugares convertían entradas inválidas en `0,0` (`Number.parseFloat(x) || 0`), guardando coordenadas incorrectas.
+- **P0:** "Conexión restaurada" aparecía en cada montaje estando en línea; ahora solo tras una transición real offline→online.
+- **P0:** las fallas al guardar vuelo/lugar/batería/límites se ignoraban o dejaban la UI en estado inconsistente.
+- **P1:** el fallo del uso de batería posterior al guardado del vuelo se ocultaba con `.catch(() => {})`; ahora se informa como advertencia sin invalidar el vuelo guardado.
+- **P1:** la carga de bitácora, lugares y baterías usaba `try/finally` sin `catch`, ocultando errores de IndexedDB.
+
 ## [0.8.0] - 2026-09-17
 
 ### Added

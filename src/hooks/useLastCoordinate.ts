@@ -17,11 +17,16 @@ export function useLastCoordinate() {
 
   const saveCoordinate = useCallback((c: Coordinate) => {
     setCoordinate(c);
-    saveLastCoordinateToIDB(c).catch(() => {});
+    saveLastCoordinateToIDB(c).catch((error) => {
+      console.warn(
+        "No se pudo persistir la coordenada en IndexedDB; se conserva el respaldo local.",
+        error,
+      );
+    });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
     } catch {
-      // ignore
+      // localStorage puede no estar disponible (modo privado); IndexedDB sigue siendo la fuente principal.
     }
   }, []);
 

@@ -2,7 +2,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v0.6.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v0.9.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 ## Capturas
 
@@ -204,6 +204,18 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Exportación CSV de bitácora** (RFC 4180, BOM UTF-8, escapado correcto) junto al respaldo JSON
 - **Confiabilidad**: tests de elevación sin Internet (fetch simulado) + verificación real opt-in (`npm run test:integration`); timeouts de 8 s en Open-Meteo clima y elevación
 - **334 tests** (333 pasando + 1 integración opt-in), lint y typecheck limpios; bundle principal 289.7 kB (gzip 92.4 kB)
+
+## R0.9.0 — UX Feedback / Validation / Reliability (completada)
+
+- **Sistema de toasts propio**: dominio puro (variantes, duración 2.5–4 s éxito/info y 5–6 s aviso/error, deduplicación, máximo 3 visibles) + `ToastProvider`/`ToastViewport`/`useToast` montados sobre las rutas para sobrevivir la navegación, con `aria-live` y `role` acordes a la gravedad
+- **Validación de coordenadas**: distingue vacío, no numérico y fuera de rango por eje; `0,0` es válido; nunca más se convierte una entrada inválida en `0,0`
+- **Validación de fechas y batería**: fin no puede ser anterior al inicio; porcentaje entero 0–100 (vacío permitido); no se fuerza fin < inicio para permitir correcciones
+- **Feedback real en CRUD**: vuelo, batería, lugar, favorito, límites, respaldo/CSV, aeronave y radio confirman con toast y muestran errores en pantalla
+- **Estados en curso**: botones deshabilitados con etiqueta ("Guardando…", "Importando…", "Exportando…"), sin doble envío ni doble registro de ciclo
+- **Reconexión real**: "Conexión restaurada" solo tras una transición offline→online, nunca en la carga inicial
+- **Accesibilidad**: labels visibles, `aria-invalid`, `aria-describedby` y `aria-label` en botones de solo icono
+- **Fiabilidad**: `clearAircraftSelection` ahora limpia IndexedDB (antes la aeronave reaparecía al recargar); radio con reversión y aviso si falla la persistencia; errores de carga de bitácora/lugares/baterías ya no se ocultan
+- **380 tests** (379 pasando + 1 integración opt-in), lint, typecheck y build limpios; bundle principal 296.3 kB (gzip 94.4 kB)
 
 ## Fuentes de datos
 

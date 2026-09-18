@@ -7,6 +7,8 @@ import {
   formatCoordinate,
   serializeCoordinate,
   deserializeCoordinate,
+  parseCoordinateInput,
+  parseCoordinateFields,
 } from "./coordinate";
 import type { Coordinate } from "./coordinate";
 
@@ -116,6 +118,86 @@ describe("serializeCoordinate / deserializeCoordinate", () => {
 
   it("deserializes non-number fields to null", () => {
     expect(deserializeCoordinate('{"latitude":"foo","longitude":"bar"}')).toBeNull();
+  });
+});
+
+describe("parseCoordinateInput", () => {
+  it("accepts valid latitude and longitude", () => {
+    expect(parseCoordinateInput("-33.4521", "latitude")).toEqual({ ok: true, value: -33.4521 });
+    expect(parseCoordinateInput("-70.6536", "longitude")).toEqual({ ok: true, value: -70.6536 });
+  });
+
+  it("accepts 0,0 as valid coordinates", () => {
+    expect(parseCoordinateInput("0", "latitude")).toEqual({ ok: true, value: 0 });
+    expect(parseCoordinateInput("0", "longitude")).toEqual({ ok: true, value: 0 });
+  });
+
+  it("accepts comma as decimal separator", () => {
+    expect(parseCoordinateInput("-33,4521", "latitude")).toEqual({ ok: true, value: -33.4521 });
+  });
+
+  it("accepts boundary values", () => {
+    expect(parseCoordinateInput("90", "latitude")).toEqual({ ok: true, value: 90 });
+    expect(parseCoordinateInput("-90", "latitude")).toEqual({ ok: true, value: -90 });
+    expect(parseCoordinateInput("180", "longitude")).toEqual({ ok: true, value: 180 });
+    expect(parseCoordinateInput("-180", "longitude")).toEqual({ ok: true, value: -180 });
+  });
+
+  it("reports empty input", () => {
+    expect(parseCoordinateInput("", "latitude")).toEqual({ ok: false, error: "empty" });
+    expect(parseCoordinateInput("   ", "longitude")).toEqual({ ok: false, error: "empty" });
+  });
+
+  it("reports non numeric input", () => {
+    expect(parseCoordinateInput("abc", "latitude")).toEqual({ ok: false, error: "not-a-number" });
+    expect(parseCoordinateInput("12abc", "longitude")).toEqual({ ok: false, error: "not-a-number" });
+    expect(parseCoordinateInput("Infinity", "latitude")).toEqual({ ok: false, error: "not-a-number" });
+  });
+
+  it("reports out of range latitudes", () => {
+    expect(parseCoordinateInput("91", "latitude")).toEqual({ ok: false, error: "out-of-range" });
+    expect(parseCoordinateInput("-91", "latitude")).toEqual({ ok: false, error: "out-of-range" });
+  });
+
+  it("reports out of range longitudes", () => {
+    expect(parseCoordinateInput("181", "longitude")).toEqual({ ok: false, error: "out-of-range" });
+    expect(parseCoordinateInput("-181", "longitude")).toEqual({ ok: false, error: "out-of-range" });
+  });
+});
+
+describe("parseCoordinateFields", () => {
+  it("returns a coordinate when both fields are valid", () => {
+    const result = parseCoordinateFields("-33.4521", "-70.6536");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.coordinate).toEqual({ latitude: -33.4521, longitude: -70.6536 });
+    }
+  });
+
+  it("returns 0,0 as a valid coordinate", () => {
+    const result = parseCoordinateFields("0", "0");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.coordinate).toEqual({ latitude: 0, longitude: 0 });
+    }
+  });
+
+  it("reports per-field errors and never guesses 0,0", () => {
+    const result = parseCoordinateFields("", "abc");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.latitude).toBe("empty");
+      expect(result.errors.longitude).toBe("not-a-number");
+    }
+  });
+
+  it("reports out of range per field", () => {
+    const result = parseCoordinateFields("91", "-181");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.latitude).toBe("out-of-range");
+      expect(result.errors.longitude).toBe("out-of-range");
+    }
   });
 });
 

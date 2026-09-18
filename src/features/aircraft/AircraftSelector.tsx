@@ -18,16 +18,21 @@ import {
   saveSelectedModel,
   clearAircraftSelection,
 } from "../../storage/settings";
+import { useToast } from "../../components/toast/useToast";
+import { esCL as t } from "../../i18n/es-CL";
 
 interface AircraftSelectorProps {
   onAircraftChange: (aircraft: AircraftProfile | null) => void;
 }
 
 export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
+  const toast = useToast();
   const [currentAircraft, setCurrentAircraft] = useState<AircraftProfile | null>(null);
   const [selectedManufacturer, setSelectedManufacturer] = useState<string | null>(() => loadSelectedManufacturer());
   const [selectedModel, setSelectedModel] = useState<string | null>(() => loadSelectedModel());
   const [customName, setCustomName] = useState("");
+  const [confirmAction, setConfirmAction] = useState<"apply" | "clear" | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     loadActiveAircraft().then((aircraft) => {
@@ -50,6 +55,7 @@ export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
     setSelectedManufacturer(mfrId);
     setSelectedModel(null);
     setCustomName("");
+    setConfirmAction(null);
     saveSelectedManufacturer(mfrId);
     localStorage.removeItem("vantops:selectedModel");
   };
@@ -57,37 +63,81 @@ export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
   const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
     setCustomName("");
+    setConfirmAction(null);
     saveSelectedModel(modelId);
   };
 
-  const handleApply = () => {
+  async function applyAircraft() {
     if (!selectedManufacturer || !selectedModel) return;
     const profile = createAircraftProfile(selectedManufacturer, selectedModel, customName || undefined);
-    saveActiveAircraft(profile);
-    setCurrentAircraft(profile);
-    onAircraftChange(profile);
-  };
+    setBusy(true);
+    try {
+      await saveActiveAircraft(profile);
+      setCurrentAircraft(profile);
+      onAircraftChange(profile);
+      toast.success(t.feedback.aircraftApplied);
+    } catch {
+      toast.error(t.feedback.aircraftError);
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const handleClear = () => {
-    clearAircraftSelection();
-    setSelectedManufacturer(null);
-    setSelectedModel(null);
-    setCustomName("");
-    setCurrentAircraft(null);
-    onAircraftChange(null);
-  };
+  async function clearAircraft() {
+    setBusy(true);
+    try {
+      await clearAircraftSelection();
+      setSelectedManufacturer(null);
+      setSelectedModel(null);
+      setCustomName("");
+      setCurrentAircraft(null);
+      onAircraftChange(null);
+      toast.success(t.feedback.aircraftCleared);
+    } catch {
+      toast.error(t.feedback.aircraftError);
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const handleUseGeneric = (modelId: string) => {
+  async function handleUseGeneric(modelId: string) {
     const genericMfr = AIRCRAFT_CATALOG.find((m) => m.id === "generic");
     if (!genericMfr) return;
     const profile = createAircraftProfile("generic", modelId);
-    saveActiveAircraft(profile);
-    setSelectedManufacturer("generic");
-    setSelectedModel(modelId);
-    saveSelectedManufacturer("generic");
-    saveSelectedModel(modelId);
-    setCurrentAircraft(profile);
-    onAircraftChange(profile);
+    setBusy(true);
+    try {
+      await saveActiveAircraft(profile);
+      setSelectedManufacturer("generic");
+      setSelectedModel(modelId);
+      saveSelectedManufacturer("generic");
+      saveSelectedModel(modelId);
+      setCurrentAircraft(profile);
+      onAircraftChange(profile);
+      toast.success(t.feedback.aircraftApplied);
+    } catch {
+      toast.error(t.feedback.aircraftError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const requestApply = () => {
+    if (currentAircraft) {
+      setConfirmAction("apply");
+    } else {
+      void applyAircraft();
+    }
+  };
+
+  const requestClear = () => {
+    setConfirmAction("clear");
+  };
+
+  const confirmPending = () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === "apply") void applyAircraft();
+    else if (action === "clear") void clearAircraft();
   };
 
   return (
@@ -176,6 +226,7 @@ export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
                   size="sm"
                   variant="outline"
                   onClick={() => handleUseGeneric(`generic-${manufacturer.models[0]?.type.toLowerCase() ?? "custom"}`)}
+                  disabled={busy}
                 >
                   Usar perfil genérico
                 </Button>
@@ -201,16 +252,32 @@ export function AircraftSelector({ onAircraftChange }: AircraftSelectorProps) {
 
         <div className="flex gap-2">
           {selectedManufacturer && selectedModel && (
-            <Button size="sm" onClick={handleApply} className="flex-1">
-              Aplicar
+            <Button size="sm" onClick={requestApply} className="flex-1" disabled={busy}>
+              {busy ? t.feedback.saving : t.aircraft.apply}
             </Button>
           )}
           {currentAircraft && (
-            <Button size="sm" variant="ghost" onClick={handleClear}>
-              Limpiar
+            <Button size="sm" variant="ghost" onClick={requestClear} disabled={busy}>
+              {t.aircraft.clear}
             </Button>
           )}
         </div>
+
+        {confirmAction && (
+          <div className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-3">
+            <p className="mb-2 text-sm text-amber-200">
+              {confirmAction === "apply" ? t.aircraft.replaceConfirm : t.aircraft.clearConfirm}
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={confirmPending} disabled={busy}>
+                {busy ? t.feedback.saving : t.aircraft.confirm}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmAction(null)} disabled={busy}>
+                {t.aircraft.cancel}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs text-slate-500">
           La checklist se adapta según el tipo de aeronave seleccionada.

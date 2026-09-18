@@ -5,6 +5,7 @@ import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { ToastProvider } from "../components/toast/ToastProvider";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
 const DashboardPage = lazy(() => import("../features/dashboard/DashboardPage"));
@@ -53,7 +54,8 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <HashRouter>
+        <ToastProvider>
+          <HashRouter>
           <div className="flex min-h-dvh flex-col">
             <nav aria-label="Navegación principal" className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
               <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pb-2 pt-3 sm:px-6">
@@ -109,6 +111,7 @@ export function App() {
             </main>
           </div>
         </HashRouter>
+        </ToastProvider>
       </ErrorBoundary>
     </QueryClientProvider>
   );

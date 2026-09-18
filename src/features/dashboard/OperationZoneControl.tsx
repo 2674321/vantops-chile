@@ -92,6 +92,8 @@ export function OperationZoneControl({ radiusMeters, onChange }: OperationZoneCo
               className="h-11 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
               inputMode="numeric"
               placeholder="1500"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "operation-radius-error" : undefined}
               value={customValue}
               onChange={(e) => {
                 setCustomValue(e.target.value);
@@ -103,7 +105,7 @@ export function OperationZoneControl({ radiusMeters, onChange }: OperationZoneCo
             </Button>
           </div>
           {error && (
-            <p role="alert" className="text-sm text-amber-300">
+            <p id="operation-radius-error" role="alert" className="text-sm text-amber-300">
               {error}
             </p>
           )}

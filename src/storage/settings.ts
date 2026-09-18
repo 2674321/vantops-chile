@@ -1,6 +1,6 @@
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
-import { loadSetting, saveSetting } from "./repositories/settingsRepository";
+import { loadSetting, saveSetting, removeSetting } from "./repositories/settingsRepository";
 import type { Coordinate } from "../domain/coordinate";
 import { isValidRadiusMeters, validateRadiusMeters } from "../domain/operationZone";
 
@@ -98,14 +98,15 @@ export function saveSelectedModel(id: string): void {
   }
 }
 
-export function clearAircraftSelection(): void {
+export async function clearAircraftSelection(): Promise<void> {
   try {
     localStorage.removeItem(LS_AIRCRAFT_KEY);
     localStorage.removeItem(LS_MANUFACTURER_KEY);
     localStorage.removeItem(LS_MODEL_KEY);
   } catch {
-    // ignore
+    // localStorage puede no estar disponible; se limpia igualmente IndexedDB.
   }
+  await removeSetting(AIRCRAFT_KEY);
 }
 
 export async function loadLastCoordinate(): Promise<Coordinate | null> {

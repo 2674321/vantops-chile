@@ -7,6 +7,7 @@ import { listFlights, countFlights, getTotalFlightTime } from "../../storage/rep
 import { listBatteries } from "../../storage/repositories/batteryRepository";
 import type { FlightRecord, BatteryRecord } from "../../domain/logbook/types";
 import { formatCoordinate } from "../../domain/coordinate";
+import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
 
 function formatDate(iso: string): string {
@@ -49,6 +50,7 @@ export function LogbookPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,6 +69,8 @@ export function LogbookPage() {
       setTotalCount(count);
       setTotalTime(time);
       setBatteries(b);
+    } catch {
+      toast.error(t.feedback.loadError);
     } finally {
       setLoading(false);
     }

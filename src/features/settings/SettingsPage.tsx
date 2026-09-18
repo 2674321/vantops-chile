@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button";
 import { ArrowLeft, Save, Wind, CloudRain, Eye, Thermometer, Gauge, Database } from "lucide-react";
 import type { FlightLimits } from "../../domain/assessment/limits";
 import { loadFlightLimits, saveFlightLimits } from "../../storage/settings";
+import { useToast } from "../../components/toast/useToast";
+import { esCL as t } from "../../i18n/es-CL";
 
 type LimitKey =
   | "windMaxKmh"
@@ -49,10 +51,12 @@ function stringifyLimit(value: number | undefined): string {
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [limits, setLimits] = useState<Partial<Record<LimitKey, string>>>({});
   const [loaded, setLoaded] = useState(false);
-  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
     loadFlightLimits().then((stored) => {
@@ -70,11 +74,11 @@ export function SettingsPage() {
 
   const handleChange = useCallback((key: LimitKey, value: string) => {
     setLimits((prev) => ({ ...prev, [key]: value }));
-    setSavedAt(null);
     setFormError(null);
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (saving) return;
     const parsed: FlightLimits = {};
     for (const field of LIMIT_FIELDS) {
       const raw = limits[field.key] ?? "";
@@ -97,15 +101,19 @@ export function SettingsPage() {
       return;
     }
 
+    setSaving(true);
     try {
       await saveFlightLimits(parsed);
-      setSavedAt(new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }));
+      toast.success(t.feedback.limitsSaved);
     } catch {
-      setFormError("No se pudieron guardar los límites en este dispositivo.");
+      setFormError(t.feedback.limitsSaveError);
+    } finally {
+      setSaving(false);
     }
-  }, [limits]);
+  }, [limits, saving, toast]);
 
   const handleClear = useCallback(async () => {
+    setSaving(true);
     try {
       await saveFlightLimits({});
       setLimits({
@@ -116,12 +124,15 @@ export function SettingsPage() {
         temperatureMinC: "",
         temperatureMaxC: "",
       });
-      setSavedAt(new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }));
       setFormError(null);
+      setConfirmClear(false);
+      toast.success(t.feedback.limitsCleared);
     } catch {
-      setFormError("No se pudieron borrar los límites en este dispositivo.");
+      setFormError(t.feedback.limitsSaveError);
+    } finally {
+      setSaving(false);
     }
-  }, []);
+  }, [toast]);
 
   const configured = LIMIT_FIELDS.some((field) => (limits[field.key] ?? "").trim() !== "");
 
@@ -188,28 +199,38 @@ export function SettingsPage() {
           </div>
 
           {formError && (
-            <p className="rounded-lg border border-red-800/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+            <p role="alert" className="rounded-lg border border-red-800/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
               {formError}
             </p>
           )}
 
-          {savedAt && (
-            <p className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">
-              Límites guardados localmente · {savedAt}
-            </p>
-          )}
-
           <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
+            <Button onClick={handleSave} className="flex-1" disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
-              Guardar límites
+              {saving ? t.feedback.saving : "Guardar límites"}
             </Button>
-            {configured && (
-              <Button size="sm" variant="ghost" onClick={handleClear}>
+            {configured && !confirmClear && (
+              <Button size="sm" variant="ghost" onClick={() => setConfirmClear(true)} disabled={saving}>
                 Borrar todo
               </Button>
             )}
           </div>
+
+          {confirmClear && (
+            <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-3">
+              <p className="mb-2 text-sm text-red-300">
+                ¿Borrar todos los límites operacionales guardados?
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleClear} disabled={saving}>
+                  {saving ? t.feedback.saving : "Borrar todo"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setConfirmClear(false)} disabled={saving}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-3 text-xs text-amber-200/90">
             {PILOT_DISCLAIMER}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
@@ -32,6 +32,8 @@ import {
   saveOperationRadius,
 } from "../../storage/settings";
 import { fetchNearestObservation } from "../../providers/observations/vatsimObservation";
+import { useToast } from "../../components/toast/useToast";
+import { detectReconnection } from "../../domain/connectivity";
 import { esCL as t } from "../../i18n/es-CL";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 
@@ -48,7 +50,8 @@ export default function DashboardPage() {
   const [manualError, setManualError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
-  const [showRestored, setShowRestored] = useState(false);
+  const toast = useToast();
+  const previousOnlineRef = useRef<boolean | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,18 +60,26 @@ export default function DashboardPage() {
     loadOperationRadius().then(setOperationRadius);
   }, []);
 
-  const handleRadiusChange = useCallback((radiusMeters: number) => {
-    setOperationRadius(radiusMeters);
-    void saveOperationRadius(radiusMeters);
-  }, []);
+  const handleRadiusChange = useCallback(
+    async (radiusMeters: number) => {
+      const previousRadius = operationRadius;
+      setOperationRadius(radiusMeters);
+      try {
+        await saveOperationRadius(radiusMeters);
+      } catch {
+        setOperationRadius(previousRadius ?? null);
+        toast.error(t.feedback.radiusSaveError);
+      }
+    },
+    [operationRadius, toast],
+  );
 
   useEffect(() => {
-    if (online) {
-      setShowRestored(true);
-      const timer = setTimeout(() => setShowRestored(false), 3000);
-      return () => clearTimeout(timer);
+    if (detectReconnection(previousOnlineRef.current, online)) {
+      toast.info(t.offline.restored);
     }
-  }, [online]);
+    previousOnlineRef.current = online;
+  }, [online, toast]);
 
   const handleAircraftChange = useCallback((newAircraft: AircraftProfile | null) => {
     setAircraft(newAircraft);
@@ -151,6 +162,7 @@ export default function DashboardPage() {
       return;
     }
     saveCoordinate({ latitude: lat, longitude: lon });
+    toast.info(t.feedback.locationUpdated);
   };
 
   const handleGeolocation = () => {
@@ -166,6 +178,7 @@ export default function DashboardPage() {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
+        toast.info(t.feedback.locationUpdated);
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -189,14 +202,6 @@ export default function DashboardPage() {
           <CardContent className="space-y-1 py-3 text-center">
             <p className="text-sm font-medium text-amber-300">{t.offline.offline}</p>
             <p className="text-xs text-slate-400">{t.offline.bannerMessage}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {showRestored && online && (
-        <Card>
-          <CardContent className="py-2 text-center">
-            <p className="text-xs text-emerald-400">{t.offline.restored}</p>
           </CardContent>
         </Card>
       )}

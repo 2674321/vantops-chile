@@ -2,7 +2,7 @@
 
 > **VantOPS Chile** es una aplicación web/PWA orientada a pilotos de RPAS/drones en Chile, diseñada para planificar operaciones, consultar condiciones reales, evaluar riesgos básicos de vuelo y mantener una bitácora local.
 >
-> **Estado actual:** MVP `0.8.0` — planificación espacial (zona/radio), pronóstico horario y ventana de operación; Fases 0–5 completadas  
+> **Estado actual:** MVP `0.9.0` — planificación espacial (zona/radio), pronóstico horario, ventana de operación y capa de feedback/validación UX; Fases 0–5 completadas  
 > **Objetivo inicial:** MVP `1.0.0`  
 > **Nombre elegido:** VantOPS (Chile)  
 > **Nombre sugerido del repositorio:** `vantops-chile`  
@@ -2479,6 +2479,8 @@ El usuario puede consultar condiciones reales.
 [x] configuración del dron (R0.7.0: selector fabricante → modelo → tipo)
 [~] ventana de operación (R0.8.0: estimación según parámetros; pendiente pulido UX)
 ```
+
+> **R0.9.0** añade una capa transversal de UX/fiabilidad: sistema de toasts propio, validación de coordenadas/fechas/batería sin fallback a `0,0`, feedback y estados en curso en todas las operaciones CRUD, confirmaciones destructivas inline, accesibilidad (`aria-invalid`/`aria-label`/labels) y corrección de la transición offline→online.
 
 **Resultado:**
 
