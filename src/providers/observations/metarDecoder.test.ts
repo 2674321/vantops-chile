@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { decodeMetar } from "./metarDecoder";
+import { decodeMetar, parseMetarObservedAt } from "./metarDecoder";
+
+const at = (iso: string) => new Date(iso);
 
 const SPECI_EXAMPLE =
   "SPECI SCEL 260200Z 33013KT 9999 RA FEW019 SCT039 BKN070 13/10 Q1001";
@@ -80,5 +82,72 @@ describe("decodeMetar", () => {
     const m = decodeMetar("METAR SCEL 261600Z 32005KT 290V010 8000 -SHRA FEW007 SCT040 OVC090 12/11 Q1014");
     expect(m.visibilityM).toBe(8000);
     expect(m.visibilityLabel).toBe("8000 m");
+  });
+});
+
+describe("parseMetarObservedAt", () => {
+  it("uses the real minutes (172153Z = 21:53 UTC)", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 172153Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-17T22:00:00Z")
+    );
+    expect(result).toBe("2026-09-17T21:53:00.000Z");
+  });
+
+  it("handles minute 00", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 172100Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-17T21:05:00Z")
+    );
+    expect(result).toBe("2026-09-17T21:00:00.000Z");
+  });
+
+  it("rolls back across a day boundary", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 172340Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-18T00:30:00Z")
+    );
+    expect(result).toBe("2026-09-17T23:40:00.000Z");
+  });
+
+  it("rolls back across a month boundary", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 302350Z 33013KT 9999 13/10 Q1001",
+      at("2026-10-01T00:20:00Z")
+    );
+    expect(result).toBe("2026-09-30T23:50:00.000Z");
+  });
+
+  it("rolls back across a year boundary", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 312355Z 33013KT 9999 13/10 Q1001",
+      at("2027-01-01T00:15:00Z")
+    );
+    expect(result).toBe("2026-12-31T23:55:00.000Z");
+  });
+
+  it("resolves a day from the previous month", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 300200Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-05T12:00:00Z")
+    );
+    expect(result).toBe("2026-08-30T02:00:00.000Z");
+  });
+
+  it("keeps a small future timestamp caused by clock skew", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 172200Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-17T21:55:00Z")
+    );
+    expect(result).toBe("2026-09-17T22:00:00.000Z");
+  });
+
+  it("returns empty string without a timestamp group", () => {
+    expect(parseMetarObservedAt("SCEL 33013KT 9999 13/10", at("2026-09-17T21:55:00Z"))).toBe("");
+  });
+
+  it("returns empty string for out-of-range timestamp values", () => {
+    expect(parseMetarObservedAt("SCEL 992560Z 33013KT 9999", at("2026-09-17T21:55:00Z"))).toBe("");
+    expect(parseMetarObservedAt("SCEL 000000Z 33013KT 9999", at("2026-09-17T21:55:00Z"))).toBe("");
   });
 });

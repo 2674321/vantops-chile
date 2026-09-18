@@ -18,24 +18,18 @@ type LimitKey =
 
 interface LimitFieldDef<TKey extends LimitKey> {
   key: TKey;
-  label: string;
-  hint: string;
-  placeholder: string;
   unit?: string;
   icon: typeof Wind;
 }
 
 const LIMIT_FIELDS: LimitFieldDef<LimitKey>[] = [
-  { key: "windMaxKmh", label: "Viento máximo (10 m)", hint: "Límite de viento a 10 m sobre el terreno.", placeholder: "p. ej. 30", unit: "km/h", icon: Wind },
-  { key: "gustMaxKmh", label: "Ráfaga máxima", hint: "Límite de ráfagas.", placeholder: "p. ej. 40", unit: "km/h", icon: Gauge },
-  { key: "precipitationMaxMm", label: "Precipitación máxima", hint: "Máximo de precipitación por hora.", placeholder: "p. ej. 0.5", unit: "mm", icon: CloudRain },
-  { key: "visibilityMinMeters", label: "Visibilidad mínima", hint: "Mínimo de visibilidad requerido.", placeholder: "p. ej. 5000", unit: "m", icon: Eye },
-  { key: "temperatureMinC", label: "Temperatura mínima", hint: "Límite inferior de temperatura.", placeholder: "p. ej. 0", unit: "°C", icon: Thermometer },
-  { key: "temperatureMaxC", label: "Temperatura máxima", hint: "Límite superior de temperatura.", placeholder: "p. ej. 35", unit: "°C", icon: Thermometer },
+  { key: "windMaxKmh", unit: "km/h", icon: Wind },
+  { key: "gustMaxKmh", unit: "km/h", icon: Gauge },
+  { key: "precipitationMaxMm", unit: "mm", icon: CloudRain },
+  { key: "visibilityMinMeters", unit: "m", icon: Eye },
+  { key: "temperatureMinC", unit: "°C", icon: Thermometer },
+  { key: "temperatureMaxC", unit: "°C", icon: Thermometer },
 ];
-
-const PILOT_DISCLAIMER =
-  "Estos valores corresponden a preferencias o límites operacionales definidos por el piloto. No constituyen límites legales ni una autorización de vuelo.";
 
 function parseLimit(value: string): number | undefined {
   const trimmed = value.trim();
@@ -84,7 +78,9 @@ export function SettingsPage() {
       const raw = limits[field.key] ?? "";
       const value = parseLimit(raw);
       if (value === undefined && raw.trim() !== "") {
-        setFormError(`Valor inválido en «${field.label}». Usa un número o deja el campo vacío.`);
+        setFormError(
+          t.settings.invalidValue(t.settings.fields[field.key].label)
+        );
         return;
       }
       if (value !== undefined) {
@@ -97,7 +93,7 @@ export function SettingsPage() {
       parsed.temperatureMaxC != null &&
       parsed.temperatureMinC >= parsed.temperatureMaxC
     ) {
-      setFormError("La temperatura mínima debe ser menor que la máxima.");
+      setFormError(t.settings.temperatureOrder);
       return;
     }
 
@@ -139,7 +135,9 @@ export function SettingsPage() {
   if (!loaded) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-400">Cargando…</CardContent>
+        <CardContent className="py-8 text-center text-sm text-slate-400">
+          {t.common.loading}
+        </CardContent>
       </Card>
     );
   }
@@ -147,33 +145,33 @@ export function SettingsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={() => navigate("/")} aria-label="Volver al panel">
+        <Button size="sm" variant="ghost" onClick={() => navigate("/")} aria-label={t.settings.backToPanel}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-lg font-semibold text-slate-100">Ajustes</h2>
+        <h2 className="text-lg font-semibold text-slate-100">{t.settings.title}</h2>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Wind className="h-4 w-4 text-sky-400" />
-            Preferencias del piloto
+            {t.settings.pilotTitle}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="rounded-lg border border-slate-700 bg-slate-800/40 p-3 text-xs text-slate-300">
-            Define tus propios límites operacionales. Un campo vacío significa que ese criterio no está
-            configurado y no participa de la evaluación.
+            {t.settings.intro}
           </p>
 
           <div className="space-y-3">
             {LIMIT_FIELDS.map((field) => {
               const Icon = field.icon;
+              const copy = t.settings.fields[field.key];
               return (
                 <div key={field.key}>
                   <label htmlFor={`limit-${field.key}`} className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-300">
                     <Icon className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                    {field.label}
+                    {copy.label}
                   </label>
                   <div className="relative">
                     <input
@@ -181,7 +179,7 @@ export function SettingsPage() {
                       type="text"
                       inputMode="decimal"
                       autoComplete="off"
-                      placeholder={field.placeholder}
+                      placeholder={copy.placeholder}
                       className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 pr-16 text-base text-slate-200 outline-none focus:border-sky-500"
                       value={limits[field.key] ?? ""}
                       onChange={(e) => handleChange(field.key, e.target.value)}
@@ -192,7 +190,7 @@ export function SettingsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-slate-500">{field.hint}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">{copy.hint}</p>
                 </div>
               );
             })}
@@ -207,11 +205,11 @@ export function SettingsPage() {
           <div className="flex gap-2">
             <Button onClick={handleSave} className="flex-1" disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
-              {saving ? t.feedback.saving : "Guardar límites"}
+              {saving ? t.feedback.saving : t.settings.saveLimits}
             </Button>
             {configured && !confirmClear && (
               <Button size="sm" variant="ghost" onClick={() => setConfirmClear(true)} disabled={saving}>
-                Borrar todo
+                {t.settings.clearAll}
               </Button>
             )}
           </div>
@@ -219,24 +217,24 @@ export function SettingsPage() {
           {confirmClear && (
             <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-3">
               <p className="mb-2 text-sm text-red-300">
-                ¿Borrar todos los límites operacionales guardados?
+                {t.settings.clearConfirm}
               </p>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleClear} disabled={saving}>
-                  {saving ? t.feedback.saving : "Borrar todo"}
+                  {saving ? t.feedback.saving : t.settings.clearAll}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setConfirmClear(false)} disabled={saving}>
-                  Cancelar
+                  {t.common.cancel}
                 </Button>
               </div>
             </div>
           )}
 
           <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-3 text-xs text-amber-200/90">
-            {PILOT_DISCLAIMER}
+            {t.settings.disclaimer}
           </p>
           <p className="text-[11px] text-slate-500">
-            VantOPS no inventa límites de fabricante. Tú defines cuáles son tus condiciones.
+            {t.settings.noInvent}
           </p>
         </CardContent>
       </Card>
@@ -245,15 +243,15 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Database className="h-4 w-4 text-sky-400" />
-            Datos locales
+            {t.settings.localDataTitle}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-400">
-            Tus datos se guardan solo en este dispositivo. Exporta periódicamente un respaldo.
+            {t.settings.localDataMessage}
           </p>
           <Button variant="outline" onClick={() => navigate("/bitacora/exportar")}>
-            Exportar / Importar respaldo
+            {t.settings.exportImport}
           </Button>
         </CardContent>
       </Card>

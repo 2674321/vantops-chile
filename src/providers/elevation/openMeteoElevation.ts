@@ -1,12 +1,14 @@
 import type { ElevationResult } from "../../domain/elevation";
 import type { DataSourceMeta } from "../../domain/sourceMeta";
+import { ProviderError } from "../../domain/providerError";
+import type { ProviderErrorKind } from "../../domain/providerError";
 
 const BASE = "https://api.open-meteo.com/v1/elevation";
 const REQUEST_TIMEOUT_MS = 8000;
 
-export class ElevationError extends Error {
-  constructor(message: string) {
-    super(message);
+export class ElevationError extends ProviderError {
+  constructor(kind: ProviderErrorKind, message: string, status?: number) {
+    super("Open-Meteo Elevation", kind, message, status);
     this.name = "ElevationError";
   }
 }
@@ -28,7 +30,7 @@ export async function fetchElevation(
   lon: number
 ): Promise<ElevationResult> {
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    throw new ElevationError("Coordenadas inválidas");
+    throw new ElevationError("invalid-input", "Coordenadas inválidas");
   }
   const requestedAt = new Date().toISOString();
   const controller = new AbortController();
@@ -38,17 +40,24 @@ export async function fetchElevation(
     res = await fetch(buildElevationUrl(lat, lon), { signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new ElevationError("Timeout al consultar Open-Meteo Elevation");
+      throw new ElevationError("timeout", "Timeout al consultar Open-Meteo Elevation");
     }
-    throw new ElevationError("No se pudo contactar Open-Meteo Elevation");
+    throw new ElevationError("offline", "No se pudo contactar Open-Meteo Elevation");
   } finally {
     clearTimeout(timeout);
   }
-  if (!res.ok) throw new ElevationError(`HTTP ${res.status}`);
-  const data = (await res.json()) as OpenMeteoElevationResponse;
+  if (!res.ok) {
+    throw new ElevationError("http", `HTTP ${res.status}`, res.status);
+  }
+  let data: OpenMeteoElevationResponse;
+  try {
+    data = (await res.json()) as OpenMeteoElevationResponse;
+  } catch {
+    throw new ElevationError("invalid-response", "Respuesta JSON inválida de Open-Meteo Elevation");
+  }
   const meters = data.elevation?.[0] ?? null;
   if (typeof meters !== "number" || !Number.isFinite(meters)) {
-    throw new ElevationError("Sin datos de elevación");
+    throw new ElevationError("no-data", "Sin datos de elevación");
   }
   const meta: DataSourceMeta = {
     source: "Open-Meteo Elevation",

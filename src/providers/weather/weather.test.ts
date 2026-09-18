@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { buildWeatherUrl, mapWeatherResponse } from "./openMeteoWeather";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  buildWeatherUrl,
+  mapWeatherResponse,
+  fetchWeatherSnapshot,
+  WeatherError,
+} from "./openMeteoWeather";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("buildWeatherUrl", () => {
   it("includes coordinates, wind params, visibility, cloud cover", () => {
@@ -12,7 +22,12 @@ describe("buildWeatherUrl", () => {
     expect(url).toContain("wind_direction_100m");
     expect(url).toContain("visibility");
     expect(url).toContain("cloud_cover");
-    expect(url).toContain("timezone=America");
+    expect(url).toContain("timezone=auto");
+  });
+
+  it("propagates the timezone from the operation coordinate when provided", () => {
+    const url = buildWeatherUrl(-27.15, -109.43, "Pacific/Easter");
+    expect(url).toContain("timezone=Pacific%2FEaster");
   });
 });
 
@@ -94,6 +109,110 @@ describe("mapWeatherResponse", () => {
     expect(snapshot.hourly[0].windSpeed100mKmh).toBe(22);
     expect(snapshot.hourly[0].temperatureC).toBeNull();
     expect(snapshot.hourly[0].weatherCode).toBeNull();
+  });
+
+  it("fails with invalid-input for out-of-range coordinates", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchWeatherSnapshot(999, 0)).rejects.toMatchObject({
+      kind: "invalid-input",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fails with invalid-response on a bad JSON body", async () => {
+    const badJson = {
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected token");
+      },
+    } as unknown as Response;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(badJson));
+    await expect(fetchWeatherSnapshot(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "invalid-response",
+    });
+  });
+
+  it("fails with invalid-response on an incomplete payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      } as unknown as Response)
+    );
+    await expect(fetchWeatherSnapshot(-33.45, -70.66)).rejects.toBeInstanceOf(
+      WeatherError
+    );
+  });
+
+  it("fails with offline on a network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network")));
+    await expect(fetchWeatherSnapshot(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "offline",
+    });
+  });
+
+  it("fails with timeout when the request is aborted", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+    await expect(fetchWeatherSnapshot(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "timeout",
+    });
+  });
+
+  it("derives freshness from the dataset time and exposes timezone", async () => {
+    const utcOffsetSeconds = -10800;
+    const nowIso = new Date(Date.now() + utcOffsetSeconds * 1000)
+      .toISOString()
+      .slice(0, 16);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          current: {
+            time: nowIso,
+            temperature_2m: 10,
+            relative_humidity_2m: 50,
+            precipitation: 0,
+            weather_code: 0,
+            wind_speed_10m: 5,
+            wind_gusts_10m: 8,
+            wind_direction_10m: 180,
+            visibility: 10000,
+            cloud_cover: 10,
+          },
+          timezone: "America/Santiago",
+          timezone_abbreviation: "-03",
+          utc_offset_seconds: utcOffsetSeconds,
+        }),
+      } as unknown as Response)
+    );
+    const snapshot = await fetchWeatherSnapshot(-33.45, -70.66);
+    expect(snapshot.meta.status).toBe("updated");
+    expect(snapshot.meta.dataTime).toBe(nowIso);
+    expect(snapshot.timezone).toBe("America/Santiago");
+    expect(snapshot.utcOffsetSeconds).toBe(utcOffsetSeconds);
+  });
+
+  it("marks an old cached dataset as stale even if just received", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          current: { ...payload.current, time: "2026-08-26T11:00" },
+        }),
+      } as unknown as Response)
+    );
+    const snapshot = await fetchWeatherSnapshot(-33.45, -70.66);
+    expect(snapshot.meta.status).toBe("stale");
   });
 
   it("handles null values in current", () => {

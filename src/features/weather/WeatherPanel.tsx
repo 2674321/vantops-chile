@@ -35,9 +35,12 @@ export function DataSourceBadge({
   meta: DataSourceMeta;
   onRetry?: () => void;
 }) {
-  const ageMs = Date.now() - new Date(meta.receivedAt).getTime();
-  const ageMin = Math.max(0, Math.round(ageMs / 60_000));
-  const isStale = meta.status === "stale" || ageMin > 30;
+  const referenceTime = meta.dataTime ?? meta.receivedAt;
+  const referenceMs = new Date(referenceTime).getTime();
+  const ageMin = Number.isNaN(referenceMs)
+    ? null
+    : Math.max(0, Math.round((Date.now() - referenceMs) / 60_000));
+  const isStale = meta.status === "stale" || (ageMin !== null && ageMin > 30);
   const color =
     meta.status === "error"
       ? "text-red-400"
@@ -50,8 +53,12 @@ export function DataSourceBadge({
       : meta.status === "no-data"
         ? "Sin datos"
         : isStale
-          ? `Antiguo hace ${ageMin} min`
-          : `Actualizado hace ${ageMin} min`;
+          ? ageMin === null
+            ? "Datos posiblemente antiguos"
+            : `Datos de hace ${ageMin} min`
+          : ageMin === null
+            ? "Actualizado"
+            : `Actualizado hace ${ageMin} min`;
   return (
     <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
       <span className={`inline-block h-2 w-2 rounded-full ${color.replace("text-", "bg-")}`} />

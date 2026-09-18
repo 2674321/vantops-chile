@@ -127,7 +127,40 @@ describe("searchLocation", () => {
   it("throws on HTTP errors from Nominatim", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 } as Response);
     vi.stubGlobal("fetch", fetchMock);
-    await expect(searchLocation("Viña del Mar")).rejects.toThrow(/429/);
+    await expect(searchLocation("Viña del Mar")).rejects.toMatchObject({
+      kind: "http",
+      status: 429,
+    });
+  });
+
+  it("classifies invalid JSON responses", async () => {
+    const badJson = {
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected token");
+      },
+    } as unknown as Response;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(badJson));
+    await expect(searchLocation("Valparaíso")).rejects.toMatchObject({
+      kind: "invalid-response",
+    });
+  });
+
+  it("classifies offline failures", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network")));
+    await expect(searchLocation("La Serena")).rejects.toMatchObject({
+      kind: "offline",
+    });
+  });
+
+  it("classifies timeouts", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+    await expect(searchLocation("Iquique")).rejects.toMatchObject({
+      kind: "timeout",
+    });
   });
 
   it("enforces max 1 request per second between distinct searches", async () => {

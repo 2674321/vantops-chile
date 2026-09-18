@@ -1,4 +1,8 @@
 import type { WeatherSnapshot } from "../../domain/weather";
+import { deriveWeatherFreshness } from "../../domain/weatherFreshness";
+import { ProviderError } from "../../domain/providerError";
+import type { ProviderErrorKind } from "../../domain/providerError";
+import { isValidCoordinate } from "../../domain/coordinate";
 
 const BASE = "https://api.open-meteo.com/v1/forecast";
 const REQUEST_TIMEOUT_MS = 8000;
@@ -17,9 +21,9 @@ const HOURLY_VARIABLES = [
   "cloud_cover",
 ].join(",");
 
-export class WeatherError extends Error {
-  constructor(message: string) {
-    super(message);
+export class WeatherError extends ProviderError {
+  constructor(kind: ProviderErrorKind, message: string, status?: number) {
+    super("Open-Meteo", kind, message, status);
     this.name = "WeatherError";
   }
 }
@@ -27,7 +31,7 @@ export class WeatherError extends Error {
 export function buildWeatherUrl(
   lat: number,
   lon: number,
-  timeZone = "America/Santiago"
+  timeZone = "auto"
 ): string {
   const params = new URLSearchParams({
     latitude: String(lat),
@@ -81,6 +85,9 @@ interface OpenMeteoHourly {
 interface OpenMeteoResponse {
   current: OpenMeteoCurrent;
   hourly?: OpenMeteoHourly;
+  timezone?: string;
+  timezone_abbreviation?: string;
+  utc_offset_seconds?: number;
 }
 
 function nearestHourlyIndex(times: string[]): number {
@@ -114,6 +121,9 @@ export function mapWeatherResponse(
     windDir100 = at(hourly.wind_direction_100m, idx);
   }
   return {
+    timezone: data.timezone,
+    timezoneAbbreviation: data.timezone_abbreviation,
+    utcOffsetSeconds: data.utc_offset_seconds,
     current: {
       timeISO: c.time,
       temperatureC: c.temperature_2m,
@@ -149,6 +159,9 @@ export async function fetchWeatherSnapshot(
   lat: number,
   lon: number
 ): Promise<WeatherSnapshot> {
+  if (!isValidCoordinate({ latitude: lat, longitude: lon })) {
+    throw new WeatherError("invalid-input", "Coordenadas inválidas");
+  }
   const requestedAt = new Date().toISOString();
   const url = buildWeatherUrl(lat, lon);
   const controller = new AbortController();
@@ -158,23 +171,37 @@ export async function fetchWeatherSnapshot(
     res = await fetch(url, { signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new WeatherError("Timeout al consultar Open-Meteo");
+      throw new WeatherError("timeout", "Timeout al consultar Open-Meteo");
     }
-    throw new WeatherError("No se pudo contactar Open-Meteo");
+    throw new WeatherError("offline", "No se pudo contactar Open-Meteo");
   } finally {
     clearTimeout(timeout);
   }
-  if (!res.ok) throw new WeatherError(`HTTP ${res.status}`);
-  const data = (await res.json()) as OpenMeteoResponse;
-  if (!data?.current) throw new WeatherError("Respuesta incompleta");
+  if (!res.ok) {
+    throw new WeatherError("http", `HTTP ${res.status}`, res.status);
+  }
+  let data: OpenMeteoResponse;
+  try {
+    data = (await res.json()) as OpenMeteoResponse;
+  } catch {
+    throw new WeatherError("invalid-response", "Respuesta JSON inválida de Open-Meteo");
+  }
+  if (!data?.current || typeof data.current.time !== "string") {
+    throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+  }
   const snapshot = mapWeatherResponse(data);
+  const freshness = deriveWeatherFreshness({
+    dataTime: data.current.time,
+    utcOffsetSeconds: data.utc_offset_seconds,
+  });
   return {
     ...snapshot,
     meta: {
       source: "Open-Meteo",
       requestedAt,
       receivedAt: new Date().toISOString(),
-      status: "updated",
+      dataTime: data.current.time,
+      status: freshness.status,
     },
   };
 }

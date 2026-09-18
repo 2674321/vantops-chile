@@ -4,6 +4,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 
 ## [No publicado]
 
+## [1.0.0] - 2026-09-17
+
+Primer MVP estable. Endurecimiento de release: exactitud temporal, providers, PWA/offline, cobertura de UI y accesibilidad. Sin nuevas funciones de producto.
+
+### Added
+- **Cobertura de UI con jsdom + Testing Library**: `ToastProvider` (visibilidad, autodescarte, dedupe, límite), `FlightForm` (validación, guardado, error), `SettingsPage` (carga, guardado, borrado, error), `PlacesPage` y `BatteryPage` (estados vacíos, CRUD, errores), `ErrorBoundary` (fallback, ocultamiento de detalles técnicos fuera de DEV).
+- Cobertura de hooks: `useLastCoordinate` (carga, guardado optimista, degradación sin localStorage) y `useInstallPrompt` (evento de instalación, descarte con enfriamiento, standalone); `useInstallPrompt` ahora expone `canInstall`.
+- **Frescura meteorológica derivada del dato** (`weatherFreshness.ts`, `dataTime` en `DataSourceMeta`): estados `updated`/`stale`/`error`/`no-data` calculados desde el tiempo real del pronóstico, no desde la recepción.
+- Timezone del lugar desde Open-Meteo (`timezone`, `timezoneAbbreviation`, `utcOffsetSeconds`) y utilidades `weatherTime.ts` (`naiveLocalToEpochMs`, `formatWeatherHourLabel`) para mostrar horas en el huso de la ubicación.
+- `formatClockTime` (`lib/format.ts`) para formatear instantes en el huso de una ubicación (usado por la hora solar).
+- **Errores de provider tipados** (`domain/providerError.ts`): `timeout` / `offline` / `http` / `invalid-response` / `no-data` / `invalid-input` en clima, elevación, geocodificación y observaciones.
+- Sección `errors` y ampliación de `common`/`settings` en el catálogo `es-CL`.
+- Tests: `parseMetarObservedAt` (minuto real y rollover), `deriveWeatherFreshness`, `weatherTime`, `formatClockTime`, compatibilidad de respaldos 0.7/0.8/0.9.
+
+### Changed
+- **METAR**: el timestamp de observación usa el minuto real (`172153Z` → 21:53Z) y resuelve rollover de día/mes/año; se eliminó la zona horaria fija `America/Santiago` del decodificador.
+- La frescura del clima ya no se basa en `receivedAt`; una respuesta servida desde la caché de Workbox se muestra como potencialmente antigua.
+- La línea de tiempo horaria y la fecha/hora de la ventana de operación se muestran en el huso del lugar.
+- La hora solar (`SolarCard`) usa el offset UTC del lugar cuando está disponible.
+- `SettingsPage` consume textos desde i18n (se eliminó la constante `PILOT_DISCLAIMER`).
+- `ErrorBoundary`: `role="alert"` + `aria-live="assertive"`, copy de producción desde i18n y mensaje técnico solo en desarrollo.
+
+### Fixed
+- **P0:** el timestamp METAR ignoraba el minuto; todas las observaciones se mostraban con `:00`.
+- **P0:** el METAR asumía siempre `America/Santiago`, incorrecto para Magallanes y Rapa Nui.
+- **P0:** el clima cacheado por el service worker se mostraba como "Actualizado ahora" pese a ser antiguo.
+- **P1:** ausencia de cobertura de UI en formularios y páginas críticas.
+
+### Security
+- Solo se importan de los respaldos las claves de configuración en lista blanca; las claves desconocidas se ignoran de forma segura (verificado con respaldos 0.7/0.8/0.9).
+
 ## [0.9.0] - 2026-09-17
 
 ### Added

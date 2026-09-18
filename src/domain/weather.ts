@@ -34,4 +34,9 @@ export interface WeatherSnapshot {
   current: CurrentWeather;
   hourly: HourlyWeather[];
   meta: DataSourceMeta;
+  /** Zona horaria IANA del punto de operación (Open-Meteo timezone=auto). */
+  timezone?: string;
+  timezoneAbbreviation?: string;
+  /** Desplazamiento UTC en segundos aplicable al punto de operación. */
+  utcOffsetSeconds?: number;
 }

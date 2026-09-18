@@ -234,6 +234,51 @@ describe("export → import → equivalence", () => {
     expect(restored?.notes).toBe("versión backup más reciente");
   });
 
+  it("imports backups produced by 0.7 / 0.8 / 0.9 (same v1 format)", async () => {
+    for (const appVersion of ["0.7.0", "0.8.0", "0.9.0"]) {
+      resetDB();
+      await wipeDatabase();
+      const backup = {
+        format: "vantops-backup",
+        version: 1,
+        exportedAt: "2026-09-10T12:00:00Z",
+        appVersion,
+        flights: [
+          {
+            id: `flight-${appVersion}`,
+            startedAt: "2026-09-09T12:00:00Z",
+            coordinate: { latitude: -33.45, longitude: -70.66 },
+            createdAt: "2026-09-09T12:00:00Z",
+            updatedAt: "2026-09-09T12:00:00Z",
+          },
+        ],
+        batteries: [{ id: `bat-${appVersion}`, name: "Pack", cycleCount: 2 }],
+        places: [
+          {
+            id: `place-${appVersion}`,
+            name: "Sitio",
+            coordinate: { latitude: -33.45, longitude: -70.66 },
+          },
+        ],
+        settings: {
+          operationZoneRadius: 1500,
+          legacyUnknownKey: { any: "value" },
+        },
+      };
+      const inspection = inspectBackup(backup);
+      expect(inspection.ok).toBe(true);
+      const summary = await importBackup(backup as unknown as BackupData);
+      expect(summary.flights).toBe(1);
+      expect(summary.batteries).toBe(1);
+      expect(summary.places).toBe(1);
+      // Solo se importan claves conocidas; las desconocidas se ignoran.
+      expect(summary.settings).toBe(1);
+      expect(await listFlights(10)).toHaveLength(1);
+      expect(await listPlaces()).toHaveLength(1);
+      expect(await loadSetting("operationZoneRadius")).toBe(1500);
+    }
+  });
+
   it("keeps local record when backup record is older (no downgrade)", async () => {
     await getDB().flights.put({
       id: "latest",

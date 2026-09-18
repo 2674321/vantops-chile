@@ -83,6 +83,7 @@ export function useInstallPrompt() {
   return {
     isIos,
     isStandalone,
+    canInstall: deferred !== null,
     visible: shouldShowInstallPrompt(state, Date.now()),
     iosHintVisible: shouldShowInstallPrompt(
       { canInstall: true, isStandalone, dismissedAt },

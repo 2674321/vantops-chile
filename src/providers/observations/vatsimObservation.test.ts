@@ -31,6 +31,28 @@ describe("fetchNearestObservation (VATSIM METAR)", () => {
     expect(snapshot.observation?.windKmh).toBe(24);
   });
 
+  it("keeps the observation minutes from the METAR timestamp", async () => {
+    const now = new Date();
+    const dd = String(now.getUTCDate()).padStart(2, "0");
+    const hh = String((now.getUTCHours() + 23) % 24).padStart(2, "0");
+    const body = `SCEL ${dd}${hh}53Z 33013KT 9999 13/10 Q1001`;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(textResponse(body)));
+
+    const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
+    expect(snapshot.observation?.observedAtISO).toMatch(/:\d{2}:00\.000Z$/);
+    expect(snapshot.observation?.observedAtISO.slice(14, 16)).toBe("53");
+  });
+
+  it("returns no-data when the METAR has no valid observation time", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(textResponse("SCEL 991200Z 33013KT 9999 13/10 Q1001"))
+    );
+    const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
+    expect(snapshot.meta.status).toBe("no-data");
+    expect(snapshot.meta.error).toMatch(/hora de observación/);
+  });
+
   it("marks old METAR as error (obsoleto) with a clear message", async () => {
     const yesterday = new Date(Date.now() - 24 * 3600_000);
     const fetchMock = vi.fn().mockResolvedValue(textResponse(metarFor(yesterday)));
@@ -80,5 +102,25 @@ describe("fetchNearestObservation (VATSIM METAR)", () => {
     abortError.name = "AbortError";
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
     await expect(fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon)).rejects.toThrow(/Timeout/);
+  });
+
+  it("classifies provider error kinds", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(textResponse("", false, 500)));
+    await expect(fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon)).rejects.toMatchObject({
+      kind: "http",
+      status: 500,
+    });
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network")));
+    await expect(fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon)).rejects.toMatchObject({
+      kind: "offline",
+    });
+
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+    await expect(fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon)).rejects.toMatchObject({
+      kind: "timeout",
+    });
   });
 });

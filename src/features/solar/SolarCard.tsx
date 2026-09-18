@@ -2,11 +2,7 @@ import { useMemo } from "react";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Sunrise, Sunset, Clock } from "lucide-react";
-
-function fmtTime(d: Date | null): string {
-  if (!d) return "—";
-  return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-}
+import { formatClockTime } from "../../lib/format";
 
 function fmtDuration(minutes: number | null): string {
   if (!minutes) return "—";
@@ -18,14 +14,17 @@ function fmtDuration(minutes: number | null): string {
 export function SolarCard({
   latitude,
   longitude,
+  utcOffsetSeconds,
 }: {
   latitude: number;
   longitude: number;
+  utcOffsetSeconds?: number;
 }) {
   const times = useMemo(
     () => computeSolarTimes(new Date(), latitude, longitude),
     [latitude, longitude]
   );
+  const fmtTime = (d: Date | null) => formatClockTime(d, utcOffsetSeconds);
   return (
     <Card>
       <CardHeader>

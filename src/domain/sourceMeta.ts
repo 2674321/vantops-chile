@@ -4,6 +4,11 @@ export interface DataSourceMeta {
   source: string;
   requestedAt: string;
   receivedAt: string;
+  /**
+   * Instante real al que corresponde la medición (no el de recepción).
+   * Puede ser una respuesta cacheada; la frescura se deriva de este campo.
+   */
+  dataTime?: string;
   status: DataStatus;
   error?: string;
 }

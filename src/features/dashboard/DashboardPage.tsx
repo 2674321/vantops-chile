@@ -410,6 +410,7 @@ export default function DashboardPage() {
           <SolarCard
             latitude={coordinate.latitude}
             longitude={coordinate.longitude}
+            utcOffsetSeconds={weatherQuery.data?.utcOffsetSeconds}
           />
           <NearbyMetarCard
             latitude={coordinate.latitude}

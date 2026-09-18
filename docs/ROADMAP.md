@@ -2,8 +2,8 @@
 
 > **VantOPS Chile** es una aplicación web/PWA orientada a pilotos de RPAS/drones en Chile, diseñada para planificar operaciones, consultar condiciones reales, evaluar riesgos básicos de vuelo y mantener una bitácora local.
 >
-> **Estado actual:** MVP `0.9.0` — planificación espacial (zona/radio), pronóstico horario, ventana de operación y capa de feedback/validación UX; Fases 0–5 completadas  
-> **Objetivo inicial:** MVP `1.0.0`  
+> **Estado actual:** MVP `1.0.0` estable — MVP cerrado (Fases 0–5 completadas): planificación espacial, pronóstico horario, ventana de operación, feedback/validación UX y endurecimiento de release (exactitud temporal, providers, PWA/offline, tests UI)  
+> **Objetivo inicial:** MVP `1.0.0` — **alcanzado**  
 > **Nombre elegido:** VantOPS (Chile)  
 > **Nombre sugerido del repositorio:** `vantops-chile`  
 > **Enfoque:** gratuito, público, privacy-first, mobile-first y basado en datos reales.
@@ -2481,6 +2481,8 @@ El usuario puede consultar condiciones reales.
 ```
 
 > **R0.9.0** añade una capa transversal de UX/fiabilidad: sistema de toasts propio, validación de coordenadas/fechas/batería sin fallback a `0,0`, feedback y estados en curso en todas las operaciones CRUD, confirmaciones destructivas inline, accesibilidad (`aria-invalid`/`aria-label`/labels) y corrección de la transición offline→online.
+>
+> **R1.0.0** cierra el MVP: corrige la exactitud temporal del METAR (minuto real, sin zona horaria fija), deriva la frescura meteorológica del dato (`dataTime`) en lugar de la recepción (evita "actualizado ahora" con caché de Workbox), añade timezone del lugar a la línea de tiempo y a la hora solar, tipa los errores de todos los providers, endurece el `ErrorBoundary`, incorpora tests de UI/hooks con jsdom y consolida PWA, respaldo, accesibilidad, rendimiento y documentación.
 
 **Resultado:**
 
@@ -4821,7 +4823,7 @@ pero debe evaluarse cuidadosamente por:
 # 230. Estado actual
 
 > **Snapshot histórico (pre-implementación).** El estado vigente está al inicio
-> del documento: MVP `0.7.0` con Fases 0–5 completadas.
+> del documento: MVP `1.0.0` estable con Fases 0–5 completadas.
 
 ```text
 Proyecto: VantOPS Chile
@@ -5385,7 +5387,7 @@ TIPO
 PWA de planificación y apoyo a operaciones RPAS
 
 ESTADO
-MVP 0.7.0 (Fases 0–5 completadas)
+MVP 1.0.0 estable (Fases 0–5 completadas)
 
 MVP
 1.0.0
@@ -5535,6 +5537,40 @@ Fase 0 — scaffold técnico (repo vantops-chile)
 DESPUÉS
 Release 0.1 — Foundation
 ```
+
+---
+
+# 254. Cierre del MVP 1.0.0 y backlog post-1.0
+
+El MVP queda **congelado en `1.0.0`**: no se abren nuevas líneas funcionales.
+El foco de las próximas iteraciones es mantenimiento, calidad y, solo después,
+evolución opt-in. Prioridad orientativa:
+
+```text
+P0 — Mantenimiento (mantener 1.0.0 sano)
+[ ] Actualizar dependencias de seguridad y parchear CVEs
+[ ] Vigilar estabilidad de Open-Meteo / VATSIM METAR / Nominatim
+[ ] Añadir más aeródromos chilenos a la tabla de estaciones METAR
+[ ] Tests de regresión ante cambios de esquema de datos externos
+
+P1 — Mejoras (sin ampliar alcance)
+[ ] Selector de altura de viento (10 m / 100 m) en Ajustes (VANT-027, V1.1)
+[ ] Pulido UX de la ventana de operación
+[ ] Modo experto (VANT-023, V1.1)
+[ ] Internacionalización es / en / pt (VANT-025)
+[ ] Unidades configurables (km/h, m/s, nudos; °C, °F; m, ft)
+
+P2 — Funciones futuras (solo con necesidad concreta y fuente verificada)
+[ ] Fuente oficial DMC / IFIS para METAR (si su estabilidad lo permite)
+[ ] OpenAIP — espacio aéreo como conciencia situacional (VANT-031, V2)
+[ ] CONAF — incendios activos (VANT-032, V2)
+[ ] IDE Chile — capas oficiales (VANT-033, V2)
+[ ] Sincronización opt-in con cuenta (VANT-034)
+[ ] PDF de bitácora y Capacitor / tiendas móviles (VANT-035/036)
+```
+
+> Regla de producto vigente: VantOPS **informa**; DGAC/AIS **determina**. Nunca
+> presentar resultados como autorización legal de vuelo.
 
 ---
 

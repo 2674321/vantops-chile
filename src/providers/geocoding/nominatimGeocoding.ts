@@ -1,5 +1,14 @@
 import { isValidCoordinate } from "../../domain/coordinate";
 import type { Coordinate } from "../../domain/coordinate";
+import { ProviderError } from "../../domain/providerError";
+import type { ProviderErrorKind } from "../../domain/providerError";
+
+export class GeocodingError extends ProviderError {
+  constructor(kind: ProviderErrorKind, message: string, status?: number) {
+    super("Nominatim (OSM)", kind, message, status);
+    this.name = "GeocodingError";
+  }
+}
 
 export interface GeocodingResult extends Coordinate {
   placeId: number;
@@ -125,11 +134,24 @@ export async function searchLocation(
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const url = buildGeocodingUrl(trimmed, options);
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      let res: Response;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new GeocodingError("timeout", "Timeout al consultar Nominatim");
+        }
+        throw new GeocodingError("offline", "No se pudo contactar el servicio de búsqueda");
       }
-      const payload: unknown = await res.json();
+      if (!res.ok) {
+        throw new GeocodingError("http", `HTTP ${res.status}`, res.status);
+      }
+      let payload: unknown;
+      try {
+        payload = await res.json();
+      } catch {
+        throw new GeocodingError("invalid-response", "Respuesta inválida de Nominatim");
+      }
       return normalizeGeocodingResponse(payload);
     } finally {
       clearTimeout(timeout);

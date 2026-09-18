@@ -2,6 +2,7 @@ import type { HourlyWeather } from "../../domain/weather";
 import type { AssessmentStatus } from "../../domain/assessment/types";
 import type { HourlyAssessment } from "../../domain/assessment/hourly";
 import { windDirectionLabel, weatherCodeEmoji } from "./WeatherPanel";
+import { formatWeatherHourLabel } from "../../domain/weatherTime";
 import { esCL as t } from "../../i18n/es-CL";
 
 interface WeatherTimelineProps {
@@ -16,12 +17,6 @@ const STATUS_STYLES: Record<AssessmentStatus, { label: string; symbol: string; c
   UNFAVORABLE: { label: t.timeline.unfavorable, symbol: "✕", className: "text-red-300 border-red-800/60" },
   NO_DATA: { label: t.timeline.noData, symbol: "–", className: "text-slate-400 border-slate-700" },
 };
-
-function formatHour(timeISO: string): string {
-  const date = new Date(timeISO);
-  if (Number.isNaN(date.getTime())) return timeISO;
-  return date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-}
 
 function value(value: number | null, suffix: string): string {
   return value === null ? t.weather.noData : `${value}${suffix}`;
@@ -57,9 +52,9 @@ export function WeatherTimeline({ hours, assessments, maxHours = 12 }: WeatherTi
               className={`min-w-[8.5rem] shrink-0 snap-start rounded-lg border bg-slate-950/60 p-3 ${style.className}`}
             >
               <p className="text-sm font-semibold text-slate-100">
-                {index === 0 ? t.timeline.now : formatHour(hour.timeISO)}
+                {index === 0 ? t.timeline.now : formatWeatherHourLabel(hour.timeISO)}
               </p>
-              <p className="text-[11px] text-slate-500">{formatHour(hour.timeISO)}</p>
+              <p className="text-[11px] text-slate-500">{formatWeatherHourLabel(hour.timeISO)}</p>
 
               <p className="mt-1 text-2xl" aria-hidden>
                 {hour.weatherCode === null ? "—" : weatherCodeEmoji(hour.weatherCode)}

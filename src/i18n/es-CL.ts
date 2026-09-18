@@ -337,6 +337,47 @@ export const esCL = {
     csvEmpty: "Aún no hay vuelos registrados para exportar.",
     csvError: "No se pudo generar el archivo CSV.",
   },
+  common: {
+    loading: "Cargando…",
+    back: "Volver",
+    cancel: "Cancelar",
+    saving: "Guardando…",
+  },
+  settings: {
+    title: "Ajustes",
+    backToPanel: "Volver al panel",
+    pilotTitle: "Preferencias del piloto",
+    intro:
+      "Define tus propios límites operacionales. Un campo vacío significa que ese criterio no está configurado y no participa de la evaluación.",
+    saveLimits: "Guardar límites",
+    clearAll: "Borrar todo",
+    clearConfirm: "¿Borrar todos los límites operacionales guardados?",
+    invalidValue: (label: string) =>
+      `Valor inválido en «${label}». Usa un número o deja el campo vacío.`,
+    temperatureOrder: "La temperatura mínima debe ser menor que la máxima.",
+    disclaimer:
+      "Estos valores corresponden a preferencias o límites operacionales definidos por el piloto. No constituyen límites legales ni una autorización de vuelo.",
+    noInvent:
+      "VantOPS no inventa límites de fabricante. Tú defines cuáles son tus condiciones.",
+    localDataTitle: "Datos locales",
+    localDataMessage:
+      "Tus datos se guardan solo en este dispositivo. Exporta periódicamente un respaldo.",
+    exportImport: "Exportar / Importar respaldo",
+    fields: {
+      windMaxKmh: { label: "Viento máximo (10 m)", hint: "Límite de viento a 10 m sobre el terreno.", placeholder: "p. ej. 30" },
+      gustMaxKmh: { label: "Ráfaga máxima", hint: "Límite de ráfagas.", placeholder: "p. ej. 40" },
+      precipitationMaxMm: { label: "Precipitación máxima", hint: "Máximo de precipitación por hora.", placeholder: "p. ej. 0.5" },
+      visibilityMinMeters: { label: "Visibilidad mínima", hint: "Mínimo de visibilidad requerido.", placeholder: "p. ej. 5000" },
+      temperatureMinC: { label: "Temperatura mínima", hint: "Límite inferior de temperatura.", placeholder: "p. ej. 0" },
+      temperatureMaxC: { label: "Temperatura máxima", hint: "Límite superior de temperatura.", placeholder: "p. ej. 35" },
+    },
+  },
+  errors: {
+    boundaryTitle: "Algo salió mal",
+    boundaryMessage: "Puedes recargar VantOPS e intentar nuevamente.",
+    reload: "Recargar",
+    goHome: "Volver al inicio",
+  },
   footer: {
     attributions: "Open-Meteo · OpenStreetMap · VATSIM METAR · SunCalc",
   },

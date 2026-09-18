@@ -2,17 +2,12 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Clock } from "lucide-react";
 import type { OperationWindow } from "../../domain/assessment/operationWindow";
+import { formatWeatherHourLabel } from "../../domain/weatherTime";
 import { esCL as t } from "../../i18n/es-CL";
 
 interface OperationWindowCardProps {
   window: OperationWindow;
   onGoSettings: () => void;
-}
-
-function formatHour(timeISO: string): string {
-  const date = new Date(timeISO);
-  if (Number.isNaN(date.getTime())) return timeISO;
-  return date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 }
 
 export function OperationWindowCard({ window, onGoSettings }: OperationWindowCardProps) {
@@ -58,8 +53,8 @@ function WindowBody({ window, onGoSettings }: OperationWindowCardProps) {
 
   const message =
     window.bestStatus === "CAUTION"
-      ? t.operationWindow.caution(formatHour(window.startISO), formatHour(window.endISO))
-      : t.operationWindow.favorable(formatHour(window.startISO), formatHour(window.endISO));
+      ? t.operationWindow.caution(formatWeatherHourLabel(window.startISO), formatWeatherHourLabel(window.endISO))
+      : t.operationWindow.favorable(formatWeatherHourLabel(window.startISO), formatWeatherHourLabel(window.endISO));
 
   return (
     <output className="block text-sm text-emerald-300">

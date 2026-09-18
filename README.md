@@ -2,7 +2,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v0.9.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.0.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 ## Capturas
 
@@ -22,7 +22,7 @@ PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales
 - vite-plugin-pwa (service worker + manifest, workbox)
 - Persistencia local: localStorage + IndexedDB (Dexie)
 - Biome (lint)
-- Vitest (tests)
+- Vitest + Testing Library + jsdom (tests unitarios y de UI)
 - GitHub Actions + GitHub Pages
 
 ## Ejecutar localmente
@@ -217,6 +217,17 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Fiabilidad**: `clearAircraftSelection` ahora limpia IndexedDB (antes la aeronave reaparecía al recargar); radio con reversión y aviso si falla la persistencia; errores de carga de bitácora/lugares/baterías ya no se ocultan
 - **380 tests** (379 pasando + 1 integración opt-in), lint, typecheck y build limpios; bundle principal 296.3 kB (gzip 94.4 kB)
 
+## R1.0.0 — Stable MVP Release (completada)
+
+- **Exactitud temporal**: el METAR usa el minuto real del grupo de hora (`172153Z` → 21:53Z) y resuelve cruces de día/mes/año; se eliminó la zona horaria fija `America/Santiago`.
+- **Frescura del clima derivada del dato**: `DataSourceMeta.dataTime` + `deriveWeatherFreshness` (actualizado / antiguo / error / sin datos) evitan mostrar como "actualizado" un pronóstico servido desde la caché del service worker.
+- **Timezone del lugar**: la línea de tiempo horaria, la ventana de operación y la hora solar usan el offset UTC entregado por Open-Meteo (`timezone=auto`), no el huso del dispositivo.
+- **Providers endurecidos**: errores tipados (`timeout`, `offline`, `http`, `invalid-response`, `no-data`, `invalid-input`) y validación de entrada en clima, elevación, geocodificación y observaciones.
+- **Cobertura de UI y hooks** con jsdom + Testing Library: toasts, formularios de vuelo, ajustes, lugares, baterías, `ErrorBoundary`, `useLastCoordinate` e `useInstallPrompt` (dev-only; no entran al bundle).
+- **ErrorBoundary accesible**: `role="alert"`, copy de producción desde i18n y detalle técnico solo en desarrollo.
+- **Compatibilidad de respaldo**: verificado el import de respaldos generados por 0.7 / 0.8 / 0.9; las claves de configuración desconocidas se ignoran de forma segura.
+- **466 tests** (465 pasando + 1 integración opt-in) en 37 archivos, lint, typecheck y build limpios; bundle principal ~298.6 kB (gzip ~95.1 kB).
+
 ## Fuentes de datos
 
 | Fuente | Uso | Licencia |
@@ -224,8 +235,13 @@ La UI nunca depende del JSON crudo de APIs externas.
 | [Open-Meteo](https://open-meteo.com/) | Clima forecast + elevación | CC BY 4.0 |
 | [OpenStreetMap](https://www.openstreetmap.org/) | Mapa base | ODbL |
 | [Nominatim](https://nominatim.openstreetmap.org/) | Búsqueda de ubicación por nombre | Datos © OpenStreetMap (ODbL) |
-| [VATSIM METAR](https://metar.vatsim.net/) | METAR observaciones | Público |
+| [VATSIM METAR](https://metar.vatsim.net/) | METAR observaciones (feed comunitario; **no es una fuente oficial DGAC**) | Público |
 | [SunCalc](https://suncalc.org/) | Posición solar | BSD-2 |
+
+> Las observaciones METAR provienen del feed comunitario de VATSIM y se
+> presentan como referencia informativa. La fuente oficial en Chile es la
+> Dirección Meteorológica de Chile (DMC) y el sistema IFIS de la DGAC; su
+> integración es trabajo futuro. Para información oficial: [DGAC — normativa](https://www.dgac.gob.cl/normativa/reglamentacion-aeronautica/normas-dan-nueva/).
 
 ## Limitaciones
 

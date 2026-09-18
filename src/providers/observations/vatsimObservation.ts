@@ -1,38 +1,20 @@
 import type { ObservationSnapshot } from "../../domain/observation";
 import type { DataSourceMeta } from "../../domain/sourceMeta";
+import { ProviderError } from "../../domain/providerError";
+import type { ProviderErrorKind } from "../../domain/providerError";
 import { findNearestStation } from "./stations";
-import { decodeMetar } from "./metarDecoder";
+import { decodeMetar, parseMetarObservedAt } from "./metarDecoder";
 
 const VATSIM_URL = "https://metar.vatsim.net";
 const REQUEST_TIMEOUT_MS = 10000;
 
 export const VATSIM_SOURCE_LABEL = "VATSIM METAR";
 
-export class ObservationError extends Error {
-  constructor(message: string) {
-    super(message);
+export class ObservationError extends ProviderError {
+  constructor(kind: ProviderErrorKind, message: string, status?: number) {
+    super("VATSIM METAR", kind, message, status);
     this.name = "ObservationError";
   }
-}
-
-function parseObsTimeFromRaw(raw: string): string {
-  const dayHourMatch = raw.match(/\b(\d{2})(\d{2})(\d{2})Z\b/);
-  if (!dayHourMatch) return "";
-  const day = Number.parseInt(dayHourMatch[1], 10);
-  const hour = Number.parseInt(dayHourMatch[2], 10);
-  const now = new Date();
-  const obs = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    day,
-    hour,
-    0,
-    0
-  ));
-  if (obs.getTime() > now.getTime() + 24 * 3600_000) {
-    obs.setUTCMonth(obs.getUTCMonth() - 1);
-  }
-  return obs.toISOString();
 }
 
 function detectMalformedMetar(raw: string): boolean {
@@ -60,16 +42,19 @@ export async function fetchNearestObservation(
     });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new ObservationError("Timeout al consultar VATSIM METAR");
+      throw new ObservationError("timeout", "Timeout al consultar VATSIM METAR");
     }
-    throw new ObservationError("No se pudo contactar VATSIM METAR");
+    throw new ObservationError("offline", "No se pudo contactar VATSIM METAR");
   } finally {
     clearTimeout(timeout);
   }
 
-  if (!res.ok) throw new ObservationError(`HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new ObservationError("http", `HTTP ${res.status}`, res.status);
+  }
 
   const raw = (await res.text()).trim();
+  const receivedAt = new Date().toISOString();
 
   const noDataMeta = (error: string): ObservationSnapshot => ({
     observation: null,
@@ -79,7 +64,7 @@ export async function fetchNearestObservation(
     meta: {
       source: VATSIM_SOURCE_LABEL,
       requestedAt,
-      receivedAt: new Date().toISOString(),
+      receivedAt,
       status: "no-data",
       error,
     },
@@ -98,20 +83,27 @@ export async function fetchNearestObservation(
   }
 
   const metar = decodeMetar(raw);
-  const observedISO = parseObsTimeFromRaw(raw);
+  const observedISO = parseMetarObservedAt(raw);
+  if (!observedISO) {
+    return {
+      observation: metar,
+      stationName: station.name,
+      stationIcao: station.icao,
+      distanceKm,
+      meta: {
+        source: VATSIM_SOURCE_LABEL,
+        requestedAt,
+        receivedAt,
+        status: "no-data",
+        error: `METAR sin hora de observación válida para ${station.icao}`,
+      },
+    };
+  }
   metar.observedAtISO = observedISO;
-  metar.observedAtLocal = observedISO
-    ? new Date(observedISO).toLocaleString("es-CL", {
-        timeZone: "America/Santiago",
-        hour: "2-digit",
-        minute: "2-digit",
-        day: "2-digit",
-        month: "short",
-      })
-    : "";
-  const ageMinutes = observedISO
-    ? Math.round((Date.now() - new Date(observedISO).getTime()) / 60_000)
-    : 9999;
+  const ageMinutes = Math.max(
+    0,
+    Math.round((Date.now() - new Date(observedISO).getTime()) / 60_000)
+  );
   const status: DataSourceMeta["status"] =
     ageMinutes <= 120 ? "updated" : ageMinutes <= 360 ? "stale" : "error";
   return {
@@ -122,7 +114,8 @@ export async function fetchNearestObservation(
     meta: {
       source: VATSIM_SOURCE_LABEL,
       requestedAt,
-      receivedAt: new Date().toISOString(),
+      receivedAt,
+      dataTime: observedISO,
       status,
       error:
         status === "error"

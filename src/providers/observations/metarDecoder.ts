@@ -20,6 +20,42 @@ function ktToKmh(kt: number): number {
   return Math.round(kt * 1.852);
 }
 
+const FUTURE_TOLERANCE_MS = 90 * 60_000;
+
+/**
+ * Convierte el grupo DDHHMMZ del METAR a un instante absoluto UTC.
+ *
+ * El día/mes/año no vienen en el METAR, por lo que se infieren a partir de
+ * `now` (UTC): se asume el mes actual y, si el resultado queda en el futuro
+ * más allá de una tolerancia por desfase de reloj, se retrocede de mes (lo
+ * que también resuelve cambios de día/mes/año al cruzar límites).
+ *
+ * Devuelve "" cuando no hay un timestamp válido.
+ */
+export function parseMetarObservedAt(
+  raw: string,
+  now: Date = new Date()
+): string {
+  const match = raw.match(/\b(\d{2})(\d{2})(\d{2})Z\b/);
+  if (!match) return "";
+  const day = Number.parseInt(match[1], 10);
+  const hour = Number.parseInt(match[2], 10);
+  const minute = Number.parseInt(match[3], 10);
+  if (day < 1 || day > 31 || hour > 23 || minute > 59) return "";
+
+  const nowMs = now.getTime();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  let observedMs = Date.UTC(year, month, day, hour, minute, 0);
+  if (observedMs - nowMs > FUTURE_TOLERANCE_MS) {
+    observedMs = Date.UTC(year, month - 1, day, hour, minute, 0);
+  }
+  if (observedMs - nowMs > FUTURE_TOLERANCE_MS) {
+    observedMs = Date.UTC(year, month - 2, day, hour, minute, 0);
+  }
+  return new Date(observedMs).toISOString();
+}
+
 function parseMetersOrCavok(
   text: string,
   windMatch: RegExpMatchArray | null

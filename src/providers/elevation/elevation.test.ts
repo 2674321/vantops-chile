@@ -72,6 +72,52 @@ describe("fetchElevation", () => {
   });
 });
 
+describe("fetchElevation error kinds", () => {
+  it("classifies invalid input", async () => {
+    await expect(fetchElevation(999, 0)).rejects.toMatchObject({
+      kind: "invalid-input",
+    });
+  });
+
+  it("classifies HTTP errors", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, false, 503)));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "http",
+      status: 503,
+    });
+  });
+
+  it("classifies offline failures", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network")));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "offline",
+    });
+  });
+
+  it("classifies timeouts", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "timeout",
+    });
+  });
+
+  it("classifies invalid JSON bodies", async () => {
+    const badJson = {
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected token");
+      },
+    } as unknown as Response;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(badJson));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({
+      kind: "invalid-response",
+    });
+  });
+});
+
 const processEnv = (globalThis as {
   process?: { env?: Record<string, string | undefined> };
 }).process?.env;
