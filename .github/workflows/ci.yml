@@ -33,3 +33,7 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Audit (informe, no bloqueante)
+        continue-on-error: true
+        run: npm audit

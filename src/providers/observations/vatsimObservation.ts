@@ -4,6 +4,7 @@ import { ProviderError } from "../../domain/providerError";
 import type { ProviderErrorKind } from "../../domain/providerError";
 import { findNearestStation } from "./stations";
 import { decodeMetar, parseMetarObservedAt } from "./metarDecoder";
+import { recordProviderError } from "../../domain/providerDiagnostic";
 
 const VATSIM_URL = "https://metar.vatsim.net";
 const REQUEST_TIMEOUT_MS = 10000;
@@ -42,15 +43,15 @@ export async function fetchNearestObservation(
     });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new ObservationError("timeout", "Timeout al consultar VATSIM METAR");
+      throw recordProviderError(new ObservationError("timeout", "Timeout al consultar VATSIM METAR"));
     }
-    throw new ObservationError("offline", "No se pudo contactar VATSIM METAR");
+    throw recordProviderError(new ObservationError("offline", "No se pudo contactar VATSIM METAR"));
   } finally {
     clearTimeout(timeout);
   }
 
   if (!res.ok) {
-    throw new ObservationError("http", `HTTP ${res.status}`, res.status);
+    throw recordProviderError(new ObservationError("http", `HTTP ${res.status}`, res.status));
   }
 
   const raw = (await res.text()).trim();
@@ -74,7 +75,7 @@ export async function fetchNearestObservation(
     return noDataMeta(`Respuesta vacía para ${station.icao}`);
   }
 
-  if (/METAR\s+\w+\s+\d{6}Z\s+NIL/i.test(raw)) {
+  if (/\bNIL\b/i.test(raw)) {
     return noDataMeta(`METAR NIL para ${station.icao}`);
   }
 

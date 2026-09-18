@@ -82,6 +82,23 @@ describe("normalizeGeocodingResponse", () => {
     expect(results).toHaveLength(0);
   });
 
+  it("skips items with non-numeric place_id (keeps valid siblings)", () => {
+    const results = normalizeGeocodingResponse([
+      { place_id: "id-abc", display_name: "Catastro", lat: "-33", lon: "-70" },
+      { place_id: 7, display_name: "Aeródromo Eulogio Sánchez", lat: "-33.46", lon: "-70.5" },
+    ]);
+    expect(results).toHaveLength(1);
+    expect(results[0].placeId).toBe(7);
+  });
+
+  it("maps multiple results preserving order and place_id", () => {
+    const results = normalizeGeocodingResponse([
+      { place_id: 11, display_name: "A", lat: "-33.0", lon: "-70.0" },
+      { place_id: 22, display_name: "B", lat: "-34.0", lon: "-71.0" },
+    ]);
+    expect(results.map((r) => r.placeId)).toEqual([11, 22]);
+  });
+
   it("returns empty array for non-array payload", () => {
     expect(normalizeGeocodingResponse(null)).toEqual([]);
     expect(normalizeGeocodingResponse({})).toEqual([]);
@@ -122,6 +139,11 @@ describe("searchLocation", () => {
     await searchLocation("Santiago");
     await searchLocation("Santiago");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns [] when Nominatim answers an empty array (no matches, not an error)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
+    expect(await searchLocation("qqqqzzzz")).toEqual([]);
   });
 
   it("throws on HTTP errors from Nominatim", async () => {

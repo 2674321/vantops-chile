@@ -5518,6 +5518,12 @@ La conversación registra que VantOPS fue elegido como nombre y que el usuario p
 
 # 253. Estado de revisión
 
+> **Snapshot histórico (26-08-2026).** Este bloque congeló el estado del
+> documento al inicio del desarrollo (antes de la Fase 0). Desde entonces el
+> proyecto evolucionó en el repositorio real bajo control de versiones: la
+> fuente de verdad del estado actual es el log de git (releases `R0.1.0` →
+> `R1.0.1`) y el CHANGELOG. No usar esta sección para decidir el presente.
+
 ```text
 DOCUMENTO
 VantOPS Chile — Roadmap Maestro
@@ -5538,6 +5544,10 @@ DESPUÉS
 Release 0.1 — Foundation
 ```
 
+> Estado real al cierre de R1.0.1: repo `vantops-chile` en `main`, releases
+> `R0.1.0`…`R1.0.1` publicados (tags `v0.1.0`…`v1.0.1`), MVP estable (1.0.0)
+> con hardening de providers y mantenimiento (1.0.1).
+
 ---
 
 # 254. Cierre del MVP 1.0.0 y backlog post-1.0
@@ -5548,10 +5558,10 @@ evolución opt-in. Prioridad orientativa:
 
 ```text
 P0 — Mantenimiento (mantener 1.0.0 sano)
-[ ] Actualizar dependencias de seguridad y parchear CVEs
-[ ] Vigilar estabilidad de Open-Meteo / VATSIM METAR / Nominatim
+[x] Actualizar dependencias de seguridad y parchear CVEs  (aplicado en 1.0.1)
+[x] Vigilar estabilidad de Open-Meteo / VATSIM METAR / Nominatim  (hardening 1.0.1)
 [ ] Añadir más aeródromos chilenos a la tabla de estaciones METAR
-[ ] Tests de regresión ante cambios de esquema de datos externos
+[x] Tests de regresión ante cambios de esquema de datos externos  (1.0.1, fixtures de contrato)
 
 P1 — Mejoras (sin ampliar alcance)
 [ ] Selector de altura de viento (10 m / 100 m) en Ajustes (VANT-027, V1.1)

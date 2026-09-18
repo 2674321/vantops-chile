@@ -54,6 +54,29 @@ describe("fetchElevation", () => {
     await expect(fetchElevation(-33.45, -70.66)).rejects.toThrow("Sin datos de elevación");
   });
 
+  it("accepts 0 meters as a valid elevation (never confuses it with missing)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ elevation: [0] })));
+    const result = await fetchElevation(-33.45, -70.66);
+    expect(result.meters).toBe(0);
+    expect(result.meta.status).toBe("updated");
+  });
+
+  it("accepts negative elevations (leyes de playa) as valid", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ elevation: [-24.5] })));
+    const result = await fetchElevation(-33.45, -70.66);
+    expect(result.meters).toBe(-24.5);
+  });
+
+  it("treats NaN elevation as no-data", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ elevation: [Number.NaN] })));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({ kind: "no-data" });
+  });
+
+  it("treats Infinity elevation as no-data", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ elevation: [Number.POSITIVE_INFINITY] })));
+    await expect(fetchElevation(-33.45, -70.66)).rejects.toMatchObject({ kind: "no-data" });
+  });
+
   it("throws on invalid JSON shape (no elevation array)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ elevation: "nope" })));
     await expect(fetchElevation(-33.45, -70.66)).rejects.toThrow("Sin datos de elevación");

@@ -2,7 +2,43 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.0.0 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.0.1 · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+
+## Preguntas rápidas
+
+**¿Qué es VantOPS Chile?**
+Una PWA mobile-first que junta clima real (Open-Meteo), elevación, observaciones METAR del aeródromo más cercano (feed comunitario VATSIM), posición solar, un motor de evaluación del viento y una bitácora local, para planificar operaciones RPAS en Chile.
+
+**¿Qué NO hace?**
+No autoriza vuelos, no entrega permisos y no representa a ninguna autoridad. Es una herramienta de apoyo: tú eres responsable de operar conforme a la normativa vigente (DGAC).
+
+**¿Necesito una cuenta?**
+No. No hay registro, cuentas ni sincronización. Todo funciona en tu dispositivo.
+
+**¿Dónde se guardan mis datos?**
+IndexedDB (Dexie) para bitácora, baterías, lugares y configuración; localStorage para respaldo de diagnóstico y preferencias livianas. Nunca salen del dispositivo: no hay analytics ni telemetría.
+
+**¿Funciona sin conexión?**
+Sí, la PWA es instalable y funciona offline. Las fuentes en vivo (clima, METAR, buscador) requieren conexión; pueden entregar datos en caché con aviso de antigüedad.
+
+**¿De dónde vienen los datos meteorológicos?**
+Open-Meteo (clima y elevación), VATSIM METAR (observaciones; feed comunitario, **no oficial**), Nominatim/OpenStreetMap (búsqueda) y SunCalc (sol, calculado en el dispositivo). Detalles y licencias en la sección [Fuentes de datos](#fuentes-de-datos).
+
+**¿Por qué VATSIM y no DMC/IFIS?**
+Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estable para consumo público. El METAR de VATSIM se muestra como referencia informativa y la integración oficial queda pendiente.
+
+**¿Cómo respaldo mi bitácora?**
+Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato de respaldo es estable y con versión.
+
+**¿Cómo la ejecuto localmente?**
+```bash
+npm install
+npm run dev
+```
+Los tests se corren con `npm test` (sin red) y `npm run test:integration` (contra APIs reales).
+
+**Convención de versiones (SemVer):**
+`PATCH` (1.0.x) = correcciones, endurecimiento y regresiones, sin cambios de datos ni UI nueva; `MINOR` (1.x.0) = mejoras sin romper compatibilidad; `MAJOR` (x.0.0) = cambios incompatibles con releases anteriores. El formato de respaldo y el esquema de IndexedDB siguen su propio versionado independiente.
 
 ## Capturas
 

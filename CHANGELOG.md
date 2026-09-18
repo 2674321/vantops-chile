@@ -2,7 +2,35 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
-## [No publicado]
+## [1.0.1] - 2026-09-18
+
+Mantenimiento y endurecimiento de contratos de providers. Sin cambios de datos, UI ni funciones nuevas; compatibilidad absoluta con 1.0.0 (esquema IndexedDB v2 y formato de respaldo v1 intactos).
+
+### Added
+- **Fixtures de contrato de proveedores** (`providers/*/__fixtures__/`, `providerContract.test.ts`): respuestas Open-Meteo completas/incompletas/inválidas, METAR reales sanitizados, y verificación de los `kind` de error comunes por adapter.
+- **`parseOpenMeteoResponse`**: validación estructural de la respuesta de Open-Meteo con rechazo `invalid-response` ante esquemas incompatibles (payloads anulables nulos se aceptan, `weather_code` inexistente/no numérico se rechaza).
+- **`numOrNull`**: normalización de campos numéricos (null, NaN, Infinity, no numérico y strings → `null`) sin inventar valores; aplicado a actual + horario de Open-Meteo.
+- **Diagnóstico local de providers** (`domain/providerDiagnostic.ts`): registro FIFO de hasta 50 eventos en localStorage (`vantops:provider-diagnostics`), solo observabilidad (sin telemetría, sin PII), con `recordProviderError` integrado en los throw-sites de clima, elevación, geocodificación y observaciones.
+- **Congelamiento de datos** (`storage/freeze.test.ts`): apertura en esquema Dexie v2 con las 4 tablas exactas, migración v1→v2 preservando registros, formato de backup v1 sin drift, y regresión de fallos de storage (settings corruptos → `null`, lista con fallback a valor crudo, lectura de base vacía sin errores).
+- Tests de regresión a11y (`flightForm.a11y.test.tsx`): `aria-invalid` + `aria-describedby` apuntando al mensaje `role="alert"` correcto.
+- Sección **Preguntas rápidas** en el README (qué es/no hace, cuenta, localización de datos, offline, fuentes, VATSIM vs DMC/IFIS, respaldo, SemVer).
+- CI: paso `npm audit` como informe no bloqueante.
+
+### Changed
+- **NIL de METAR**: depresión de reporting detectada con `\bNIL\b` en cualquier posición del METAR (antes requería que `NIL` siguiera inmediatamente al grupo de hora), devolviendo `no-data`.
+- Dependencias exactas en runtime, sin regresión de bundle: `dexie@4.4.6`, `@tanstack/react-query@5.103.1` (React se mantiene en `19.2.8`: `19.3.0` reverted por regresión de tamaño).
+- `docs/ROADMAP.md`: sección 253 marcada como snapshot histórico y 254 actualizada (P0 de mantenimiento cumplido en 1.0.1).
+
+### Fixed
+- **Oculto (prevención)**: un cambio de esquema de Open-Meteo (p. ej. `weather_code` numérico→string) ahora falla como `invalid-response` en vez de propagar valores corruptos a la UI.
+- Cobertura de límites en elevación (0 m y negativos válidos; NaN/Infinity → `no-data`) y geocodificación (`place_id` no numérico omitido, respuesta `[]` → sin resultados).
+
+### Security
+- Sin cambios; `npm audit` registra 4 advisories moderados (react-router 6.x, dev-only vitest, etc.) sin fix dentro de la versión soportada; documentados, sin `--force`.
+- El diagnóstico local no registra coordenadas, consultas ni datos personales.
+
+### Tests
+- Suite: **567 tests** (566 + 1 integración opt-in) en **44 archivos** (R1.0.0: 472/38; +95 tests). Lint (136 archivos) y typecheck limpios; bundle principal 298.49 kB (gzip 95.00 kB), precache PWA 34 entradas (746.52 KiB), sin regresión vs 1.0.0.
 
 ## [1.0.0] - 2026-09-17
 

@@ -3,6 +3,7 @@ import { deriveWeatherFreshness } from "../../domain/weatherFreshness";
 import { ProviderError } from "../../domain/providerError";
 import type { ProviderErrorKind } from "../../domain/providerError";
 import { isValidCoordinate } from "../../domain/coordinate";
+import { recordProviderError } from "../../domain/providerDiagnostic";
 
 const BASE = "https://api.open-meteo.com/v1/forecast";
 const REQUEST_TIMEOUT_MS = 8000;
@@ -90,6 +91,54 @@ interface OpenMeteoResponse {
   utc_offset_seconds?: number;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === "string" && item.trim() !== "")
+  );
+}
+
+/**
+ * Validación estructural temprana de una respuesta de Open-Meteo.
+ *
+ * Propósito: si la API cambia silenciosamente su esquema, la falla ocurre aquí
+ * ("invalid-response") y no se propaga `undefined` o tipos corruptos a la UI.
+ * Se exige solo lo necesario: `current.time` (deriva `dataTime`) y
+ * `weather_code` (campo no anulable del modelo). El resto puede faltar y se
+ * mapea a `null` cuando corresponde.
+ */
+export function parseOpenMeteoResponse(value: unknown): OpenMeteoResponse {
+  if (!isRecord(value) || !isRecord(value.current)) {
+    throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+  }
+  const current = value.current;
+  if (typeof current.time !== "string" || current.time.trim() === "") {
+    throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+  }
+  if (typeof current.weather_code !== "number" || !Number.isFinite(current.weather_code)) {
+    throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+  }
+  if (value.hourly !== undefined) {
+    if (!isRecord(value.hourly)) {
+      throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+    }
+    if (!isStringArray(value.hourly.time)) {
+      throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+    }
+  }
+  return value as unknown as OpenMeteoResponse;
+}
+
+/** Número válido o null: evita que un valor no numérico (string/NaN/Infinity)
+ *  de la API llegue a la UI; no inventa ningún valor. */
+function numOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function nearestHourlyIndex(times: string[]): number {
   const now = Date.now();
   let best = 0;
@@ -105,7 +154,7 @@ function nearestHourlyIndex(times: string[]): number {
 }
 
 function at(series: (number | null)[] | undefined, index: number): number | null {
-  return series?.[index] ?? null;
+  return numOrNull(series?.[index]);
 }
 
 export function mapWeatherResponse(
@@ -126,17 +175,17 @@ export function mapWeatherResponse(
     utcOffsetSeconds: data.utc_offset_seconds,
     current: {
       timeISO: c.time,
-      temperatureC: c.temperature_2m,
-      humidityPct: c.relative_humidity_2m,
-      precipitationMm: c.precipitation,
+      temperatureC: numOrNull(c.temperature_2m),
+      humidityPct: numOrNull(c.relative_humidity_2m),
+      precipitationMm: numOrNull(c.precipitation),
       weatherCode: c.weather_code,
-      windSpeedKmh: c.wind_speed_10m,
-      windGustsKmh: c.wind_gusts_10m,
-      windDirectionDeg: c.wind_direction_10m,
+      windSpeedKmh: numOrNull(c.wind_speed_10m),
+      windGustsKmh: numOrNull(c.wind_gusts_10m),
+      windDirectionDeg: numOrNull(c.wind_direction_10m),
       windSpeed100mKmh: wind100,
       windDirection100mDeg: windDir100,
-      visibilityM: c.visibility,
-      cloudCoverPct: c.cloud_cover,
+      visibilityM: numOrNull(c.visibility),
+      cloudCoverPct: numOrNull(c.cloud_cover),
     },
     hourly: (hourly?.time ?? []).map((t, i) => ({
       timeISO: t,
@@ -160,7 +209,7 @@ export async function fetchWeatherSnapshot(
   lon: number
 ): Promise<WeatherSnapshot> {
   if (!isValidCoordinate({ latitude: lat, longitude: lon })) {
-    throw new WeatherError("invalid-input", "Coordenadas inválidas");
+    throw recordProviderError(new WeatherError("invalid-input", "Coordenadas inválidas"));
   }
   const requestedAt = new Date().toISOString();
   const url = buildWeatherUrl(lat, lon);
@@ -171,23 +220,34 @@ export async function fetchWeatherSnapshot(
     res = await fetch(url, { signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new WeatherError("timeout", "Timeout al consultar Open-Meteo");
+      throw recordProviderError(new WeatherError("timeout", "Timeout al consultar Open-Meteo"));
     }
-    throw new WeatherError("offline", "No se pudo contactar Open-Meteo");
+    throw recordProviderError(new WeatherError("offline", "No se pudo contactar Open-Meteo"));
   } finally {
     clearTimeout(timeout);
   }
   if (!res.ok) {
-    throw new WeatherError("http", `HTTP ${res.status}`, res.status);
+    throw recordProviderError(
+      new WeatherError("http", `HTTP ${res.status}`, res.status)
+    );
+  }
+  let raw: unknown;
+  try {
+    raw = await res.json();
+  } catch {
+    throw recordProviderError(
+      new WeatherError("invalid-response", "Respuesta JSON inválida de Open-Meteo")
+    );
   }
   let data: OpenMeteoResponse;
   try {
-    data = (await res.json()) as OpenMeteoResponse;
-  } catch {
-    throw new WeatherError("invalid-response", "Respuesta JSON inválida de Open-Meteo");
-  }
-  if (!data?.current || typeof data.current.time !== "string") {
-    throw new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo");
+    data = parseOpenMeteoResponse(raw);
+  } catch (err) {
+    throw recordProviderError(
+      err instanceof WeatherError
+        ? err
+        : new WeatherError("invalid-response", "Respuesta incompleta de Open-Meteo")
+    );
   }
   const snapshot = mapWeatherResponse(data);
   const freshness = deriveWeatherFreshness({

@@ -86,6 +86,15 @@ describe("decodeMetar", () => {
 });
 
 describe("parseMetarObservedAt", () => {
+  it("regression: preserves METAR observation minutes (172153Z → 21:53 UTC, never 21:00)", () => {
+    const result = parseMetarObservedAt(
+      "SCEL 172153Z 33013KT 9999 13/10 Q1001",
+      at("2026-09-17T22:00:00Z")
+    );
+    expect(result).toBe("2026-09-17T21:53:00.000Z");
+    expect(result).not.toBe("2026-09-17T21:00:00.000Z");
+  });
+
   it("uses the real minutes (172153Z = 21:53 UTC)", () => {
     const result = parseMetarObservedAt(
       "SCEL 172153Z 33013KT 9999 13/10 Q1001",
