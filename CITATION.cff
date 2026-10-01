@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "Si utilizas este proyecto, cita este repositorio."
+title: "VantOPS Chile"
+type: software
+authors:
+  - family-names: "Varela C."
+    given-names: "Patricio"
+    orcid: "https://orcid.org/0009-0002-1087-9445"
+repository-code: "https://github.com/2674321/vantops-chile"
+url: "https://github.com/2674321/vantops-chile"
+license: "MIT"
