@@ -1,5 +1,8 @@
 # VantOPS Chile
 
+
+<p align="center"><img src="docs/branding/hero-banner.svg" width="100%" alt="VantOPS Chile"></p>
+
 **Autor:** [Patricio Varela C.](https://github.com/2674321) · **ORCID:** [0009-0002-1087-9445](https://orcid.org/0009-0002-1087-9445) · **Licencia:** [MIT](LICENSE) · **Citación:** [CITATION.cff](CITATION.cff)
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
