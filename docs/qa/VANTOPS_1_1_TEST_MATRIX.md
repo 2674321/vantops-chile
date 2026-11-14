@@ -23,7 +23,7 @@ hecha de forma anticipada.
 | Dashboard con todos los estados, mapa, checklist, detalle/edición y respaldo en cada ancho | NO EJECUTADO | el smoke real cubrió rutas y flujo principal, pero no toda la matriz visual ampliada con fixtures deterministas |
 | Integración externa contra APIs reales | NO EJECUTADO | prueba opt-in omitida deliberadamente; los tests normales no requieren red |
 | Instalación/upgrade/offline en dispositivo físico | NO EJECUTADO | build y service worker verificados; pendiente prueba física sin borrar IndexedDB |
-| Sitio vivo y workflows de `main` | NO EJECUTADO | se actualizará después del despliegue y de abrir la URL pública |
+| Sitio vivo y workflows de `main` | PASS | código `961090a`; [CI 43643112225](https://github.com/2674321/vantops-chile/actions/runs/43643112225) y [Deploy 43643112246](https://github.com/2674321/vantops-chile/actions/runs/43643112246) exitosos; versión `1.1.0-beta.1` y rutas principales comprobadas en la URL pública |
 
 ## Hito F0/F1/F2 parcial — 2026-11-14
 
