@@ -22,7 +22,7 @@ IndexedDB (Dexie) para preparaciones, bitácora, baterías, lugares y configurac
 Sí, la PWA es instalable y funciona offline. Las fuentes en vivo (clima, METAR, buscador) requieren conexión; pueden entregar datos en caché con aviso de antigüedad.
 
 **¿De dónde vienen los datos meteorológicos?**
-Open-Meteo (clima y elevación), VATSIM METAR (observaciones; feed comunitario, **no oficial**), Nominatim/OpenStreetMap (búsqueda) y SunCalc (sol, calculado en el dispositivo). Detalles y licencias en la sección [Fuentes de datos](#fuentes-de-datos).
+Open-Meteo (clima y elevación), VATSIM METAR (observaciones en aeródromo; feed comunitario, **no oficial**), Nominatim/OpenStreetMap (búsqueda) y SunCalc (sol, calculado en el dispositivo). El METAR puede corresponder a una alternativa más distante cuando la estación nominal no reporta, y no representa el punto exacto de operación. Detalles y licencias en la sección [Fuentes de datos](#fuentes-de-datos).
 
 **¿Por qué VATSIM y no DMC/IFIS?**
 Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estable para consumo público. El METAR de VATSIM se muestra como referencia informativa y la integración oficial queda pendiente.

@@ -61,6 +61,20 @@ documento no convierte trabajo pendiente en PASS.
 | METAR raw solo aparece como detalle experto y conserva atribución | PASS | `NearbyMetarCard.tsx` |
 | Suite completa, lint, typecheck y build después del hito | PASS | 48 archivos; 605 PASS, 1 skipped (integración externa opt-in); build PWA 40 entradas/775,22 KiB |
 | QA visual 320–1440 px y capturas deterministas | NO EJECUTADO | pendiente del gate completo F6/F7 |
+
+## Hito F5 parcial — METAR y fallback honesto
+
+| Caso | Estado | Evidencia reproducible |
+|---|---|---|
+| Estación nominal sin reporte usa alternativa disponible | PASS | `vatsimObservation.test.ts` valida SCEL NIL → SCSE y distancia real |
+| Ninguna de las tres candidatas tiene reporte | PASS | NIL/vacío conserva `no-data` y declara ausencia de alternativa |
+| Respuesta de ICAO distinto no se atribuye a la estación solicitada | PASS | prueba de respuesta cruzada SCEL/SCSE |
+| METAR antiguo no figura actualizado | PASS | estado `error` y copy obsoleto en prueba dirigida |
+| NIL, SPECI y minutos Zulu | PASS | fixtures y `metarDecoder.test.ts` |
+| Observación se declara en aeródromo, no en punto de operación | PASS | copy visible en `NearbyMetarCard.tsx` |
+| Suite dirigida F5 | PASS | 78 pruebas en 4 archivos |
+| Regresión completa después de F5 | PASS | 48 archivos; 608 PASS, 1 skipped (integración externa opt-in); lint/typecheck limpios; build PWA 40 entradas/776,13 KiB |
+| Auditoría/expansión del catálogo contra AIP vigente | NO EJECUTADO | se conservan 11 estaciones; no se añadieron datos sin verificar |
 | Backup v2 corrupto o sin `plans` se rechaza antes de importar | PASS | `export.test.ts` |
 | Borrar vuelo conserva plan y limpia vínculo | PASS | prueba transaccional de repositorio |
 | Editar vuelo no incrementa batería de nuevo | PASS | guardado de batería limitado a creación en `FlightForm` |

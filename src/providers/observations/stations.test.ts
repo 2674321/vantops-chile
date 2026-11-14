@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { findNearestStation, haversineKm, CHILEAN_STATIONS } from "./stations";
+import {
+  findNearestStation,
+  findNearestStations,
+  haversineKm,
+  CHILEAN_STATIONS,
+} from "./stations";
 
 describe("haversineKm", () => {
   it("returns ~0 for same point", () => {
@@ -37,6 +42,14 @@ describe("findNearestStation", () => {
 
   it("covers all 11 stations", () => {
     expect(CHILEAN_STATIONS.length).toBe(11);
+  });
+
+  it("orders bounded fallback candidates by distance", () => {
+    const candidates = findNearestStations(-33.39, -70.79, 3);
+    expect(candidates).toHaveLength(3);
+    expect(candidates[0].station.icao).toBe("SCEL");
+    expect(candidates[0].distanceKm).toBeLessThanOrEqual(candidates[1].distanceKm);
+    expect(candidates[1].distanceKm).toBeLessThanOrEqual(candidates[2].distanceKm);
   });
 });
 

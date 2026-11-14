@@ -60,9 +60,17 @@ export function NearbyMetarCard({
         )}
         {data?.observation && (
           <>
+            {data.meta.error && (
+              <p className="mb-2 rounded-lg border border-amber-700/50 bg-amber-950/30 p-2 text-xs text-amber-200">
+                {data.meta.error}
+              </p>
+            )}
             <p className="text-xs text-slate-400">
               {data.stationName} ({data.stationIcao})
               {data.distanceKm != null ? ` · ~${data.distanceKm} km` : ""}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Observación en el aeródromo; puede no representar las condiciones del punto de operación.
             </p>
             <div className="mt-2 grid grid-cols-2 gap-3">
               {data.observation.windKmh != null && (

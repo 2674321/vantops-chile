@@ -5562,6 +5562,7 @@ P0 — Mantenimiento (mantener 1.0.0 sano)
 [x] Actualizar dependencias de seguridad y parchear CVEs  (aplicado en 1.0.1)
 [x] Vigilar estabilidad de Open-Meteo / VATSIM METAR / Nominatim  (hardening 1.0.1)
 [ ] Añadir más aeródromos chilenos a la tabla de estaciones METAR
+[x] Fallback acotado a estación disponible con ICAO/distancia reales y copy no oficial (1.1 en desarrollo)
 [x] Tests de regresión ante cambios de esquema de datos externos  (1.0.1, fixtures de contrato)
 
 P1 — Mejoras (sin ampliar alcance)

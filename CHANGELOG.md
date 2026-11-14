@@ -17,6 +17,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
   distancia/elevación (métrico/imperial) y modo experto.
 - Presentación experta aditiva con metadatos UTC/completitud y METAR raw, sin
   cambiar el resultado del motor de evaluación.
+- Fallback METAR acotado a las tres estaciones más cercanas: si la nominal no
+  tiene reporte utilizable, muestra la alternativa real y su distancia.
 
 ### Changed
 - La evaluación actual y horaria usa la altura de viento seleccionada y el
@@ -25,6 +27,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
   las franjas de precaución en ámbar con copy de revisión.
 - Límites y datos meteorológicos se convierten solo en entrada/presentación; el
   modelo persistido conserva unidades canónicas para evitar drift acumulado.
+- METAR identifica el aeródromo observado, advierte que no representa el punto
+  exacto de operación y valida que la estación devuelta sea la solicitada.
 
 ### Fixed
 - Un límite de ráfagas o temperatura con dato ausente ya no puede producir
