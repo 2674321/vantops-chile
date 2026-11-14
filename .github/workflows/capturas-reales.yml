@@ -49,8 +49,8 @@ jobs:
           salida = Path("docs/screenshots")
           salida.mkdir(parents=True, exist_ok=True)
           escenas = [
-        ("01-escritorio", "/", 1440, 900, ""),
-        ("02-movil", "/", 390, 844, ""),
+          ("01-escritorio", "/", 1440, 900, ""),
+          ("02-movil", "/", 390, 844, ""),
           ]
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
