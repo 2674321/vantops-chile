@@ -138,26 +138,42 @@ export async function fetchNearestObservation(
 ): Promise<ObservationSnapshot> {
   const candidates = findNearestStations(lat, lon, MAX_STATION_ATTEMPTS);
   let nearestWithoutData: ObservationSnapshot | null = null;
+  let firstFailure: ObservationError | null = null;
 
   for (const [index, candidate] of candidates.entries()) {
-    const snapshot = await fetchStationObservation(
-      candidate.station,
-      candidate.distanceKm
-    );
+    let snapshot: ObservationSnapshot;
+    try {
+      snapshot = await fetchStationObservation(
+        candidate.station,
+        candidate.distanceKm
+      );
+    } catch (error) {
+      if (!(error instanceof ObservationError)) throw error;
+      firstFailure ??= error;
+      continue;
+    }
     if (snapshot.observation) {
       if (index > 0) {
-        snapshot.meta.error = `Sin reporte utilizable en ${candidates[0].station.icao}; se muestra alternativa ${candidate.station.icao} a ${candidate.distanceKm} km`;
+        const reason = firstFailure
+          ? `Falló la consulta de una estación más cercana (${firstFailure.message})`
+          : `Sin reporte utilizable en ${candidates[0].station.icao}`;
+        snapshot.meta.error = `${reason}; se muestra alternativa ${candidate.station.icao} a ${candidate.distanceKm} km`;
       }
       return snapshot;
     }
     nearestWithoutData ??= snapshot;
   }
 
-  if (!nearestWithoutData) {
-    throw recordProviderError(
-      new ObservationError("invalid-response", "No hay estaciones METAR configuradas")
-    );
+  if (nearestWithoutData) {
+    const failureSuffix = firstFailure
+      ? `; además falló una consulta alternativa (${firstFailure.message})`
+      : "";
+    nearestWithoutData.meta.error = `${nearestWithoutData.meta.error}. Sin alternativa utilizable en las ${candidates.length} estaciones más cercanas${failureSuffix}`;
+    return nearestWithoutData;
   }
-  nearestWithoutData.meta.error = `${nearestWithoutData.meta.error}. Sin alternativa utilizable en las ${candidates.length} estaciones más cercanas`;
-  return nearestWithoutData;
+
+  if (firstFailure) throw firstFailure;
+  throw recordProviderError(
+    new ObservationError("invalid-response", "No hay estaciones METAR configuradas")
+  );
 }

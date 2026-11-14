@@ -66,7 +66,7 @@ export function AboutPage() {
           </p>
           <p>
             <ExternalLink href="https://metar.vatsim.net/">VATSIM METAR</ExternalLink>{" "}
-            — observaciones METAR en tiempo real
+            — feed comunitario de observaciones; no oficial DGAC/DMC
           </p>
           <p>
             <ExternalLink href="https://suncalc.org/">SunCalc</ExternalLink> — posición solar (BSD-2)

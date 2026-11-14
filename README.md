@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión publicada:** v1.0.1 · **1.1:** en desarrollo · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.1 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 ## Preguntas rápidas
 
@@ -36,17 +36,20 @@ Open-Meteo (clima y elevación), VATSIM METAR (observaciones en aeródromo; feed
 Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estable para consumo público. El METAR de VATSIM se muestra como referencia informativa y la integración oficial queda pendiente.
 
 **¿Cómo respaldo mi bitácora?**
-Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v2 en desarrollo incluye preparaciones y preferencias, y sigue importando respaldos v1 de 1.0.1.
+Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v2 incluye preparaciones y preferencias, y sigue importando respaldos v1 de 1.0.1.
 
 **¿Puedo cambiar unidades o ver más detalle?**
 Sí. Ajustes permite elegir km/h, m/s o kt; °C o °F; sistema métrico o imperial; y activar el modo experto. El dominio conserva km/h, °C y metros como unidades canónicas: cambiar la presentación no altera físicamente tus límites ni vuelve la evaluación más permisiva.
 
 **¿Cómo la ejecuto localmente?**
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 Los tests se corren con `npm test` (sin red) y `npm run test:integration` (contra APIs reales).
+
+El procedimiento completo de integración, publicación y recuperación está en
+[docs/DEPLOY_GITHUB_PAGES.md](docs/DEPLOY_GITHUB_PAGES.md).
 
 **Convención de versiones (SemVer):**
 `PATCH` (1.0.x) = correcciones, endurecimiento y regresiones, sin cambios de datos ni UI nueva; `MINOR` (1.x.0) = mejoras sin romper compatibilidad; `MAJOR` (x.0.0) = cambios incompatibles con releases anteriores. El formato de respaldo y el esquema de IndexedDB siguen su propio versionado independiente.

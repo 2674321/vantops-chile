@@ -2,6 +2,29 @@
 
 Estados permitidos: PASS, FAIL, NO EJECUTADO, NO APLICA.
 
+## Gate de integración y publicación beta — 2026-11-14
+
+Versión candidata: `1.1.0-beta.1`. La publicación en GitHub Pages se registra
+como PASS solo después de comprobar el sitio vivo; este bloque no la da por
+hecha de forma anticipada.
+
+| Caso | Estado | Evidencia reproducible |
+|---|---|---|
+| Integración de `main` y `feat/vantops-v1-1-operation` sin perder historia | PASS | merge normal en worktree separado desde `origin/main`; branding, capturas, citación y workflows de `main` conservados |
+| Cambios locales del checkout original preservados | PASS | integración realizada en `vantops-publicacion`; no se cambió de rama ni se limpió el checkout original |
+| Lint, typecheck, suite completa y build final | PASS | 147 archivos de lint; typecheck limpio; 48 archivos de test, 610 PASS y 1 skipped; build PWA 40 entradas/776,06 KiB |
+| Fallback METAR ante timeout, red, HTTP 429/5xx | PASS | pruebas dirigidas: 503 continúa a SCSE; tres 429 conservan el primer error y limitan a tres solicitudes |
+| Rutas y recursos de producción bajo `/vantops-chile/` | PASS | `dist/index.html` y `manifest.webmanifest`: base, scope e id correctos; shortcuts a operación y bitácora |
+| Responsive sin overflow documental | PASS | navegador real a 320, 390, 768, 1024 y 1440 px en panel, operación, bitácora, ajustes y acerca |
+| Preferencias y conversión de unidades desde UI | PASS | 30 km/h → 16,2 kt, modo experto activado, guardado confirmado |
+| Crear y reabrir plan sintético | PASS | plan local de QA creado, persistente después de recarga y visible en Mi operación |
+| Plan → nuevo vuelo | PASS | navegación con `planId`; formulario precarga coordenadas, tipo y nota del plan sintético |
+| Errores JavaScript durante smoke visual | PASS | consola sin errores; solo advertencias de transición futura de React Router |
+| Dashboard con todos los estados, mapa, checklist, detalle/edición y respaldo en cada ancho | NO EJECUTADO | el smoke real cubrió rutas y flujo principal, pero no toda la matriz visual ampliada con fixtures deterministas |
+| Integración externa contra APIs reales | NO EJECUTADO | prueba opt-in omitida deliberadamente; los tests normales no requieren red |
+| Instalación/upgrade/offline en dispositivo físico | NO EJECUTADO | build y service worker verificados; pendiente prueba física sin borrar IndexedDB |
+| Sitio vivo y workflows de `main` | NO EJECUTADO | se actualizará después del despliegue y de abrir la URL pública |
+
 ## Hito F0/F1/F2 parcial — 2026-11-14
 
 | Caso | Estado | Evidencia reproducible |
@@ -25,7 +48,7 @@ Estados permitidos: PASS, FAIL, NO EJECUTADO, NO APLICA.
 | Plan local, migración v3 y vínculo con vuelo | PASS | Hito F3/F4 parcial documentado abajo |
 | Unidades configurables y modo experto | PASS | conversiones de dominio, persistencia, UI de Ajustes y presentación compartida; gate completo del hito registrado abajo |
 | Restauración backup 1.0.1 → 1.1 con planes | NO EJECUTADO | F7 |
-| QA móvil/desktop y screenshots deterministas | NO EJECUTADO | F6/F7 |
+| QA móvil/desktop del flujo principal | PASS | smoke real 320/390/768/1024/1440; la cobertura visual ampliada permanece declarada arriba como NO EJECUTADO |
 | Integración externa opt-in | NO EJECUTADO | Requiere ejecución deliberada y acotada |
 
 Los casos no listados de la matriz maestra permanecen `NO EJECUTADO`; este
@@ -60,7 +83,7 @@ documento no convierte trabajo pendiente en PASS.
 | Modo experto reutiliza la misma evaluación de dominio | PASS | `AssessmentCard` recibe el mismo objeto y solo añade detalle de presentación |
 | METAR raw solo aparece como detalle experto y conserva atribución | PASS | `NearbyMetarCard.tsx` |
 | Suite completa, lint, typecheck y build después del hito | PASS | 48 archivos; 605 PASS, 1 skipped (integración externa opt-in); build PWA 40 entradas/775,22 KiB |
-| QA visual 320–1440 px y capturas deterministas | NO EJECUTADO | pendiente del gate completo F6/F7 |
+| QA visual del flujo principal 320–1440 px | PASS | panel, operación, bitácora, ajustes y acerca sin overflow documental; capturas deterministas ampliadas siguen pendientes |
 
 ## Hito F5 parcial — METAR y fallback honesto
 

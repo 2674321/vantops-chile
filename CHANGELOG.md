@@ -2,7 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
-## [Unreleased]
+## [1.1.0-beta.1] - 2026-11-14
+
+Beta pública compatible con los datos locales de 1.0.1. No se declara release
+estable mientras continúen pendientes la auditoría completa de estaciones y el
+QA ampliado del release candidate.
 
 ### Added
 - Contrato aditivo de completitud para la evaluación: faltantes decisionales e
@@ -19,6 +23,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
   cambiar el resultado del motor de evaluación.
 - Fallback METAR acotado a las tres estaciones más cercanas: si la nominal no
   tiene reporte utilizable, muestra la alternativa real y su distancia.
+- Integración de la funcionalidad 1.1 con el branding, capturas, citación y
+  workflows vigentes de `main` para publicación reproducible en GitHub Pages.
 
 ### Changed
 - La evaluación actual y horaria usa la altura de viento seleccionada y el
@@ -29,6 +35,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
   modelo persistido conserva unidades canónicas para evitar drift acumulado.
 - METAR identifica el aeródromo observado, advierte que no representa el punto
   exacto de operación y valida que la estación devuelta sea la solicitada.
+- El fallback METAR continúa de forma acotada ante timeout, HTTP 429/5xx o red,
+  conserva el primer error si ningún intento funciona y no oculta la degradación.
 
 ### Fixed
 - Un límite de ráfagas o temperatura con dato ausente ya no puede producir

@@ -36,6 +36,12 @@ export default defineConfig(({ command }) => ({
         ],
         shortcuts: [
           {
+            name: "Mi operación",
+            short_name: "Operación",
+            url: "/vantops-chile/#/operacion",
+            icons: [{ src: "icon-192.png", sizes: "192x192" }],
+          },
+          {
             name: "Registrar vuelo",
             short_name: "Vuelo",
             url: "/vantops-chile/#/bitacora/nuevo",

@@ -100,6 +100,33 @@ describe("fetchNearestObservation (VATSIM METAR)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("continues to a bounded alternative after a recoverable station failure", async () => {
+    const now = new Date();
+    const fetchMock = vi.fn((url: string) => {
+      if (url.endsWith("/SCEL")) {
+        return Promise.resolve(textResponse("", false, 503));
+      }
+      return Promise.resolve(textResponse(metarFor(now, "SCSE")));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
+    expect(snapshot.stationIcao).toBe("SCSE");
+    expect(snapshot.meta.error).toMatch(/Falló la consulta/);
+    expect(snapshot.meta.error).toMatch(/alternativa SCSE/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves the first provider error when every bounded attempt fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(textResponse("", false, 429));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon)
+    ).rejects.toMatchObject({ kind: "http", status: 429 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("rejects a report for a different station than the one requested", async () => {
     vi.stubGlobal(
       "fetch",
