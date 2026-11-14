@@ -131,6 +131,92 @@ describe("evaluateFlight", () => {
     expect(result.reasons.some((r) => r.code === "VIS_MISSING")).toBe(true);
   });
 
+  it("never returns FAVORABLE when a configured gust limit has no gust data", () => {
+    const result = evaluateFlight({ ...base, gustKmh: null, gustMaxKmh: 40 });
+    expect(result.status).toBe("CAUTION");
+    expect(result.isComplete).toBe(false);
+    expect(result.blockingMissingData).toContain("ráfagas");
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({ code: "GUST_MISSING", severity: "warning" })
+    );
+  });
+
+  it.each(["temperatureMinC", "temperatureMaxC"] as const)(
+    "never returns FAVORABLE when %s is configured without temperature data",
+    (limit) => {
+      const result = evaluateFlight({
+        ...base,
+        temperatureC: null,
+        [limit]: limit === "temperatureMinC" ? 0 : 35,
+      });
+      expect(result.status).toBe("CAUTION");
+      expect(result.isComplete).toBe(false);
+      expect(result.blockingMissingData).toContain("temperatura");
+      expect(result.reasons.some((reason) => reason.code === "TEMP_MISSING")).toBe(true);
+    }
+  );
+
+  it("accepts zero as a valid precipitation value and limit", () => {
+    const result = evaluateFlight({ ...base, precipitationMm: 0, precipitationMaxMm: 0 });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.blockingMissingData).not.toContain("precipitación");
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY])(
+    "treats invalid required numeric data (%s) as incomplete",
+    (invalid) => {
+      const result = evaluateFlight({ ...base, windSpeedKmh: invalid, windMaxKmh: 30 });
+      expect(result.status).not.toBe("FAVORABLE");
+      expect(result.isComplete).toBe(false);
+      expect(result.blockingMissingData).toContain("viento de referencia");
+    }
+  );
+
+  it.each([Number.NaN, Number.NEGATIVE_INFINITY])(
+    "rejects an invalid configured limit (%s) instead of passing implicitly",
+    (invalid) => {
+      const result = evaluateFlight({ ...base, windMaxKmh: invalid });
+      expect(result.status).toBe("CAUTION");
+      expect(result.isComplete).toBe(false);
+      expect(result.blockingMissingData).toContain("configuración de límites válida");
+      expect(result.reasons.some((reason) => reason.code === "WIND_LIMIT_INVALID")).toBe(true);
+    }
+  );
+
+  it("does not present stale provider data as a current favorable assessment", () => {
+    const result = evaluateFlight({ ...base, windMaxKmh: 30, sourceStatus: "stale" });
+    expect(result.status).toBe("CAUTION");
+    expect(result.isComplete).toBe(false);
+    expect(result.blockingMissingData).toContain("vigencia de la fuente");
+    expect(result.reasons.some((reason) => reason.code === "SOURCE_STALE")).toBe(true);
+  });
+
+  it("keeps an exceeded criterion UNFAVORABLE while exposing incompleteness", () => {
+    const result = evaluateFlight({
+      ...base,
+      visibilityM: 1000,
+      visibilityMinMeters: 5000,
+      gustKmh: null,
+      gustMaxKmh: 40,
+    });
+    expect(result.status).toBe("UNFAVORABLE");
+    expect(result.isComplete).toBe(false);
+    expect(result.blockingMissingData).toContain("ráfagas");
+  });
+
+  it("does not penalize missing variables with no active criterion", () => {
+    const result = evaluateFlight({
+      ...base,
+      humidityPct: null,
+      cloudCoverPct: null,
+      gustKmh: null,
+      windMaxKmh: 30,
+    });
+    expect(result.status).toBe("FAVORABLE");
+    expect(result.isComplete).toBe(true);
+    expect(result.informationalMissingData).toContain("ráfagas");
+  });
+
   it("always includes wind 100m info", () => {
     const result = evaluateFlight(base);
     expect(result.reasons.some((r) => r.code === "WIND100M_INFO")).toBe(true);

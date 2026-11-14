@@ -3,11 +3,25 @@ import type {
   AssessmentReason,
 } from "./types";
 
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function invalidLimit(code: string, label: string): AssessmentReason {
+  return {
+    code,
+    severity: "warning",
+    message: `El límite de ${label} no es un número válido`,
+    source: "Configuración local",
+  };
+}
+
 export function evaluateWind(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
   if (input.windMaxKmh == null) return null;
-  if (input.windSpeedKmh == null) {
+  if (!isFiniteNumber(input.windMaxKmh)) return invalidLimit("WIND_LIMIT_INVALID", "viento");
+  if (!isFiniteNumber(input.windSpeedKmh)) {
     return {
       code: "WIND_MISSING",
       severity: "warning",
@@ -43,10 +57,11 @@ export function evaluateGust(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
   if (input.gustMaxKmh == null) return null;
-  if (input.gustKmh == null) {
+  if (!isFiniteNumber(input.gustMaxKmh)) return invalidLimit("GUST_LIMIT_INVALID", "ráfagas");
+  if (!isFiniteNumber(input.gustKmh)) {
     return {
       code: "GUST_MISSING",
-      severity: "info",
+      severity: "warning",
       message: "Sin datos de ráfagas para evaluar",
       source: "Open-Meteo",
     };
@@ -79,7 +94,10 @@ export function evaluatePrecipitation(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
   if (input.precipitationMaxMm == null) return null;
-  if (input.precipitationMm == null) {
+  if (!isFiniteNumber(input.precipitationMaxMm)) {
+    return invalidLimit("PRECIP_LIMIT_INVALID", "precipitación");
+  }
+  if (!isFiniteNumber(input.precipitationMm)) {
     return {
       code: "PRECIP_MISSING",
       severity: "warning",
@@ -107,7 +125,10 @@ export function evaluateVisibility(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
   if (input.visibilityMinMeters == null) return null;
-  if (input.visibilityM == null) {
+  if (!isFiniteNumber(input.visibilityMinMeters)) {
+    return invalidLimit("VIS_LIMIT_INVALID", "visibilidad");
+  }
+  if (!isFiniteNumber(input.visibilityM)) {
     return {
       code: "VIS_MISSING",
       severity: "warning",
@@ -134,26 +155,44 @@ export function evaluateVisibility(
 export function evaluateTemperature(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
-  if (input.temperatureC == null) return null;
-  if (input.temperatureMinC != null && input.temperatureC < input.temperatureMinC) {
+  const min = input.temperatureMinC;
+  const max = input.temperatureMaxC;
+  const hasMin = min != null;
+  const hasMax = max != null;
+  if (!hasMin && !hasMax) return null;
+  if (hasMin && !isFiniteNumber(min)) {
+    return invalidLimit("TEMP_MIN_LIMIT_INVALID", "temperatura mínima");
+  }
+  if (hasMax && !isFiniteNumber(max)) {
+    return invalidLimit("TEMP_MAX_LIMIT_INVALID", "temperatura máxima");
+  }
+  if (!isFiniteNumber(input.temperatureC)) {
     return {
-      code: "TEMP_BELOW_MIN",
-      severity: "critical",
-      message: `Temperatura ${input.temperatureC}°C bajo el mínimo (${input.temperatureMinC}°C)`,
+      code: "TEMP_MISSING",
+      severity: "warning",
+      message: "Sin datos de temperatura para evaluar",
       source: "Open-Meteo",
     };
   }
-  if (input.temperatureMaxC != null && input.temperatureC > input.temperatureMaxC) {
+  if (isFiniteNumber(min) && input.temperatureC < min) {
+    return {
+      code: "TEMP_BELOW_MIN",
+      severity: "critical",
+      message: `Temperatura ${input.temperatureC}°C bajo el mínimo (${min}°C)`,
+      source: "Open-Meteo",
+    };
+  }
+  if (isFiniteNumber(max) && input.temperatureC > max) {
     return {
       code: "TEMP_ABOVE_MAX",
       severity: "critical",
-      message: `Temperatura ${input.temperatureC}°C sobre el máximo (${input.temperatureMaxC}°C)`,
+      message: `Temperatura ${input.temperatureC}°C sobre el máximo (${max}°C)`,
       source: "Open-Meteo",
     };
   }
   const parts: string[] = [];
-  if (input.temperatureMinC != null) parts.push(`mín ${input.temperatureMinC}°C`);
-  if (input.temperatureMaxC != null) parts.push(`máx ${input.temperatureMaxC}°C`);
+  if (isFiniteNumber(min)) parts.push(`mín ${min}°C`);
+  if (isFiniteNumber(max)) parts.push(`máx ${max}°C`);
   return {
     code: "TEMP_OK",
     severity: "info",
@@ -165,7 +204,7 @@ export function evaluateTemperature(
 export function evaluateWind100m(
   input: FlightAssessmentInput
 ): AssessmentReason | null {
-  if (input.windSpeed100mKmh == null) {
+  if (!isFiniteNumber(input.windSpeed100mKmh)) {
     return {
       code: "WIND100M_MISSING",
       severity: "info",

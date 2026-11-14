@@ -3,13 +3,21 @@ import { fetchElevation } from "../../providers/elevation/openMeteoElevation";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { DataSourceBadge } from "../weather/WeatherPanel";
 import { Mountain } from "lucide-react";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  distanceFromMeters,
+  distanceUnitLabel,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 
 export function ElevationCard({
   latitude,
   longitude,
+  preferences = DEFAULT_DISPLAY_PREFERENCES,
 }: {
   latitude: number;
   longitude: number;
+  preferences?: DisplayPreferences;
 }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["elevation", latitude, longitude],
@@ -38,7 +46,9 @@ export function ElevationCard({
         {data && (
           <>
             <p className="text-2xl font-bold text-slate-100">
-              {data.meters !== null ? `${Math.round(data.meters)} m s.n.m.` : "—"}
+              {data.meters !== null
+                ? `${distanceFromMeters(data.meters, preferences.distanceUnit)} ${distanceUnitLabel(preferences.distanceUnit)} s.n.m.`
+                : "—"}
             </p>
             <DataSourceBadge meta={data.meta} />
           </>

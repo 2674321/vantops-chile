@@ -46,6 +46,9 @@ export interface WeatherSnapshotRecord {
     cloudCoverPct: number | null;
   };
   capturedAt: string;
+  source?: string;
+  dataTime?: string;
+  sourceStatus?: string;
 }
 
 export interface ObservationSnapshotRecord {
@@ -64,6 +67,8 @@ export interface ObservationSnapshotRecord {
   phenomena?: string[];
   distanceKm?: number | null;
   capturedAt: string;
+  source?: string;
+  sourceStatus?: string;
 }
 
 export interface AssessmentSnapshotRecord {
@@ -77,6 +82,10 @@ export interface AssessmentSnapshotRecord {
   evaluatedAt: string;
   missingData: string[];
   capturedAt: string;
+  blockingMissingData?: string[];
+  informationalMissingData?: string[];
+  isComplete?: boolean;
+  flightLimitsSnapshot?: Record<string, number | undefined>;
 }
 
 export interface ChecklistSnapshotRecord {
@@ -107,6 +116,7 @@ export interface FlightRecord {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  planId?: string;
 }
 
 export interface BatteryRecord {

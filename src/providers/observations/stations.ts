@@ -40,14 +40,18 @@ export function findNearestStation(
   lat: number,
   lon: number
 ): { station: StationDef; distanceKm: number } {
-  let best = CHILEAN_STATIONS[0];
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const s of CHILEAN_STATIONS) {
-    const d = haversineKm(lat, lon, s.lat, s.lon);
-    if (d < bestDist) {
-      bestDist = d;
-      best = s;
-    }
-  }
-  return { station: best, distanceKm: Math.round(bestDist) };
+  return findNearestStations(lat, lon, 1)[0];
+}
+
+export function findNearestStations(
+  lat: number,
+  lon: number,
+  limit = CHILEAN_STATIONS.length
+): Array<{ station: StationDef; distanceKm: number }> {
+  return CHILEAN_STATIONS.map((station) => ({
+    station,
+    distanceKm: Math.round(haversineKm(lat, lon, station.lat, station.lon)),
+  }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, Math.max(0, limit));
 }

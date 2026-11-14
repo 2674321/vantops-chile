@@ -1,15 +1,12 @@
 import { getDB } from "../db";
 import type { FlightRecord } from "../../domain/logbook/types";
-
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
+import { createLocalId } from "../../lib/id";
 
 export async function createFlight(data: Partial<FlightRecord>): Promise<FlightRecord> {
   const db = getDB();
   const now = new Date().toISOString();
   const { id: _ignored, ...rest } = data;
-  const id = generateId();
+  const id = createLocalId();
   const flight: FlightRecord = {
     ...rest,
     id,
@@ -45,7 +42,19 @@ export async function updateFlight(
 
 export async function deleteFlight(id: string): Promise<void> {
   const db = getDB();
-  await db.flights.delete(id);
+  await db.transaction("rw", [db.flights, db.plans], async () => {
+    const flight = await db.flights.get(id);
+    await db.flights.delete(id);
+    if (flight?.planId) {
+      const plan = await db.plans.get(flight.planId);
+      if (plan?.linkedFlightId === id) {
+        await db.plans.update(plan.id, {
+          linkedFlightId: undefined,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+  });
 }
 
 export async function countFlights(): Promise<number> {

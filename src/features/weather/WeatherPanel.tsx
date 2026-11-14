@@ -2,6 +2,16 @@ import type { ReactNode } from "react";
 import type { WeatherSnapshot } from "../../domain/weather";
 import type { DataSourceMeta } from "../../domain/sourceMeta";
 import { RefreshCw } from "lucide-react";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  distanceFromMeters,
+  distanceUnitLabel,
+  speedFromKmh,
+  speedUnitLabel,
+  temperatureFromC,
+  temperatureUnitLabel,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 
 export function weatherCodeEmoji(code: number): string {
   if (code === 0) return "☀";
@@ -75,9 +85,11 @@ export function DataSourceBadge({
 export function WeatherPanel({
   snapshot,
   onRefresh,
+  preferences = DEFAULT_DISPLAY_PREFERENCES,
 }: {
   snapshot: WeatherSnapshot;
   onRefresh?: () => void;
+  preferences?: DisplayPreferences;
 }) {
   const { current } = snapshot;
   const windDir =
@@ -99,7 +111,7 @@ export function WeatherPanel({
         <p className="text-5xl font-bold sm:text-6xl">
           {current.temperatureC === null
             ? "—"
-            : `${Math.round(current.temperatureC)}°C`}
+            : `${temperatureFromC(current.temperatureC, preferences.temperatureUnit)}${temperatureUnitLabel(preferences.temperatureUnit)}`}
         </p>
       </div>
 
@@ -109,7 +121,7 @@ export function WeatherPanel({
           value={
             current.windSpeedKmh === null
               ? "—"
-              : `${current.windSpeedKmh} km/h`
+              : `${speedFromKmh(current.windSpeedKmh, preferences.speedUnit)} ${speedUnitLabel(preferences.speedUnit)}`
           }
         />
         {windDir && (
@@ -128,7 +140,7 @@ export function WeatherPanel({
           value={
             current.windGustsKmh === null
               ? "—"
-              : `${current.windGustsKmh} km/h`
+              : `${speedFromKmh(current.windGustsKmh, preferences.speedUnit)} ${speedUnitLabel(preferences.speedUnit)}`
           }
         />
         <Metric
@@ -136,7 +148,7 @@ export function WeatherPanel({
           value={
             current.windSpeed100mKmh === null
               ? "—"
-              : `${current.windSpeed100mKmh} km/h`
+              : `${speedFromKmh(current.windSpeed100mKmh, preferences.speedUnit)} ${speedUnitLabel(preferences.speedUnit)}`
           }
         />
         <Metric
@@ -160,9 +172,9 @@ export function WeatherPanel({
           value={
             current.visibilityM === null
               ? "—"
-              : current.visibilityM >= 10_000
+              : preferences.distanceUnit === "metric" && current.visibilityM >= 10_000
                 ? "≥10 km"
-                : `${current.visibilityM} m`
+                : `${distanceFromMeters(current.visibilityM, preferences.distanceUnit)} ${distanceUnitLabel(preferences.distanceUnit)}`
           }
         />
         <Metric

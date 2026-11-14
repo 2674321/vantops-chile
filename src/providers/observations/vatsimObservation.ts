@@ -2,12 +2,13 @@ import type { ObservationSnapshot } from "../../domain/observation";
 import type { DataSourceMeta } from "../../domain/sourceMeta";
 import { ProviderError } from "../../domain/providerError";
 import type { ProviderErrorKind } from "../../domain/providerError";
-import { findNearestStation } from "./stations";
+import { findNearestStations, type StationDef } from "./stations";
 import { decodeMetar, parseMetarObservedAt } from "./metarDecoder";
 import { recordProviderError } from "../../domain/providerDiagnostic";
 
 const VATSIM_URL = "https://metar.vatsim.net";
 const REQUEST_TIMEOUT_MS = 10000;
+const MAX_STATION_ATTEMPTS = 3;
 
 export const VATSIM_SOURCE_LABEL = "VATSIM METAR";
 
@@ -26,13 +27,11 @@ function detectMalformedMetar(raw: string): boolean {
   return false;
 }
 
-export async function fetchNearestObservation(
-  lat: number,
-  lon: number
+async function fetchStationObservation(
+  station: StationDef,
+  distanceKm: number
 ): Promise<ObservationSnapshot> {
-  const { station, distanceKm } = findNearestStation(lat, lon);
   const requestedAt = new Date().toISOString();
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -83,11 +82,18 @@ export async function fetchNearestObservation(
     return noDataMeta(`METAR malformado para ${station.icao}`);
   }
 
+  const reportedStation = raw.replace(/^(METAR|SPECI)\s+/, "").trim().slice(0, 4);
+  if (reportedStation !== station.icao) {
+    return noDataMeta(
+      `VATSIM devolvió ${reportedStation || "una estación desconocida"} al consultar ${station.icao}`
+    );
+  }
+
   const metar = decodeMetar(raw);
   const observedISO = parseMetarObservedAt(raw);
   if (!observedISO) {
     return {
-      observation: metar,
+      observation: null,
       stationName: station.name,
       stationIcao: station.icao,
       distanceKm,
@@ -124,4 +130,34 @@ export async function fetchNearestObservation(
           : undefined,
     },
   };
+}
+
+export async function fetchNearestObservation(
+  lat: number,
+  lon: number
+): Promise<ObservationSnapshot> {
+  const candidates = findNearestStations(lat, lon, MAX_STATION_ATTEMPTS);
+  let nearestWithoutData: ObservationSnapshot | null = null;
+
+  for (const [index, candidate] of candidates.entries()) {
+    const snapshot = await fetchStationObservation(
+      candidate.station,
+      candidate.distanceKm
+    );
+    if (snapshot.observation) {
+      if (index > 0) {
+        snapshot.meta.error = `Sin reporte utilizable en ${candidates[0].station.icao}; se muestra alternativa ${candidate.station.icao} a ${candidate.distanceKm} km`;
+      }
+      return snapshot;
+    }
+    nearestWithoutData ??= snapshot;
+  }
+
+  if (!nearestWithoutData) {
+    throw recordProviderError(
+      new ObservationError("invalid-response", "No hay estaciones METAR configuradas")
+    );
+  }
+  nearestWithoutData.meta.error = `${nearestWithoutData.meta.error}. Sin alternativa utilizable en las ${candidates.length} estaciones más cercanas`;
+  return nearestWithoutData;
 }

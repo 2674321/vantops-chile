@@ -183,6 +183,7 @@ export function ExportImportPage() {
                 {Array.isArray(preview.places) && preview.places.length > 0 && (
                   <p>{preview.places.length} lugares</p>
                 )}
+                {Array.isArray(preview.plans) && <p>{preview.plans.length} planes de operación</p>}
                 {settingsCount > 0 && (
                   <p>
                     {settingsCount} configuraciones (límites de vuelo, aeronave activa, última ubicación)
@@ -216,6 +217,7 @@ export function ExportImportPage() {
               <p className="text-sm text-emerald-300">
                 Importados: {importResult.flights} vuelos · {importResult.batteries} baterías
                 {importResult.places > 0 && ` · ${importResult.places} lugares`}
+                {importResult.plans > 0 && ` · ${importResult.plans} planes`}
                 {importResult.settings > 0 && ` · ${importResult.settings} configuraciones`}
               </p>
             </div>

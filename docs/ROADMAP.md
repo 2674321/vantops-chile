@@ -5558,17 +5558,20 @@ evolución opt-in. Prioridad orientativa:
 
 ```text
 P0 — Mantenimiento (mantener 1.0.0 sano)
+[x] Impedir FAVORABLE con criterios activos sin dato o fuente vigente  (1.1 en desarrollo)
 [x] Actualizar dependencias de seguridad y parchear CVEs  (aplicado en 1.0.1)
 [x] Vigilar estabilidad de Open-Meteo / VATSIM METAR / Nominatim  (hardening 1.0.1)
 [ ] Añadir más aeródromos chilenos a la tabla de estaciones METAR
+[x] Fallback acotado a estación disponible con ICAO/distancia reales y copy no oficial (1.1 en desarrollo)
 [x] Tests de regresión ante cambios de esquema de datos externos  (1.0.1, fixtures de contrato)
 
 P1 — Mejoras (sin ampliar alcance)
-[ ] Selector de altura de viento (10 m / 100 m) en Ajustes (VANT-027, V1.1)
-[ ] Pulido UX de la ventana de operación
-[ ] Modo experto (VANT-023, V1.1)
+[x] Preparación local y vínculo opcional plan → vuelo (1.1 en desarrollo)
+[x] Selector de altura de viento (10 m / 100 m) en Ajustes (VANT-027, 1.1 en desarrollo)
+[x] Pulido semántico inicial de la ventana de operación (continuidad y estado incompleto)
+[x] Modo experto inicial, misma evaluación y detalle aditivo (VANT-023, 1.1 en desarrollo)
 [ ] Internacionalización es / en / pt (VANT-025)
-[ ] Unidades configurables (km/h, m/s, nudos; °C, °F; m, ft)
+[x] Unidades configurables (km/h, m/s, nudos; °C, °F; m, ft; 1.1 en desarrollo)
 
 P2 — Funciones futuras (solo con necesidad concreta y fuente verificada)
 [ ] Fuente oficial DMC / IFIS para METAR (si su estabilidad lo permite)

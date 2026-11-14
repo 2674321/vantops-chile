@@ -5,6 +5,14 @@ import { DataSourceBadge, windDirectionLabel } from "../weather/WeatherPanel";
 import { Radio } from "lucide-react";
 import { minutesSince } from "../../domain/sourceMeta";
 import { esCL as t } from "../../i18n/es-CL";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  speedFromKmh,
+  speedUnitLabel,
+  temperatureFromC,
+  temperatureUnitLabel,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 
 const IFIS_BASE = "https://aipchile.dgac.gob.cl";
 
@@ -15,9 +23,11 @@ function ifisUrl(icao?: string): string {
 export function NearbyMetarCard({
   latitude,
   longitude,
+  preferences = DEFAULT_DISPLAY_PREFERENCES,
 }: {
   latitude: number;
   longitude: number;
+  preferences?: DisplayPreferences;
 }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["metar", latitude, longitude],
@@ -31,6 +41,7 @@ export function NearbyMetarCard({
         <CardTitle className="flex items-center gap-2 text-base">
           <Radio className="h-4 w-4 text-sky-400" />
           {t.metar.title}
+          <span className="ml-auto text-[10px] font-normal text-slate-500">VATSIM comunitario</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -49,23 +60,31 @@ export function NearbyMetarCard({
         )}
         {data?.observation && (
           <>
+            {data.meta.error && (
+              <p className="mb-2 rounded-lg border border-amber-700/50 bg-amber-950/30 p-2 text-xs text-amber-200">
+                {data.meta.error}
+              </p>
+            )}
             <p className="text-xs text-slate-400">
               {data.stationName} ({data.stationIcao})
               {data.distanceKm != null ? ` · ~${data.distanceKm} km` : ""}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Observación en el aeródromo; puede no representar las condiciones del punto de operación.
             </p>
             <div className="mt-2 grid grid-cols-2 gap-3">
               {data.observation.windKmh != null && (
                 <div className="rounded-lg bg-slate-950/60 p-3">
                   <p className="text-xs text-slate-400">Viento</p>
                   <p className="mt-1 text-lg font-semibold text-slate-100">
-                    {data.observation.windKmh} km/h{" "}
+                    {speedFromKmh(data.observation.windKmh, preferences.speedUnit)} {speedUnitLabel(preferences.speedUnit)}{" "}
                     {data.observation.windDirDeg != null
                       ? windDirectionLabel(data.observation.windDirDeg)
                       : "VRB"}
                   </p>
                   {data.observation.gustKmh != null && (
                     <p className="text-xs text-amber-400">
-                      Ráfaga {data.observation.gustKmh} km/h
+                      Ráfaga {speedFromKmh(data.observation.gustKmh, preferences.speedUnit)} {speedUnitLabel(preferences.speedUnit)}
                     </p>
                   )}
                 </div>
@@ -80,7 +99,7 @@ export function NearbyMetarCard({
                 <div className="rounded-lg bg-slate-950/60 p-3">
                   <p className="text-xs text-slate-400">Temperatura</p>
                   <p className="mt-1 text-lg font-semibold text-slate-100">
-                    {data.observation.tempC}°C
+                    {temperatureFromC(data.observation.tempC, preferences.temperatureUnit)}{temperatureUnitLabel(preferences.temperatureUnit)}
                   </p>
                 </div>
               )}
@@ -111,6 +130,12 @@ export function NearbyMetarCard({
                 </div>
               )}
             </div>
+            {preferences.expertMode && (
+              <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">METAR crudo · observación comunitaria, no oficial DGAC/DMC</p>
+                <code className="mt-1 block break-words text-xs text-slate-300">{data.observation.raw}</code>
+              </div>
+            )}
             <div className="mt-2 flex items-center justify-between">
               <p className="text-xs text-slate-500">
                 {data.observation.observedAtLocal

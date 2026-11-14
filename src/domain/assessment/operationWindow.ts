@@ -26,6 +26,7 @@ export interface OperationWindow {
 export interface OperationWindowOptions {
   now?: Date;
   maxSlots?: number;
+  sourceStatus?: "updated" | "stale" | "error" | "no-data";
 }
 
 const DEFAULT_MAX_SLOTS = 24;
@@ -43,10 +44,16 @@ export function statusRank(status: AssessmentStatus): number {
 
 function futureHours(hours: HourlyWeather[], now: Date): HourlyWeather[] {
   const threshold = now.getTime();
-  return hours.filter((hour) => {
-    const t = new Date(hour.timeISO).getTime();
-    return Number.isFinite(t) && t >= threshold;
-  });
+  const unique = new Map<number, HourlyWeather>();
+  for (const hour of hours) {
+    const time = new Date(hour.timeISO).getTime();
+    if (Number.isFinite(time) && time >= threshold && !unique.has(time)) {
+      unique.set(time, hour);
+    }
+  }
+  return [...unique.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([, hour]) => hour);
 }
 
 /**
@@ -83,7 +90,7 @@ export function findOperationWindow(
 
   const slots: HourlySlot[] = upcoming.map((hour) => ({
     timeISO: hour.timeISO,
-    status: evaluateHour(hour, limits).status,
+    status: evaluateHour(hour, limits, options.sourceStatus).status,
   }));
 
   const bestStatus = slots.reduce<AssessmentStatus>(
@@ -131,7 +138,12 @@ function longestRun(
   let currentLength = 0;
 
   for (let i = 0; i < slots.length; i++) {
+    const previousTime = i > 0 ? new Date(slots[i - 1].timeISO).getTime() : null;
+    const currentTime = new Date(slots[i].timeISO).getTime();
+    const isContinuous =
+      previousTime === null || currentTime - previousTime === 60 * 60 * 1000;
     if (slots[i].status === status) {
+      if (!isContinuous) currentLength = 0;
       if (currentLength === 0) currentStart = i;
       currentLength++;
       if (currentLength > bestLength) {

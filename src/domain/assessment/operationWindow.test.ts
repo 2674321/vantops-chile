@@ -109,11 +109,59 @@ describe("findOperationWindow", () => {
     expect(at100m.kind).toBe("ok");
   });
 
+  it("never selects a favorable window when a required hourly value is missing", () => {
+    const result = findOperationWindow(
+      hours({ windGustsKmh: null }, { windGustsKmh: null }),
+      limits,
+      opts
+    );
+    expect(result.bestStatus).not.toBe("FAVORABLE");
+    expect(result.slots.every((slot) => slot.status !== "FAVORABLE")).toBe(true);
+  });
+
+  it("does not present a stale forecast window as favorable", () => {
+    const result = findOperationWindow(hours({ windSpeedKmh: 10 }), limits, {
+      ...opts,
+      sourceStatus: "stale",
+    });
+    expect(result.bestStatus).toBe("CAUTION");
+    expect(result.slots[0].status).toBe("CAUTION");
+  });
+
+  it("does not substitute 10 m wind when 100 m is selected but missing", () => {
+    const result = findOperationWindow(
+      hours({ windSpeedKmh: 10, windSpeed100mKmh: null }),
+      { ...limits, windReferenceHeight: 100 },
+      opts
+    );
+    expect(result.bestStatus).toBe("CAUTION");
+  });
+
   it("caps the number of evaluated slots", () => {
     const many = Array.from({ length: 30 }, (_, i) =>
       makeHour({ timeISO: `2026-09-17T${String((12 + i) % 24).padStart(2, "0")}:00` })
     );
     const result = findOperationWindow(many, limits, { ...opts, maxSlots: 5 });
     expect(result.slots).toHaveLength(5);
+  });
+
+  it("sorts and deduplicates hours and does not bridge discontinuous intervals", () => {
+    const result = findOperationWindow(
+      [
+        makeHour({ timeISO: "2026-09-17T15:00", windSpeedKmh: 10 }),
+        makeHour({ timeISO: "2026-09-17T12:00", windSpeedKmh: 10 }),
+        makeHour({ timeISO: "2026-09-17T12:00", windSpeedKmh: 11 }),
+        makeHour({ timeISO: "2026-09-17T16:00", windSpeedKmh: 10 }),
+      ],
+      limits,
+      opts
+    );
+    expect(result.slots.map((slot) => slot.timeISO)).toEqual([
+      "2026-09-17T12:00",
+      "2026-09-17T15:00",
+      "2026-09-17T16:00",
+    ]);
+    expect(result.startISO).toBe("2026-09-17T15:00");
+    expect(result.endISO).toBe("2026-09-17T16:00");
   });
 });

@@ -49,6 +49,7 @@ describe("fetchNearestObservation (VATSIM METAR)", () => {
       vi.fn().mockResolvedValue(textResponse("SCEL 991200Z 33013KT 9999 13/10 Q1001"))
     );
     const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
+    expect(snapshot.observation).toBeNull();
     expect(snapshot.meta.status).toBe("no-data");
     expect(snapshot.meta.error).toMatch(/hora de observación/);
   });
@@ -76,6 +77,42 @@ describe("fetchNearestObservation (VATSIM METAR)", () => {
     const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
     expect(snapshot.observation).toBeNull();
     expect(snapshot.meta.error).toMatch(/NIL/);
+    expect(snapshot.meta.error).toMatch(/Sin alternativa utilizable/);
+  });
+
+  it("uses the nearest available alternative and reports its real distance", async () => {
+    const now = new Date();
+    const fetchMock = vi.fn((url: string) => {
+      if (url.endsWith("/SCEL")) {
+        return Promise.resolve(textResponse("METAR SCEL 011200Z NIL"));
+      }
+      if (url.endsWith("/SCSE")) {
+        return Promise.resolve(textResponse(metarFor(now, "SCSE")));
+      }
+      return Promise.resolve(textResponse(""));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const snapshot = await fetchNearestObservation(SANTIAGO.lat, SANTIAGO.lon);
+    expect(snapshot.stationIcao).toBe("SCSE");
+    expect(snapshot.distanceKm).toBeGreaterThan(300);
+    expect(snapshot.meta.error).toMatch(/alternativa SCSE/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a report for a different station than the one requested", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        Promise.resolve(
+          textResponse(url.endsWith("/SCSE") ? metarFor(new Date(), "SCEL") : "")
+        )
+      )
+    );
+
+    const snapshot = await fetchNearestObservation(-29.91, -71.2);
+    expect(snapshot.observation).toBeNull();
+    expect(snapshot.meta.error).toMatch(/devolvió SCEL al consultar SCSE/);
   });
 
   it("returns no-data for a malformed METAR", async () => {

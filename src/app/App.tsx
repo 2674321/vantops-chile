@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane, BookOpen, MapPin, WifiOff, Wifi, Settings2 } from "lucide-react";
+import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2 } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
@@ -17,6 +17,8 @@ const BatteryPage = lazy(() => import("../features/logbook/BatteryPage").then((m
 const PlacesPage = lazy(() => import("../features/places/PlacesPage").then((m) => ({ default: m.PlacesPage })));
 const AboutPage = lazy(() => import("../features/about/AboutPage").then((m) => ({ default: m.AboutPage })));
 const ExportImportPage = lazy(() => import("../features/logbook/ExportImportPage").then((m) => ({ default: m.ExportImportPage })));
+const FlightPlansPage = lazy(() => import("../features/plans/FlightPlansPage").then((m) => ({ default: m.FlightPlansPage })));
+const FlightPlanForm = lazy(() => import("../features/plans/FlightPlanForm").then((m) => ({ default: m.FlightPlanForm })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +77,10 @@ export function App() {
                     <BookOpen aria-hidden className="h-4 w-4" />
                     {t.nav.logbook}
                   </NavLink>
+                  <NavLink to="/operacion" className={navLinkClass}>
+                    <ClipboardCheck aria-hidden className="h-4 w-4" />
+                    {t.nav.operation}
+                  </NavLink>
                   <NavLink to="/lugares" className={navLinkClass}>
                     <MapPin aria-hidden className="h-4 w-4" />
                     {t.nav.places}
@@ -102,6 +108,9 @@ export function App() {
                     <Route path="/bitacora/:id/editar" element={<FlightForm />} />
                     <Route path="/bitacora/baterias" element={<BatteryPage />} />
                     <Route path="/bitacora/exportar" element={<ExportImportPage />} />
+                    <Route path="/operacion" element={<FlightPlansPage />} />
+                    <Route path="/operacion/nueva" element={<FlightPlanForm />} />
+                    <Route path="/operacion/:id" element={<FlightPlanForm />} />
                     <Route path="/lugares" element={<PlacesPage />} />
                     <Route path="/acerca" element={<AboutPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />

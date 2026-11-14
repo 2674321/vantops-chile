@@ -18,6 +18,8 @@ export function evaluateFlight(
 ): FlightAssessment {
   const reasons: AssessmentReason[] = [];
   const missingData: string[] = [];
+  const blockingMissingData: string[] = [];
+  const informationalMissingData: string[] = [];
 
   const wind = evaluateWind(input);
   if (wind) reasons.push(wind);
@@ -37,11 +39,29 @@ export function evaluateFlight(
   const wind100 = evaluateWind100m(input);
   if (wind100) reasons.push(wind100);
 
-  if (input.windSpeedKmh == null) missingData.push("viento 10 m");
-  if (input.gustKmh == null) missingData.push("ráfagas");
-  if (input.visibilityM == null) missingData.push("visibilidad");
-  if (input.temperatureC == null) missingData.push("temperatura");
-  if (input.precipitationMm == null) missingData.push("precipitación");
+  classifyMissing(input.windSpeedKmh, "viento de referencia", input.windMaxKmh != null);
+  classifyMissing(input.gustKmh, "ráfagas", input.gustMaxKmh != null);
+  classifyMissing(input.visibilityM, "visibilidad", input.visibilityMinMeters != null);
+  classifyMissing(
+    input.temperatureC,
+    "temperatura",
+    input.temperatureMinC != null || input.temperatureMaxC != null
+  );
+  classifyMissing(
+    input.precipitationMm,
+    "precipitación",
+    input.precipitationMaxMm != null
+  );
+
+  function classifyMissing(
+    value: number | null | undefined,
+    label: string,
+    required: boolean
+  ) {
+    if (typeof value === "number" && Number.isFinite(value)) return;
+    missingData.push(label);
+    (required ? blockingMissingData : informationalMissingData).push(label);
+  }
 
   const hasLimits =
     input.windMaxKmh != null ||
@@ -51,19 +71,42 @@ export function evaluateFlight(
     input.temperatureMinC != null ||
     input.temperatureMaxC != null;
 
-  const status = determineStatus(reasons, hasLimits);
+  if (reasons.some((reason) => reason.code.endsWith("LIMIT_INVALID"))) {
+    blockingMissingData.push("configuración de límites válida");
+  }
+
+  if (hasLimits && input.sourceStatus && input.sourceStatus !== "updated") {
+    const sourceLabel =
+      input.sourceStatus === "stale"
+        ? "Los datos meteorológicos están vencidos"
+        : "No se pudo comprobar la vigencia de los datos meteorológicos";
+    reasons.push({
+      code: `SOURCE_${input.sourceStatus.toUpperCase().replace("-", "_")}`,
+      severity: "warning",
+      message: `${sourceLabel}; actualiza la fuente antes de interpretar el resultado como actual`,
+      source: "Open-Meteo",
+    });
+    blockingMissingData.push("vigencia de la fuente");
+  }
+
+  const status = determineStatus(reasons, hasLimits, blockingMissingData.length > 0);
 
   return {
     status,
     reasons,
     evaluatedAt: new Date().toISOString(),
     missingData,
+    blockingMissingData,
+    informationalMissingData,
+    isComplete: hasLimits && blockingMissingData.length === 0,
+    hasConfiguredLimits: hasLimits,
   };
 }
 
 function determineStatus(
   reasons: AssessmentReason[],
-  hasLimits: boolean
+  hasLimits: boolean,
+  hasBlockingMissingData: boolean
 ): AssessmentStatus {
   if (!hasLimits) return "NO_DATA";
 
@@ -72,6 +115,8 @@ function determineStatus(
 
   const hasWarning = reasons.some((r) => r.severity === "warning");
   if (hasWarning) return "CAUTION";
+
+  if (hasBlockingMissingData) return "CAUTION";
 
   return "FAVORABLE";
 }

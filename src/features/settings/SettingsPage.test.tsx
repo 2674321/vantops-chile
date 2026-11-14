@@ -6,15 +6,25 @@ import "@testing-library/jest-dom/vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../../components/toast/ToastProvider";
 import { SettingsPage } from "./SettingsPage";
-import { loadFlightLimits, saveFlightLimits } from "../../storage/settings";
+import {
+  loadDisplayPreferences,
+  loadFlightLimits,
+  saveDisplayPreferences,
+  saveFlightLimits,
+} from "../../storage/settings";
+import { DEFAULT_DISPLAY_PREFERENCES } from "../../domain/displayPreferences";
 
 vi.mock("../../storage/settings", () => ({
   loadFlightLimits: vi.fn(),
   saveFlightLimits: vi.fn(),
+  loadDisplayPreferences: vi.fn(),
+  saveDisplayPreferences: vi.fn(),
 }));
 
 const loadLimitsMock = loadFlightLimits as unknown as Mock;
 const saveLimitsMock = saveFlightLimits as unknown as Mock;
+const loadPreferencesMock = loadDisplayPreferences as unknown as Mock;
+const savePreferencesMock = saveDisplayPreferences as unknown as Mock;
 
 function renderPage() {
   return render(
@@ -29,6 +39,8 @@ function renderPage() {
 beforeEach(() => {
   loadLimitsMock.mockResolvedValue({});
   saveLimitsMock.mockResolvedValue(undefined);
+  loadPreferencesMock.mockResolvedValue(DEFAULT_DISPLAY_PREFERENCES);
+  savePreferencesMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -51,9 +63,47 @@ describe("SettingsPage", () => {
     fireEvent.change(wind, { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar límites" }));
     await waitFor(() => {
-      expect(saveLimitsMock).toHaveBeenCalledWith({ windMaxKmh: 30 });
+      expect(saveLimitsMock).toHaveBeenCalledWith({
+        windMaxKmh: 30,
+        windReferenceHeight: 10,
+      });
     });
     expect(await screen.findByText("Límites guardados")).toBeInTheDocument();
+  });
+
+  it("loads and persists the 100 m wind reference without changing the limit", async () => {
+    loadLimitsMock.mockResolvedValue({ windMaxKmh: 30, windReferenceHeight: 100 });
+    renderPage();
+    const wind = await screen.findByLabelText("Viento máximo (100 m)");
+    expect(wind).toHaveValue("30");
+    expect(screen.getByRole("radio", { name: "100 m" })).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar límites" }));
+    await waitFor(() => {
+      expect(saveLimitsMock).toHaveBeenCalledWith({
+        windMaxKmh: 30,
+        windReferenceHeight: 100,
+      });
+    });
+  });
+
+  it("changes displayed units without changing the canonical wind limit", async () => {
+    loadLimitsMock.mockResolvedValue({ windMaxKmh: 30 });
+    renderPage();
+    const wind = await screen.findByLabelText("Viento máximo (10 m)");
+    expect(wind).toHaveValue("30");
+    fireEvent.change(screen.getByLabelText("Velocidad"), { target: { value: "kt" } });
+    expect(wind).toHaveValue("16.2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar límites" }));
+    await waitFor(() => {
+      expect(saveLimitsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ windMaxKmh: expect.closeTo(30, 1) })
+      );
+    });
+    expect(savePreferencesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ speedUnit: "kt" })
+    );
   });
 
   it("rejects an inverted temperature range", async () => {

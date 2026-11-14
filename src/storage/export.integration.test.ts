@@ -18,6 +18,7 @@ import { createFlight, getFlight, listFlights } from "./repositories/flightRepos
 import { createBattery, listBatteries } from "./repositories/batteryRepository";
 import { createPlace, listPlaces } from "./repositories/placeRepository";
 import { loadSetting } from "./repositories/settingsRepository";
+import { createFlightPlan, listFlightPlans } from "./repositories/flightPlanRepository";
 import type { FlightRecord, BatteryRecord } from "../domain/logbook/types";
 
 async function wipeDatabase(): Promise<void> {
@@ -26,6 +27,7 @@ async function wipeDatabase(): Promise<void> {
   await db.batteries.clear();
   await db.places.clear();
   await db.settings.clear();
+  await db.plans.clear();
 }
 
 beforeEach(async () => {
@@ -34,6 +36,23 @@ beforeEach(async () => {
 });
 
 describe("export → import → equivalence", () => {
+  it("round-trips v2 plans and their linkable snapshots", async () => {
+    const plan = await createFlightPlan({
+      location: { latitude: -33.45, longitude: -70.65 },
+      locationLabel: "Sitio de prueba",
+      status: "REVIEWED",
+      flightLimitsSnapshot: { windMaxKmh: 25, windReferenceHeight: 100 },
+    });
+    const backup = await exportBackup("1.1.0-rc");
+    expect(backup.version).toBe(2);
+    expect(backup.plans).toHaveLength(1);
+
+    await wipeDatabase();
+    const summary = await importBackup(backup);
+    expect(summary.plans).toBe(1);
+    expect(await listFlightPlans()).toEqual([plan]);
+  });
+
   it("round-trips flights, batteries and places with identical values", async () => {
     const flight = await createFlight({
       startedAt: "2026-09-01T10:00:00Z",
@@ -68,7 +87,7 @@ describe("export → import → equivalence", () => {
     expect(restoredPlaces[0]).toMatchObject({ id: place.id, name: "Club Aéreo" });
   });
 
-  it("restores compatible settings (flightLimits, activeAircraft, lastCoordinate, operationZoneRadius)", async () => {
+  it("restores compatible settings including display preferences", async () => {
     const db = getDB();
     await db.settings.put({
       id: "flightLimits",
@@ -91,6 +110,16 @@ describe("export → import → equivalence", () => {
       updatedAt: "2026-09-01T00:00:00Z",
     });
     await db.settings.put({
+      id: "displayPreferences",
+      value: JSON.stringify({
+        speedUnit: "kt",
+        temperatureUnit: "f",
+        distanceUnit: "imperial",
+        expertMode: true,
+      }),
+      updatedAt: "2026-09-01T00:00:00Z",
+    });
+    await db.settings.put({
       id: "ephemeralEphemeral",
       value: JSON.stringify({ nota: "no se debe restaurar" }),
       updatedAt: "2026-09-01T00:00:00Z",
@@ -99,6 +128,7 @@ describe("export → import → equivalence", () => {
     const backup = await exportBackup("0.7.0");
     expect(Object.keys(backup.settings).sort()).toEqual([
       "activeAircraft",
+      "displayPreferences",
       "ephemeralEphemeral",
       "flightLimits",
       "lastCoordinate",
@@ -108,7 +138,7 @@ describe("export → import → equivalence", () => {
     await wipeDatabase();
 
     const summary = await importBackup(backup);
-    expect(summary.settings).toBe(4);
+    expect(summary.settings).toBe(5);
 
     const limits = await loadSetting<{ windMaxKmh: number }>("flightLimits");
     expect(limits?.windMaxKmh).toBe(30);
@@ -118,6 +148,10 @@ describe("export → import → equivalence", () => {
     expect(coord?.latitude).toBe(-33.45);
     const radius = await loadSetting<number>("operationZoneRadius");
     expect(radius).toBe(1000);
+    const preferences = await loadSetting<{ speedUnit: string; expertMode: boolean }>(
+      "displayPreferences"
+    );
+    expect(preferences).toEqual(expect.objectContaining({ speedUnit: "kt", expertMode: true }));
     const ephemeral = await loadSetting("ephemeralEphemeral");
     expect(ephemeral).toBeNull();
   });
