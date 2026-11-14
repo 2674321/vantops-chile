@@ -50,6 +50,12 @@ Los tests se corren con `npm test` (sin red) y `npm run test:integration` (contr
 
 ## Capturas
 
+Pantallas reales del código de la PWA, capturadas en un entorno de prueba sin conceder ubicación ni utilizar datos personales.
+
+| Vista de escritorio | Vista móvil |
+|---|---|
+| ![VantOPS en escritorio](docs/screenshots/01-escritorio.png) | ![VantOPS en móvil](docs/screenshots/02-movil.png) |
+
 ![Dashboard VantOPS](docs/screenshots/dashboard.png)
 
 ## Stack
