@@ -8,6 +8,7 @@ import { ToastProvider } from "../../components/toast/ToastProvider";
 import { FlightForm } from "./FlightForm";
 import { createFlight } from "../../storage/repositories/flightRepository";
 import { listBatteries, markBatteryUsed } from "../../storage/repositories/batteryRepository";
+import { getFlightPlan, updateFlightPlan } from "../../storage/repositories/flightPlanRepository";
 
 vi.mock("../../storage/repositories/flightRepository", () => ({
   createFlight: vi.fn(),
@@ -20,13 +21,20 @@ vi.mock("../../storage/repositories/batteryRepository", () => ({
   markBatteryUsed: vi.fn(),
 }));
 
+vi.mock("../../storage/repositories/flightPlanRepository", () => ({
+  getFlightPlan: vi.fn(),
+  updateFlightPlan: vi.fn(),
+}));
+
 const createFlightMock = createFlight as unknown as Mock;
 const listBatteriesMock = listBatteries as unknown as Mock;
 const markBatteryUsedMock = markBatteryUsed as unknown as Mock;
+const getFlightPlanMock = getFlightPlan as unknown as Mock;
+const updateFlightPlanMock = updateFlightPlan as unknown as Mock;
 
-function renderForm() {
+function renderForm(entry = "/bitacora/nuevo") {
   return render(
-    <MemoryRouter initialEntries={["/bitacora/nuevo"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <ToastProvider>
         <Routes>
           <Route path="/bitacora/nuevo" element={<FlightForm />} />
@@ -46,6 +54,8 @@ beforeEach(() => {
   listBatteriesMock.mockResolvedValue([]);
   createFlightMock.mockResolvedValue({ id: "flight-1" });
   markBatteryUsedMock.mockResolvedValue(undefined);
+  getFlightPlanMock.mockResolvedValue(undefined);
+  updateFlightPlanMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -132,5 +142,40 @@ describe("FlightForm", () => {
     expect(
       await screen.findByText("No se pudo guardar el vuelo. Intenta nuevamente.")
     ).toBeInTheDocument();
+  });
+
+  it("prefills from a plan, copies snapshots and links the created flight", async () => {
+    getFlightPlanMock.mockResolvedValue({
+      id: "plan-1",
+      schemaVersion: 1,
+      createdAt: "2026-11-14T10:00:00Z",
+      updatedAt: "2026-11-14T10:00:00Z",
+      scheduledStartAt: "2026-11-15T12:00:00Z",
+      location: { latitude: -33.45, longitude: -70.65 },
+      operationType: "INSPECTION",
+      operatorNotes: "Revisar perímetro",
+      status: "REVIEWED",
+      assessmentSnapshot: {
+        status: "CAUTION",
+        reasons: [],
+        evaluatedAt: "2026-11-14T10:00:00Z",
+        missingData: ["ráfagas"],
+        capturedAt: "2026-11-14T10:00:00Z",
+      },
+    });
+    renderForm("/bitacora/nuevo?planId=plan-1");
+
+    expect(await screen.findByLabelText(/Latitud/)).toHaveValue("-33.45");
+    fireEvent.click(screen.getByRole("button", { name: "Guardar vuelo" }));
+    await waitFor(() => expect(createFlightMock).toHaveBeenCalledTimes(1));
+    expect(createFlightMock.mock.calls[0][0]).toMatchObject({
+      planId: "plan-1",
+      coordinate: { latitude: -33.45, longitude: -70.65 },
+      operationType: "INSPECTION",
+      assessmentSnapshot: { status: "CAUTION" },
+    });
+    expect(updateFlightPlanMock).toHaveBeenCalledWith("plan-1", {
+      linkedFlightId: "flight-1",
+    });
   });
 });

@@ -16,7 +16,7 @@ import { InstallPromptCard } from "../pwa/InstallPromptCard";
 import { LocationSearch } from "./LocationSearch";
 import { OperationZoneControl } from "./OperationZoneControl";
 import { Button } from "../../components/ui/button";
-import { MapPin, Navigation, MapIcon, Plane, Battery, Settings2, AlertTriangle } from "lucide-react";
+import { MapPin, Navigation, MapIcon, Plane, Battery, Settings2, AlertTriangle, ClipboardCheck } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
@@ -36,6 +36,12 @@ import { useToast } from "../../components/toast/useToast";
 import { detectReconnection } from "../../domain/connectivity";
 import { esCL as t } from "../../i18n/es-CL";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+import { createFlightPlan } from "../../storage/repositories/flightPlanRepository";
+import {
+  captureAssessmentSnapshot,
+  captureObservationSnapshot,
+  captureWeatherSnapshot,
+} from "../../domain/flightPlan/snapshots";
 
 const MapPicker = lazy(() => import("../map/LocationMap"));
 
@@ -53,6 +59,7 @@ export default function DashboardPage() {
   const toast = useToast();
   const previousOnlineRef = useRef<boolean | null>(null);
   const navigate = useNavigate();
+  const [savingPlan, setSavingPlan] = useState(false);
 
   useEffect(() => {
     loadActiveAircraft().then(setAircraft);
@@ -159,6 +166,61 @@ export default function DashboardPage() {
       }),
     [weatherQuery.data, effectiveLimits]
   );
+
+  const handleSavePlan = useCallback(async () => {
+    if (!coordinate || savingPlan) return;
+    setSavingPlan(true);
+    const capturedAt = new Date().toISOString();
+    try {
+      await createFlightPlan({
+        location: coordinate,
+        radiusMeters: operationRadius ?? undefined,
+        aircraftId: aircraft?.id,
+        aircraftSnapshot: aircraft
+          ? {
+              id: aircraft.id,
+              name: aircraft.name,
+              type: aircraft.type,
+              manufacturer: aircraft.manufacturer,
+              model: aircraft.model,
+            }
+          : undefined,
+        flightLimitsSnapshot: { ...effectiveLimits },
+        weatherSnapshot: weatherQuery.data
+          ? captureWeatherSnapshot(weatherQuery.data, capturedAt)
+          : undefined,
+        observationSnapshot: metarQuery.data
+          ? captureObservationSnapshot(metarQuery.data, capturedAt)
+          : undefined,
+        assessmentSnapshot:
+          assessment && weatherQuery.data
+            ? captureAssessmentSnapshot(assessment, effectiveLimits, capturedAt)
+            : undefined,
+        status: "DRAFT",
+      });
+      toast.success(
+        weatherQuery.data
+          ? "Preparación guardada con una copia de los datos consultados."
+          : "Preparación offline guardada; la evaluación queda sin verificar."
+      );
+      navigate("/operacion");
+    } catch {
+      toast.error("No se pudo guardar la preparación en este dispositivo.");
+    } finally {
+      setSavingPlan(false);
+    }
+  }, [
+    coordinate,
+    savingPlan,
+    operationRadius,
+    aircraft,
+    effectiveLimits,
+    weatherQuery.data,
+    metarQuery.data,
+    assessment,
+    toast,
+    navigate,
+  ]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -432,6 +494,18 @@ export default function DashboardPage() {
           {weatherQuery.data && assessment && (
             <AssessmentCard snapshot={weatherQuery.data} assessment={assessment} />
           )}
+
+          <Card>
+            <CardContent className="space-y-2 py-4">
+              <Button className="w-full" onClick={handleSavePlan} disabled={savingPlan}>
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                {savingPlan ? "Guardando preparación…" : "Guardar preparación actual"}
+              </Button>
+              <p className="text-xs text-slate-500">
+                Guarda una copia local de ubicación, aeronave, límites y datos disponibles. Si estás offline, el plan queda explícitamente sin evaluación verificable.
+              </p>
+            </CardContent>
+          </Card>
 
           <ChecklistCard
             weather={weatherQuery.data ?? null}

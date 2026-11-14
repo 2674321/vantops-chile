@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -16,6 +16,8 @@ import {
 import { coordinateInputMessage } from "../../lib/coordinateMessages";
 import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
+import type { FlightPlan } from "../../domain/flightPlan/types";
+import { getFlightPlan, updateFlightPlan } from "../../storage/repositories/flightPlanRepository";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -30,6 +32,8 @@ interface FormErrors {
 
 export function FlightForm() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get("planId");
   const navigate = useNavigate();
   const toast = useToast();
   const isEdit = Boolean(id);
@@ -45,7 +49,8 @@ export function FlightForm() {
   const [notes, setNotes] = useState("");
   const [incidents, setIncidents] = useState<FlightIncident[]>([]);
   const [batteries, setBatteries] = useState<BatteryRecord[]>([]);
-  const [loading, setLoading] = useState(isEdit);
+  const [sourcePlan, setSourcePlan] = useState<FlightPlan | null>(null);
+  const [loading, setLoading] = useState(isEdit || Boolean(planId));
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -67,8 +72,21 @@ export function FlightForm() {
         }
         setLoading(false);
       });
+    } else if (planId) {
+      getFlightPlan(planId).then((plan) => {
+        if (plan) {
+          setSourcePlan(plan);
+          setLat(String(plan.location.latitude));
+          setLon(String(plan.location.longitude));
+          setStartedAt((plan.scheduledStartAt ?? new Date().toISOString()).slice(0, 16));
+          setEndedAt(plan.scheduledEndAt?.slice(0, 16) ?? "");
+          setOperationType(plan.operationType ?? "OTHER");
+          setNotes(plan.operatorNotes ?? "");
+        }
+        setLoading(false);
+      });
     }
-  }, [id]);
+  }, [id, planId]);
 
   function clearError(key: keyof FormErrors) {
     setErrors((prev) => {
@@ -139,6 +157,17 @@ export function FlightForm() {
       notes: notes || undefined,
       incidents: incidents.length > 0 ? incidents : undefined,
     };
+    if (sourcePlan) {
+      Object.assign(data, {
+        planId: sourcePlan.id,
+        aircraftId: sourcePlan.aircraftId,
+        aircraftSnapshot: sourcePlan.aircraftSnapshot,
+        weatherSnapshot: sourcePlan.weatherSnapshot,
+        observationSnapshot: sourcePlan.observationSnapshot,
+        assessmentSnapshot: sourcePlan.assessmentSnapshot,
+        checklistSnapshot: sourcePlan.checklistSnapshot,
+      });
+    }
 
     setSaving(true);
     try {
@@ -152,11 +181,19 @@ export function FlightForm() {
         toast.success(t.feedback.flightCreated);
       }
 
-      if (batteryId) {
+      if (!isEdit && batteryId) {
         try {
           await markBatteryUsed(batteryId);
         } catch {
           toast.warning(t.feedback.batteryUsageWarning);
+        }
+      }
+
+      if (!isEdit && sourcePlan && flightId) {
+        try {
+          await updateFlightPlan(sourcePlan.id, { linkedFlightId: flightId });
+        } catch {
+          toast.warning("El vuelo se guardó, pero no se pudo actualizar el vínculo con el plan.");
         }
       }
 

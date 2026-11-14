@@ -121,6 +121,20 @@ export function FlightDetailPage() {
         </div>
       )}
 
+      {flight.planId && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 py-3">
+            <div>
+              <p className="text-sm font-medium text-slate-200">Preparación vinculada</p>
+              <p className="text-xs text-slate-500">Los datos preoperacionales se conservaron como snapshot.</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/operacion/${flight.planId}`)}>
+              Ver plan
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="space-y-3 py-4">
           <div className="flex items-center gap-2">

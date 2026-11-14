@@ -5565,6 +5565,7 @@ P0 — Mantenimiento (mantener 1.0.0 sano)
 [x] Tests de regresión ante cambios de esquema de datos externos  (1.0.1, fixtures de contrato)
 
 P1 — Mejoras (sin ampliar alcance)
+[x] Preparación local y vínculo opcional plan → vuelo (1.1 en desarrollo)
 [x] Selector de altura de viento (10 m / 100 m) en Ajustes (VANT-027, 1.1 en desarrollo)
 [x] Pulido semántico inicial de la ventana de operación (continuidad y estado incompleto)
 [ ] Modo experto (VANT-023, V1.1)

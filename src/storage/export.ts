@@ -3,11 +3,12 @@ import { listSettings, saveSetting } from "./repositories/settingsRepository";
 import { downloadTextFile } from "../lib/download";
 import { isValidCoordinate } from "../domain/coordinate";
 import type { FlightRecord, BatteryRecord, SavedPlace } from "../domain/logbook/types";
+import type { FlightPlan, FlightPlanStatus } from "../domain/flightPlan/types";
 
 export const BACKUP_FORMAT = "vantops-backup" as const;
-export const CURRENT_BACKUP_VERSION = 1;
+export const CURRENT_BACKUP_VERSION = 2;
 export const MIN_BACKUP_VERSION = 1;
-export const MAX_BACKUP_VERSION = 1;
+export const MAX_BACKUP_VERSION = 2;
 
 const IMPORTABLE_SETTING_KEYS = new Set([
   "flightLimits",
@@ -27,6 +28,7 @@ export interface BackupData {
   batteries: BatteryRecord[];
   places: SavedPlace[];
   settings: Record<string, unknown>;
+  plans?: FlightPlan[];
 }
 
 export interface ImportSummary {
@@ -34,6 +36,7 @@ export interface ImportSummary {
   batteries: number;
   places: number;
   settings: number;
+  plans: number;
 }
 
 export class BackupValidationError extends Error {
@@ -49,6 +52,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
   const batteries = await db.batteries.toArray();
   const places = await db.places.toArray();
   const settings = await listSettings();
+  const plans = await db.plans.toArray();
   return {
     format: BACKUP_FORMAT,
     version: CURRENT_BACKUP_VERSION,
@@ -58,6 +62,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
     batteries,
     places,
     settings,
+    plans,
   };
 }
 
@@ -116,6 +121,26 @@ function validatePlace(value: unknown): value is SavedPlace {
   return true;
 }
 
+const PLAN_STATUSES = new Set<FlightPlanStatus>([
+  "DRAFT",
+  "REVIEWED",
+  "POSTPONED",
+  "ARCHIVED",
+]);
+
+function validatePlan(value: unknown): value is FlightPlan {
+  if (!isRecord(value)) return false;
+  if (!isString(value.id) || value.id === "") return false;
+  if (value.schemaVersion !== 1) return false;
+  if (!isTimestamp(value.createdAt) || !isTimestamp(value.updatedAt)) return false;
+  if (!isValidCoordinatePair(value.location)) return false;
+  if (!isString(value.status) || !PLAN_STATUSES.has(value.status as FlightPlanStatus)) return false;
+  if (value.scheduledStartAt !== undefined && !isTimestamp(value.scheduledStartAt)) return false;
+  if (value.scheduledEndAt !== undefined && !isTimestamp(value.scheduledEndAt)) return false;
+  if (value.linkedFlightId !== undefined && !isString(value.linkedFlightId)) return false;
+  return true;
+}
+
 function validateSettings(value: unknown): boolean {
   if (!isRecord(value)) return false;
   for (const key of Object.keys(value)) {
@@ -145,6 +170,8 @@ export function validateBackup(data: unknown): data is BackupData {
   if (!Array.isArray(data.batteries)) return false;
   if (data.places !== undefined && !Array.isArray(data.places)) return false;
   if (data.settings !== undefined && !validateSettings(data.settings)) return false;
+  if (data.plans !== undefined && !Array.isArray(data.plans)) return false;
+  if (data.version >= 2 && !Array.isArray(data.plans)) return false;
   return true;
 }
 
@@ -177,6 +204,12 @@ export function inspectBackup(data: unknown): { ok: true; data: BackupData } | {
   if (data.settings !== undefined && !validateSettings(data.settings)) {
     return { ok: false, error: "La sección de configuración es inválida." };
   }
+  if (data.plans !== undefined && !Array.isArray(data.plans)) {
+    return { ok: false, error: "La sección de planes es inválida." };
+  }
+  if (data.version >= 2 && !Array.isArray(data.plans)) {
+    return { ok: false, error: "El respaldo v2 no contiene la sección de planes." };
+  }
 
   const flightsValid = data.flights.every(validateFlight);
   if (!flightsValid) {
@@ -189,6 +222,10 @@ export function inspectBackup(data: unknown): { ok: true; data: BackupData } | {
   const placesValid = data.places === undefined || data.places.every(validatePlace);
   if (!placesValid) {
     return { ok: false, error: "Existen lugares corruptos en el respaldo." };
+  }
+  const plansValid = data.plans === undefined || data.plans.every(validatePlan);
+  if (!plansValid) {
+    return { ok: false, error: "Existen planes corruptos en el respaldo." };
   }
 
   return { ok: true, data: data as unknown as BackupData };
@@ -205,10 +242,11 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
   const batteries = Array.isArray(inspection.data.batteries) ? inspection.data.batteries : [];
   const places = Array.isArray(inspection.data.places) ? inspection.data.places : [];
   const settings = isRecord(inspection.data.settings) ? inspection.data.settings : {};
+  const plans = Array.isArray(inspection.data.plans) ? inspection.data.plans : [];
 
-  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0 };
+  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0, plans: 0 };
 
-  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings], async () => {
+  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings, db.plans], async () => {
     for (const flight of flights) {
       if (!validateFlight(flight)) continue;
       const existing = await db.flights.get(flight.id);
@@ -244,6 +282,18 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
           await db.places.put(place);
           summary.places++;
         }
+      }
+    }
+
+    for (const plan of plans) {
+      if (!validatePlan(plan)) continue;
+      const existing = await db.plans.get(plan.id);
+      if (!existing) {
+        await db.plans.add(plan);
+        summary.plans++;
+      } else if (plan.updatedAt > existing.updatedAt) {
+        await db.plans.put(plan);
+        summary.plans++;
       }
     }
 

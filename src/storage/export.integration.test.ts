@@ -18,6 +18,7 @@ import { createFlight, getFlight, listFlights } from "./repositories/flightRepos
 import { createBattery, listBatteries } from "./repositories/batteryRepository";
 import { createPlace, listPlaces } from "./repositories/placeRepository";
 import { loadSetting } from "./repositories/settingsRepository";
+import { createFlightPlan, listFlightPlans } from "./repositories/flightPlanRepository";
 import type { FlightRecord, BatteryRecord } from "../domain/logbook/types";
 
 async function wipeDatabase(): Promise<void> {
@@ -26,6 +27,7 @@ async function wipeDatabase(): Promise<void> {
   await db.batteries.clear();
   await db.places.clear();
   await db.settings.clear();
+  await db.plans.clear();
 }
 
 beforeEach(async () => {
@@ -34,6 +36,23 @@ beforeEach(async () => {
 });
 
 describe("export → import → equivalence", () => {
+  it("round-trips v2 plans and their linkable snapshots", async () => {
+    const plan = await createFlightPlan({
+      location: { latitude: -33.45, longitude: -70.65 },
+      locationLabel: "Sitio de prueba",
+      status: "REVIEWED",
+      flightLimitsSnapshot: { windMaxKmh: 25, windReferenceHeight: 100 },
+    });
+    const backup = await exportBackup("1.1.0-rc");
+    expect(backup.version).toBe(2);
+    expect(backup.plans).toHaveLength(1);
+
+    await wipeDatabase();
+    const summary = await importBackup(backup);
+    expect(summary.plans).toBe(1);
+    expect(await listFlightPlans()).toEqual([plan]);
+  });
+
   it("round-trips flights, batteries and places with identical values", async () => {
     const flight = await createFlight({
       startedAt: "2026-09-01T10:00:00Z",

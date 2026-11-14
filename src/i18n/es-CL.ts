@@ -4,6 +4,7 @@ export const esCL = {
   nav: {
     home: "Inicio",
     logbook: "Bitácora",
+    operation: "Mi operación",
     places: "Lugares",
     settings: "Ajustes",
     about: "Acerca",

@@ -3,6 +3,44 @@ import { validateBackup, inspectBackup, countImportableSettings, MAX_BACKUP_VERS
 import type { BackupData } from "./export";
 
 describe("validateBackup", () => {
+  it("accepts a v2 backup with a valid plan", () => {
+    const now = new Date().toISOString();
+    expect(
+      validateBackup({
+        format: "vantops-backup",
+        version: 2,
+        exportedAt: now,
+        appVersion: "1.1.0",
+        flights: [],
+        batteries: [],
+        places: [],
+        settings: {},
+        plans: [
+          {
+            id: "plan-1",
+            schemaVersion: 1,
+            createdAt: now,
+            updatedAt: now,
+            location: { latitude: -33.45, longitude: -70.65 },
+            status: "DRAFT",
+          },
+        ],
+      })
+    ).toBe(true);
+  });
+
+  it("rejects a v2 backup without plans but keeps v1 compatible", () => {
+    const common = {
+      format: "vantops-backup",
+      exportedAt: new Date().toISOString(),
+      appVersion: "1.1.0",
+      flights: [],
+      batteries: [],
+    };
+    expect(validateBackup({ ...common, version: 2 })).toBe(false);
+    expect(validateBackup({ ...common, version: 1 })).toBe(true);
+  });
+
   it("accepts valid backup", () => {
     const backup: BackupData = {
       format: "vantops-backup",

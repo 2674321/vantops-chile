@@ -10,6 +10,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 - Selector persistente de viento de referencia a 10/100 m en Ajustes.
 - Documentación de baseline, contrato de evaluación, proveedores/licencias y
   matriz de QA de 1.1.
+- Preparaciones locales (`FlightPlan`) con creación, reanudación, duplicado,
+  archivado, snapshots preoperacionales y vínculo opcional con la bitácora.
+- Esquema Dexie v3 y backup v2, manteniendo importación de respaldos v1.
 
 ### Changed
 - La evaluación actual y horaria usa la altura de viento seleccionada y el
