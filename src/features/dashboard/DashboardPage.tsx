@@ -119,8 +119,11 @@ export default function DashboardPage() {
 
   const assessment = useMemo(() => {
     if (!weatherQuery.data) return null;
+    const useWind100m = effectiveLimits.windReferenceHeight === 100;
     return evaluateFlight({
-      windSpeedKmh: weatherQuery.data.current.windSpeedKmh,
+      windSpeedKmh: useWind100m
+        ? weatherQuery.data.current.windSpeed100mKmh
+        : weatherQuery.data.current.windSpeedKmh,
       gustKmh: weatherQuery.data.current.windGustsKmh,
       windSpeed100mKmh: weatherQuery.data.current.windSpeed100mKmh,
       windDirectionDeg: weatherQuery.data.current.windDirectionDeg,
@@ -135,16 +138,25 @@ export default function DashboardPage() {
       visibilityMinMeters: effectiveLimits.visibilityMinMeters,
       temperatureMinC: effectiveLimits.temperatureMinC,
       temperatureMaxC: effectiveLimits.temperatureMaxC,
+      sourceStatus: weatherQuery.data.meta.status,
     });
   }, [weatherQuery.data, effectiveLimits]);
 
   const hourlyAssessments = useMemo(
-    () => assessHourlyForecast(weatherQuery.data?.hourly ?? [], effectiveLimits),
+    () =>
+      assessHourlyForecast(
+        weatherQuery.data?.hourly ?? [],
+        effectiveLimits,
+        weatherQuery.data?.meta.status
+      ),
     [weatherQuery.data, effectiveLimits]
   );
 
   const operationWindow = useMemo(
-    () => findOperationWindow(weatherQuery.data?.hourly ?? [], effectiveLimits),
+    () =>
+      findOperationWindow(weatherQuery.data?.hourly ?? [], effectiveLimits, {
+        sourceStatus: weatherQuery.data?.meta.status,
+      }),
     [weatherQuery.data, effectiveLimits]
   );
 

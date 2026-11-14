@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [Unreleased]
+
+### Added
+- Contrato aditivo de completitud para la evaluación: faltantes decisionales e
+  informativos, `isComplete` y trazabilidad de vigencia de la fuente.
+- Selector persistente de viento de referencia a 10/100 m en Ajustes.
+- Documentación de baseline, contrato de evaluación, proveedores/licencias y
+  matriz de QA de 1.1.
+
+### Changed
+- La evaluación actual y horaria usa la altura de viento seleccionada y el
+  estado de frescura real del dataset.
+- La ventana ordena y deduplica horas, no une intervalos discontinuos y muestra
+  las franjas de precaución en ámbar con copy de revisión.
+
+### Fixed
+- Un límite de ráfagas o temperatura con dato ausente ya no puede producir
+  `FAVORABLE`.
+- `NaN`, infinitos, límites inválidos, fuente vencida y viento 100 m ausente se
+  tratan como evaluación incompleta en lugar de un pase implícito.
+
+### Security
+- `npm audit` actual reporta 15 vulnerabilidades (3 bajas, 6 moderadas, 4 altas
+  y 2 críticas), principalmente en tooling. No se aplicó `--force`; los saltos
+  mayores de Vitest/React Router quedan para actualización controlada.
+
 ## [1.0.1] - 2026-09-18
 
 Mantenimiento y endurecimiento de contratos de providers. Sin cambios de datos, UI ni funciones nuevas; compatibilidad absoluta con 1.0.0 (esquema IndexedDB v2 y formato de respaldo v1 intactos).

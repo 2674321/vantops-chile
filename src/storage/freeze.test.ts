@@ -120,7 +120,12 @@ describe("freeze: formato de backup v1 sin cambios", () => {
   });
 
   it("settings survive a save/load cycle unchanged (JSON no transform)", async () => {
-    const limits = { windMaxKmh: 25, gustMaxKmh: 35, noDroneZoneKm: 1.5 };
+    const limits = {
+      windMaxKmh: 25,
+      gustMaxKmh: 35,
+      windReferenceHeight: 100 as const,
+      noDroneZoneKm: 1.5,
+    };
     await saveSetting("flightLimits", limits);
     expect(await loadSetting<typeof limits>("flightLimits")).toEqual(limits);
   });

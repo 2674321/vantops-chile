@@ -84,7 +84,7 @@ export const esCL = {
     favorable: (start: string, end: string) =>
       `Franja con mejores condiciones según tus parámetros: ${start}–${end}.`,
     caution: (start: string, end: string) =>
-      `Franja con condiciones aceptables bajo precaución según tus parámetros: ${start}–${end}.`,
+      `Franja que requiere revisión por precaución o datos incompletos: ${start}–${end}.`,
     disclaimer:
       "Estimación orientativa según los datos disponibles. No constituye autorización de vuelo.",
     goSettings: "Ir a Ajustes",
@@ -364,7 +364,7 @@ export const esCL = {
       "Tus datos se guardan solo en este dispositivo. Exporta periódicamente un respaldo.",
     exportImport: "Exportar / Importar respaldo",
     fields: {
-      windMaxKmh: { label: "Viento máximo (10 m)", hint: "Límite de viento a 10 m sobre el terreno.", placeholder: "p. ej. 30" },
+      windMaxKmh: { label: "Viento máximo", hint: "Se compara con la altura de referencia seleccionada.", placeholder: "p. ej. 30" },
       gustMaxKmh: { label: "Ráfaga máxima", hint: "Límite de ráfagas.", placeholder: "p. ej. 40" },
       precipitationMaxMm: { label: "Precipitación máxima", hint: "Máximo de precipitación por hora.", placeholder: "p. ej. 0.5" },
       visibilityMinMeters: { label: "Visibilidad mínima", hint: "Mínimo de visibilidad requerido.", placeholder: "p. ej. 5000" },

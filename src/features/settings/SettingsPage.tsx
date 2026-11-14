@@ -51,6 +51,7 @@ export function SettingsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [windReferenceHeight, setWindReferenceHeight] = useState<10 | 100>(10);
 
   useEffect(() => {
     loadFlightLimits().then((stored) => {
@@ -62,6 +63,7 @@ export function SettingsPage() {
         temperatureMinC: stringifyLimit(stored.temperatureMinC),
         temperatureMaxC: stringifyLimit(stored.temperatureMaxC),
       });
+      setWindReferenceHeight(stored.windReferenceHeight === 100 ? 100 : 10);
       setLoaded(true);
     });
   }, []);
@@ -73,7 +75,7 @@ export function SettingsPage() {
 
   const handleSave = useCallback(async () => {
     if (saving) return;
-    const parsed: FlightLimits = {};
+    const parsed: FlightLimits = { windReferenceHeight };
     for (const field of LIMIT_FIELDS) {
       const raw = limits[field.key] ?? "";
       const value = parseLimit(raw);
@@ -106,12 +108,13 @@ export function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [limits, saving, toast]);
+  }, [limits, saving, toast, windReferenceHeight]);
 
   const handleClear = useCallback(async () => {
     setSaving(true);
     try {
       await saveFlightLimits({});
+      setWindReferenceHeight(10);
       setLimits({
         windMaxKmh: "",
         gustMaxKmh: "",
@@ -164,14 +167,40 @@ export function SettingsPage() {
           </p>
 
           <div className="space-y-3">
+            <fieldset className="rounded-lg border border-slate-700 p-3">
+              <legend className="px-1 text-xs font-medium text-slate-300">
+                Altura de referencia del viento
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([10, 100] as const).map((height) => (
+                  <label key={height} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-700 px-3 text-sm text-slate-200">
+                    <input
+                      type="radio"
+                      name="wind-reference-height"
+                      value={height}
+                      checked={windReferenceHeight === height}
+                      onChange={() => setWindReferenceHeight(height)}
+                    />
+                    {height} m
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">
+                10 m es el valor predeterminado. El dato a 100 m es una referencia del modelo, no una medición a la altura exacta de vuelo. Las ráfagas conservan su capa original.
+              </p>
+            </fieldset>
             {LIMIT_FIELDS.map((field) => {
               const Icon = field.icon;
               const copy = t.settings.fields[field.key];
+              const label =
+                field.key === "windMaxKmh"
+                  ? `${copy.label} (${windReferenceHeight} m)`
+                  : copy.label;
               return (
                 <div key={field.key}>
                   <label htmlFor={`limit-${field.key}`} className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-300">
                     <Icon className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                    {copy.label}
+                    {label}
                   </label>
                   <div className="relative">
                     <input

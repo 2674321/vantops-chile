@@ -10,7 +10,8 @@ export interface HourlyAssessment {
 
 export function assessmentInputFromHourly(
   hour: HourlyWeather,
-  limits: FlightLimits
+  limits: FlightLimits,
+  sourceStatus?: FlightAssessmentInput["sourceStatus"]
 ): FlightAssessmentInput {
   const useWind100m = limits.windReferenceHeight === 100;
   const windSpeedKmh = useWind100m ? hour.windSpeed100mKmh : hour.windSpeedKmh;
@@ -30,22 +31,25 @@ export function assessmentInputFromHourly(
     visibilityMinMeters: limits.visibilityMinMeters,
     temperatureMinC: limits.temperatureMinC,
     temperatureMaxC: limits.temperatureMaxC,
+    sourceStatus,
   };
 }
 
 export function evaluateHour(
   hour: HourlyWeather,
-  limits: FlightLimits
+  limits: FlightLimits,
+  sourceStatus?: FlightAssessmentInput["sourceStatus"]
 ): FlightAssessment {
-  return evaluateFlight(assessmentInputFromHourly(hour, limits));
+  return evaluateFlight(assessmentInputFromHourly(hour, limits, sourceStatus));
 }
 
 export function assessHourlyForecast(
   hours: HourlyWeather[],
-  limits: FlightLimits
+  limits: FlightLimits,
+  sourceStatus?: FlightAssessmentInput["sourceStatus"]
 ): HourlyAssessment[] {
   return hours.map((hour) => ({
     timeISO: hour.timeISO,
-    assessment: evaluateHour(hour, limits),
+    assessment: evaluateHour(hour, limits, sourceStatus),
   }));
 }

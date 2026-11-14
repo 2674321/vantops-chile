@@ -51,9 +51,28 @@ describe("SettingsPage", () => {
     fireEvent.change(wind, { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar límites" }));
     await waitFor(() => {
-      expect(saveLimitsMock).toHaveBeenCalledWith({ windMaxKmh: 30 });
+      expect(saveLimitsMock).toHaveBeenCalledWith({
+        windMaxKmh: 30,
+        windReferenceHeight: 10,
+      });
     });
     expect(await screen.findByText("Límites guardados")).toBeInTheDocument();
+  });
+
+  it("loads and persists the 100 m wind reference without changing the limit", async () => {
+    loadLimitsMock.mockResolvedValue({ windMaxKmh: 30, windReferenceHeight: 100 });
+    renderPage();
+    const wind = await screen.findByLabelText("Viento máximo (100 m)");
+    expect(wind).toHaveValue("30");
+    expect(screen.getByRole("radio", { name: "100 m" })).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar límites" }));
+    await waitFor(() => {
+      expect(saveLimitsMock).toHaveBeenCalledWith({
+        windMaxKmh: 30,
+        windReferenceHeight: 100,
+      });
+    });
   });
 
   it("rejects an inverted temperature range", async () => {

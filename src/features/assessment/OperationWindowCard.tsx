@@ -57,7 +57,11 @@ function WindowBody({ window, onGoSettings }: OperationWindowCardProps) {
       : t.operationWindow.favorable(formatWeatherHourLabel(window.startISO), formatWeatherHourLabel(window.endISO));
 
   return (
-    <output className="block text-sm text-emerald-300">
+    <output
+      className={`block text-sm ${
+        window.bestStatus === "CAUTION" ? "text-amber-300" : "text-emerald-300"
+      }`}
+    >
       {message}
     </output>
   );

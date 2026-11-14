@@ -23,9 +23,10 @@ interface AssessmentCardProps {
   assessment: FlightAssessment;
 }
 
-export function AssessmentCard({ snapshot: _snapshot, assessment }: AssessmentCardProps) {
+export function AssessmentCard({ snapshot, assessment }: AssessmentCardProps) {
 
   const cfg = STATUS_CONFIG[assessment.status];
+  const blockingMissingData = assessment.blockingMissingData ?? [];
 
   return (
     <Card>
@@ -37,6 +38,12 @@ export function AssessmentCard({ snapshot: _snapshot, assessment }: AssessmentCa
       </CardHeader>
       <CardContent className="space-y-3">
         <p className={`text-lg font-semibold ${cfg.color}`}>{cfg.label}</p>
+
+        {assessment.hasConfiguredLimits && !assessment.isComplete && (
+          <output className="block rounded-lg border border-amber-700/50 bg-amber-950/30 p-2 text-sm text-amber-200">
+            Evaluación incompleta: faltan datos necesarios para comprobar todos tus límites.
+          </output>
+        )}
 
         {assessment.status === "NO_DATA" && (
           <p className="text-sm text-slate-400">
@@ -66,11 +73,15 @@ export function AssessmentCard({ snapshot: _snapshot, assessment }: AssessmentCa
           </div>
         )}
 
-        {assessment.missingData.length > 0 && (
+        {blockingMissingData.length > 0 && (
           <p className="text-xs text-amber-400">
-            Datos faltantes: {assessment.missingData.join(", ")}
+            Datos decisionales faltantes: {blockingMissingData.join(", ")}
           </p>
         )}
+
+        <p className="text-xs text-slate-400">
+          Fuente: {snapshot.meta.source} · dato {snapshot.meta.dataTime ?? "sin fecha"} · estado {snapshot.meta.status}
+        </p>
 
         <p className="text-xs text-slate-500">
           Evaluado:{" "}
@@ -80,9 +91,7 @@ export function AssessmentCard({ snapshot: _snapshot, assessment }: AssessmentCa
           })}{" "}
           ·{" "}
           <span className="italic">
-            VantOPS es una herramienta de apoyo a la planificación. No sustituye la normativa vigente,
-            las publicaciones aeronáuticas, permisos, autorizaciones ni las instrucciones de las autoridades
-            competentes.
+            Según los parámetros que configuraste y los datos disponibles; no constituye autorización de vuelo.
           </span>
         </p>
       </CardContent>
