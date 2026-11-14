@@ -4,9 +4,27 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { ArrowLeft, Save, Wind, CloudRain, Eye, Thermometer, Gauge, Database } from "lucide-react";
 import type { FlightLimits } from "../../domain/assessment/limits";
-import { loadFlightLimits, saveFlightLimits } from "../../storage/settings";
+import {
+  loadDisplayPreferences,
+  loadFlightLimits,
+  saveDisplayPreferences,
+  saveFlightLimits,
+} from "../../storage/settings";
 import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  distanceFromMeters,
+  distanceToMeters,
+  distanceUnitLabel,
+  speedFromKmh,
+  speedToKmh,
+  speedUnitLabel,
+  temperatureFromC,
+  temperatureToC,
+  temperatureUnitLabel,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 
 type LimitKey =
   | "windMaxKmh"
@@ -52,21 +70,41 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [windReferenceHeight, setWindReferenceHeight] = useState<10 | 100>(10);
+  const [preferences, setPreferences] = useState<DisplayPreferences>(DEFAULT_DISPLAY_PREFERENCES);
 
   useEffect(() => {
-    loadFlightLimits().then((stored) => {
+    Promise.all([loadFlightLimits(), loadDisplayPreferences()]).then(([stored, display]) => {
+      setPreferences(display);
       setLimits({
-        windMaxKmh: stringifyLimit(stored.windMaxKmh),
-        gustMaxKmh: stringifyLimit(stored.gustMaxKmh),
+        windMaxKmh: stringifyLimit(stored.windMaxKmh == null ? undefined : speedFromKmh(stored.windMaxKmh, display.speedUnit)),
+        gustMaxKmh: stringifyLimit(stored.gustMaxKmh == null ? undefined : speedFromKmh(stored.gustMaxKmh, display.speedUnit)),
         precipitationMaxMm: stringifyLimit(stored.precipitationMaxMm),
-        visibilityMinMeters: stringifyLimit(stored.visibilityMinMeters),
-        temperatureMinC: stringifyLimit(stored.temperatureMinC),
-        temperatureMaxC: stringifyLimit(stored.temperatureMaxC),
+        visibilityMinMeters: stringifyLimit(stored.visibilityMinMeters == null ? undefined : distanceFromMeters(stored.visibilityMinMeters, display.distanceUnit)),
+        temperatureMinC: stringifyLimit(stored.temperatureMinC == null ? undefined : temperatureFromC(stored.temperatureMinC, display.temperatureUnit)),
+        temperatureMaxC: stringifyLimit(stored.temperatureMaxC == null ? undefined : temperatureFromC(stored.temperatureMaxC, display.temperatureUnit)),
       });
       setWindReferenceHeight(stored.windReferenceHeight === 100 ? 100 : 10);
       setLoaded(true);
     });
   }, []);
+
+  const changePreferences = useCallback((next: DisplayPreferences) => {
+    setLimits((current) => {
+      const converted = { ...current };
+      for (const key of ["windMaxKmh", "gustMaxKmh"] as const) {
+        const value = parseLimit(current[key] ?? "");
+        if (value !== undefined) converted[key] = stringifyLimit(speedFromKmh(speedToKmh(value, preferences.speedUnit), next.speedUnit));
+      }
+      for (const key of ["temperatureMinC", "temperatureMaxC"] as const) {
+        const value = parseLimit(current[key] ?? "");
+        if (value !== undefined) converted[key] = stringifyLimit(temperatureFromC(temperatureToC(value, preferences.temperatureUnit), next.temperatureUnit));
+      }
+      const visibility = parseLimit(current.visibilityMinMeters ?? "");
+      if (visibility !== undefined) converted.visibilityMinMeters = stringifyLimit(distanceFromMeters(distanceToMeters(visibility, preferences.distanceUnit), next.distanceUnit));
+      return converted;
+    });
+    setPreferences(next);
+  }, [preferences]);
 
   const handleChange = useCallback((key: LimitKey, value: string) => {
     setLimits((prev) => ({ ...prev, [key]: value }));
@@ -86,7 +124,14 @@ export function SettingsPage() {
         return;
       }
       if (value !== undefined) {
-        parsed[field.key] = value;
+        parsed[field.key] =
+          field.key === "windMaxKmh" || field.key === "gustMaxKmh"
+            ? speedToKmh(value, preferences.speedUnit)
+            : field.key === "temperatureMinC" || field.key === "temperatureMaxC"
+              ? temperatureToC(value, preferences.temperatureUnit)
+              : field.key === "visibilityMinMeters"
+                ? distanceToMeters(value, preferences.distanceUnit)
+                : value;
       }
     }
 
@@ -101,14 +146,14 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
-      await saveFlightLimits(parsed);
+      await Promise.all([saveFlightLimits(parsed), saveDisplayPreferences(preferences)]);
       toast.success(t.feedback.limitsSaved);
     } catch {
       setFormError(t.feedback.limitsSaveError);
     } finally {
       setSaving(false);
     }
-  }, [limits, saving, toast, windReferenceHeight]);
+  }, [limits, saving, toast, windReferenceHeight, preferences]);
 
   const handleClear = useCallback(async () => {
     setSaving(true);
@@ -167,6 +212,13 @@ export function SettingsPage() {
           </p>
 
           <div className="space-y-3">
+            <div className="grid gap-3 rounded-lg border border-slate-700 p-3 sm:grid-cols-2">
+              <div><label htmlFor="speed-unit" className="mb-1 block text-xs text-slate-300">Velocidad</label><select id="speed-unit" value={preferences.speedUnit} onChange={(e) => changePreferences({ ...preferences, speedUnit: e.target.value as DisplayPreferences["speedUnit"] })} className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"><option value="kmh">km/h</option><option value="ms">m/s</option><option value="kt">nudos (kt)</option></select></div>
+              <div><label htmlFor="temperature-unit" className="mb-1 block text-xs text-slate-300">Temperatura</label><select id="temperature-unit" value={preferences.temperatureUnit} onChange={(e) => changePreferences({ ...preferences, temperatureUnit: e.target.value as DisplayPreferences["temperatureUnit"] })} className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"><option value="c">°C</option><option value="f">°F</option></select></div>
+              <div><label htmlFor="distance-unit" className="mb-1 block text-xs text-slate-300">Distancia y elevación</label><select id="distance-unit" value={preferences.distanceUnit} onChange={(e) => changePreferences({ ...preferences, distanceUnit: e.target.value as DisplayPreferences["distanceUnit"] })} className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"><option value="metric">m / km</option><option value="imperial">ft</option></select></div>
+              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-700 px-3 text-sm text-slate-200"><input type="checkbox" checked={preferences.expertMode} onChange={(e) => changePreferences({ ...preferences, expertMode: e.target.checked })} /> Modo experto</label>
+              <p className="text-[11px] text-slate-500 sm:col-span-2">Las magnitudes se guardan internamente en km/h, metros y °C. Cambiar la presentación no altera tus límites.</p>
+            </div>
             <fieldset className="rounded-lg border border-slate-700 p-3">
               <legend className="px-1 text-xs font-medium text-slate-300">
                 Altura de referencia del viento
@@ -196,6 +248,14 @@ export function SettingsPage() {
                 field.key === "windMaxKmh"
                   ? `${copy.label} (${windReferenceHeight} m)`
                   : copy.label;
+              const unit =
+                field.key === "windMaxKmh" || field.key === "gustMaxKmh"
+                  ? speedUnitLabel(preferences.speedUnit)
+                  : field.key === "temperatureMinC" || field.key === "temperatureMaxC"
+                    ? temperatureUnitLabel(preferences.temperatureUnit)
+                    : field.key === "visibilityMinMeters"
+                      ? distanceUnitLabel(preferences.distanceUnit)
+                      : field.unit;
               return (
                 <div key={field.key}>
                   <label htmlFor={`limit-${field.key}`} className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-300">
@@ -213,9 +273,9 @@ export function SettingsPage() {
                       value={limits[field.key] ?? ""}
                       onChange={(e) => handleChange(field.key, e.target.value)}
                     />
-                    {field.unit && (
+                    {unit && (
                       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                        {field.unit}
+                        {unit}
                       </span>
                     )}
                   </div>

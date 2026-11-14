@@ -15,6 +15,7 @@ const IMPORTABLE_SETTING_KEYS = new Set([
   "activeAircraft",
   "lastCoordinate",
   "operationZoneRadius",
+  "displayPreferences",
 ]);
 
 const NUMERIC_SETTING_KEYS = new Set(["operationZoneRadius"]);

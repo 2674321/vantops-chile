@@ -13,12 +13,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 - Preparaciones locales (`FlightPlan`) con creación, reanudación, duplicado,
   archivado, snapshots preoperacionales y vínculo opcional con la bitácora.
 - Esquema Dexie v3 y backup v2, manteniendo importación de respaldos v1.
+- Preferencias restaurables de velocidad (km/h, m/s, kt), temperatura (°C/°F),
+  distancia/elevación (métrico/imperial) y modo experto.
+- Presentación experta aditiva con metadatos UTC/completitud y METAR raw, sin
+  cambiar el resultado del motor de evaluación.
 
 ### Changed
 - La evaluación actual y horaria usa la altura de viento seleccionada y el
   estado de frescura real del dataset.
 - La ventana ordena y deduplica horas, no une intervalos discontinuos y muestra
   las franjas de precaución en ámbar con copy de revisión.
+- Límites y datos meteorológicos se convierten solo en entrada/presentación; el
+  modelo persistido conserva unidades canónicas para evitar drift acumulado.
 
 ### Fixed
 - Un límite de ráfagas o temperatura con dato ausente ya no puede producir

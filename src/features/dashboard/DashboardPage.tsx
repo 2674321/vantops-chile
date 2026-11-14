@@ -29,6 +29,7 @@ import {
   loadActiveAircraft,
   loadFlightLimits,
   loadOperationRadius,
+  loadDisplayPreferences,
   saveOperationRadius,
 } from "../../storage/settings";
 import { fetchNearestObservation } from "../../providers/observations/vatsimObservation";
@@ -36,6 +37,10 @@ import { useToast } from "../../components/toast/useToast";
 import { detectReconnection } from "../../domain/connectivity";
 import { esCL as t } from "../../i18n/es-CL";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 import { createFlightPlan } from "../../storage/repositories/flightPlanRepository";
 import {
   captureAssessmentSnapshot,
@@ -52,6 +57,7 @@ export default function DashboardPage() {
   const [aircraft, setAircraft] = useState<AircraftProfile | null>(null);
   const [flightLimits, setFlightLimits] = useState<FlightLimits>({});
   const [operationRadius, setOperationRadius] = useState<number | null>(null);
+  const [displayPreferences, setDisplayPreferences] = useState<DisplayPreferences>(DEFAULT_DISPLAY_PREFERENCES);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [manualError, setManualError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -65,6 +71,7 @@ export default function DashboardPage() {
     loadActiveAircraft().then(setAircraft);
     loadFlightLimits().then(setFlightLimits);
     loadOperationRadius().then(setOperationRadius);
+    loadDisplayPreferences().then(setDisplayPreferences);
   }, []);
 
   const handleRadiusChange = useCallback(
@@ -445,6 +452,7 @@ export default function DashboardPage() {
               <CardContent className="space-y-3 py-5">
                 <WeatherPanel
                   snapshot={weatherQuery.data}
+                  preferences={displayPreferences}
                   onRefresh={() =>
                     queryClient.invalidateQueries({
                       queryKey: ["weather"],
@@ -465,6 +473,7 @@ export default function DashboardPage() {
                 <WeatherTimeline
                   hours={weatherQuery.data.hourly}
                   assessments={hourlyAssessments}
+                  preferences={displayPreferences}
                 />
               </CardContent>
             </Card>
@@ -480,6 +489,7 @@ export default function DashboardPage() {
           <ElevationCard
             latitude={coordinate.latitude}
             longitude={coordinate.longitude}
+            preferences={displayPreferences}
           />
           <SolarCard
             latitude={coordinate.latitude}
@@ -489,10 +499,15 @@ export default function DashboardPage() {
           <NearbyMetarCard
             latitude={coordinate.latitude}
             longitude={coordinate.longitude}
+            preferences={displayPreferences}
           />
 
           {weatherQuery.data && assessment && (
-            <AssessmentCard snapshot={weatherQuery.data} assessment={assessment} />
+            <AssessmentCard
+              snapshot={weatherQuery.data}
+              assessment={assessment}
+              expertMode={displayPreferences.expertMode}
+            />
           )}
 
           <Card>

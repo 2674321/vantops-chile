@@ -4,11 +4,22 @@ import type { HourlyAssessment } from "../../domain/assessment/hourly";
 import { windDirectionLabel, weatherCodeEmoji } from "./WeatherPanel";
 import { formatWeatherHourLabel } from "../../domain/weatherTime";
 import { esCL as t } from "../../i18n/es-CL";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  distanceFromMeters,
+  distanceUnitLabel,
+  speedFromKmh,
+  speedUnitLabel,
+  temperatureFromC,
+  temperatureUnitLabel,
+  type DisplayPreferences,
+} from "../../domain/displayPreferences";
 
 interface WeatherTimelineProps {
   hours: HourlyWeather[];
   assessments: HourlyAssessment[];
   maxHours?: number;
+  preferences?: DisplayPreferences;
 }
 
 const STATUS_STYLES: Record<AssessmentStatus, { label: string; symbol: string; className: string }> = {
@@ -22,7 +33,7 @@ function value(value: number | null, suffix: string): string {
   return value === null ? t.weather.noData : `${value}${suffix}`;
 }
 
-export function WeatherTimeline({ hours, assessments, maxHours = 12 }: WeatherTimelineProps) {
+export function WeatherTimeline({ hours, assessments, maxHours = 12, preferences = DEFAULT_DISPLAY_PREFERENCES }: WeatherTimelineProps) {
   const upcoming = hours.slice(0, maxHours);
   const statuses = new Map(assessments.map((item) => [item.timeISO, item.assessment.status]));
 
@@ -67,14 +78,14 @@ export function WeatherTimeline({ hours, assessments, maxHours = 12 }: WeatherTi
               <dl className="mt-2 space-y-1 text-[11px] text-slate-400">
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.temperature}</dt>
-                  <dd>{value(hour.temperatureC === null ? null : Math.round(hour.temperatureC), "°C")}</dd>
+                  <dd>{value(hour.temperatureC === null ? null : temperatureFromC(hour.temperatureC, preferences.temperatureUnit), temperatureUnitLabel(preferences.temperatureUnit))}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.wind}</dt>
                   <dd>
                     {hour.windSpeedKmh === null
                       ? t.weather.noData
-                      : `${hour.windSpeedKmh} km/h${
+                      : `${speedFromKmh(hour.windSpeedKmh, preferences.speedUnit)} ${speedUnitLabel(preferences.speedUnit)}${
                           hour.windDirectionDeg === null
                             ? ""
                             : ` ${windDirectionLabel(hour.windDirectionDeg)}`
@@ -83,7 +94,7 @@ export function WeatherTimeline({ hours, assessments, maxHours = 12 }: WeatherTi
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.gusts}</dt>
-                  <dd>{value(hour.windGustsKmh, " km/h")}</dd>
+                  <dd>{value(hour.windGustsKmh === null ? null : speedFromKmh(hour.windGustsKmh, preferences.speedUnit), ` ${speedUnitLabel(preferences.speedUnit)}`)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.precipitation}</dt>
@@ -91,7 +102,7 @@ export function WeatherTimeline({ hours, assessments, maxHours = 12 }: WeatherTi
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.visibility}</dt>
-                  <dd>{hour.visibilityM === null ? t.weather.noData : `${hour.visibilityM} m`}</dd>
+                  <dd>{hour.visibilityM === null ? t.weather.noData : `${distanceFromMeters(hour.visibilityM, preferences.distanceUnit)} ${distanceUnitLabel(preferences.distanceUnit)}`}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt>{t.timeline.cloudCover}</dt>

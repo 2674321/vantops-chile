@@ -21,9 +21,10 @@ function severityColor(severity: string): string {
 interface AssessmentCardProps {
   snapshot: WeatherSnapshot;
   assessment: FlightAssessment;
+  expertMode?: boolean;
 }
 
-export function AssessmentCard({ snapshot, assessment }: AssessmentCardProps) {
+export function AssessmentCard({ snapshot, assessment, expertMode = false }: AssessmentCardProps) {
 
   const cfg = STATUS_CONFIG[assessment.status];
   const blockingMissingData = assessment.blockingMissingData ?? [];
@@ -61,7 +62,7 @@ export function AssessmentCard({ snapshot, assessment }: AssessmentCardProps) {
             ))}
         </div>
 
-        {assessment.status === "FAVORABLE" && (
+        {(assessment.status === "FAVORABLE" || expertMode) && (
           <div className="space-y-1">
             {assessment.reasons
               .filter((r) => r.severity === "info")
@@ -82,6 +83,11 @@ export function AssessmentCard({ snapshot, assessment }: AssessmentCardProps) {
         <p className="text-xs text-slate-400">
           Fuente: {snapshot.meta.source} · dato {snapshot.meta.dataTime ?? "sin fecha"} · estado {snapshot.meta.status}
         </p>
+        {expertMode && (
+          <p className="text-xs text-slate-500">
+            Modo experto: evaluación {assessment.isComplete ? "completa" : "incompleta"}; tiempo UTC de evaluación {assessment.evaluatedAt}.
+          </p>
+        )}
 
         <p className="text-xs text-slate-500">
           Evaluado:{" "}

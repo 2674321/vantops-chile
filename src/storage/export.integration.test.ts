@@ -87,7 +87,7 @@ describe("export → import → equivalence", () => {
     expect(restoredPlaces[0]).toMatchObject({ id: place.id, name: "Club Aéreo" });
   });
 
-  it("restores compatible settings (flightLimits, activeAircraft, lastCoordinate, operationZoneRadius)", async () => {
+  it("restores compatible settings including display preferences", async () => {
     const db = getDB();
     await db.settings.put({
       id: "flightLimits",
@@ -110,6 +110,16 @@ describe("export → import → equivalence", () => {
       updatedAt: "2026-09-01T00:00:00Z",
     });
     await db.settings.put({
+      id: "displayPreferences",
+      value: JSON.stringify({
+        speedUnit: "kt",
+        temperatureUnit: "f",
+        distanceUnit: "imperial",
+        expertMode: true,
+      }),
+      updatedAt: "2026-09-01T00:00:00Z",
+    });
+    await db.settings.put({
       id: "ephemeralEphemeral",
       value: JSON.stringify({ nota: "no se debe restaurar" }),
       updatedAt: "2026-09-01T00:00:00Z",
@@ -118,6 +128,7 @@ describe("export → import → equivalence", () => {
     const backup = await exportBackup("0.7.0");
     expect(Object.keys(backup.settings).sort()).toEqual([
       "activeAircraft",
+      "displayPreferences",
       "ephemeralEphemeral",
       "flightLimits",
       "lastCoordinate",
@@ -127,7 +138,7 @@ describe("export → import → equivalence", () => {
     await wipeDatabase();
 
     const summary = await importBackup(backup);
-    expect(summary.settings).toBe(4);
+    expect(summary.settings).toBe(5);
 
     const limits = await loadSetting<{ windMaxKmh: number }>("flightLimits");
     expect(limits?.windMaxKmh).toBe(30);
@@ -137,6 +148,10 @@ describe("export → import → equivalence", () => {
     expect(coord?.latitude).toBe(-33.45);
     const radius = await loadSetting<number>("operationZoneRadius");
     expect(radius).toBe(1000);
+    const preferences = await loadSetting<{ speedUnit: string; expertMode: boolean }>(
+      "displayPreferences"
+    );
+    expect(preferences).toEqual(expect.objectContaining({ speedUnit: "kt", expertMode: true }));
     const ephemeral = await loadSetting("ephemeralEphemeral");
     expect(ephemeral).toBeNull();
   });

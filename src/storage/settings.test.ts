@@ -11,6 +11,8 @@ import {
   clearAircraftSelection,
   loadOperationRadius,
   saveOperationRadius,
+  loadDisplayPreferences,
+  saveDisplayPreferences,
 } from "./settings";
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
@@ -108,6 +110,28 @@ describe("flight limits persistence", () => {
     expect(result.windMaxKmh).toBe(50);
     expect(result.gustMaxKmh).toBe(60);
     expect(result.precipitationMaxMm).toBeUndefined();
+  });
+});
+
+describe("display preferences persistence", () => {
+  it("uses canonical defaults when nothing is stored", async () => {
+    expect(await loadDisplayPreferences()).toEqual({
+      speedUnit: "kmh",
+      temperatureUnit: "c",
+      distanceUnit: "metric",
+      expertMode: false,
+    });
+  });
+
+  it("saves and reloads units and expert mode", async () => {
+    const preferences = {
+      speedUnit: "kt" as const,
+      temperatureUnit: "f" as const,
+      distanceUnit: "imperial" as const,
+      expertMode: true,
+    };
+    await saveDisplayPreferences(preferences);
+    expect(await loadDisplayPreferences()).toEqual(preferences);
   });
 });
 

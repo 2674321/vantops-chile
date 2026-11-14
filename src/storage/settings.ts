@@ -3,11 +3,16 @@ import type { AircraftProfile } from "../domain/assessment/aircraft";
 import { loadSetting, saveSetting, removeSetting } from "./repositories/settingsRepository";
 import type { Coordinate } from "../domain/coordinate";
 import { isValidRadiusMeters, validateRadiusMeters } from "../domain/operationZone";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  type DisplayPreferences,
+} from "../domain/displayPreferences";
 
 const LIMITS_KEY = "flightLimits";
 const AIRCRAFT_KEY = "activeAircraft";
 const LAST_COORD_KEY = "lastCoordinate";
 const OPERATION_RADIUS_KEY = "operationZoneRadius";
+const DISPLAY_PREFERENCES_KEY = "displayPreferences";
 
 const LS_LIMITS_KEY = "vantops:flightLimits";
 const LS_AIRCRAFT_KEY = "vantops:activeAircraft";
@@ -168,4 +173,21 @@ export async function saveOperationRadius(radiusMeters: number): Promise<void> {
   } catch {
     // ignore
   }
+}
+
+export async function loadDisplayPreferences(): Promise<DisplayPreferences> {
+  const stored = await loadSetting<Partial<DisplayPreferences>>(DISPLAY_PREFERENCES_KEY);
+  if (!stored || typeof stored !== "object") return DEFAULT_DISPLAY_PREFERENCES;
+  return {
+    speedUnit: ["kmh", "ms", "kt"].includes(stored.speedUnit ?? "")
+      ? (stored.speedUnit as DisplayPreferences["speedUnit"])
+      : "kmh",
+    temperatureUnit: stored.temperatureUnit === "f" ? "f" : "c",
+    distanceUnit: stored.distanceUnit === "imperial" ? "imperial" : "metric",
+    expertMode: stored.expertMode === true,
+  };
+}
+
+export async function saveDisplayPreferences(preferences: DisplayPreferences): Promise<void> {
+  await saveSetting(DISPLAY_PREFERENCES_KEY, preferences);
 }
