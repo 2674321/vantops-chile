@@ -1,0 +1,97 @@
+name: Capturas reales de interfaz (QA)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/capturas-reales.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependencias UI y Chromium
+        run: |
+          npm ci
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Capturar interfaz desde la aplicación ejecutada
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 8765 >/tmp/interfaz.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          import time
+          from playwright.sync_api import sync_playwright
+          base = "http://127.0.0.1:8765"
+          for intento in range(80):
+              try:
+                  with urlopen(base, timeout=2) as r:
+                      if r.status == 200:
+                          break
+              except Exception:
+                  time.sleep(.5)
+          else:
+              raise RuntimeError("El servidor de desarrollo no respondió")
+          salida = Path("docs/screenshots")
+          salida.mkdir(parents=True, exist_ok=True)
+          escenas = [
+        ("01-escritorio", "/", 1440, 900, ""),
+        ("02-movil", "/", 390, 844, ""),
+          ]
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+              try:
+                  for nombre, ruta, ancho, alto, enlace in escenas:
+                      page = browser.new_page(viewport={"width": ancho, "height": alto},
+                                              reduced_motion="reduce", locale="es-CL",
+                                              timezone_id="America/Santiago")
+                      r = page.goto(base + ruta, wait_until="domcontentloaded", timeout=30000)
+                      if r is None or r.status != 200:
+                          raise RuntimeError("Pantalla no disponible: " + nombre)
+                      page.locator("#root").wait_for(timeout=20000)
+                      page.wait_for_timeout(1800)
+                      if enlace:
+                          page.get_by_role("button", name=enlace, exact=True).first.click()
+                          page.wait_for_timeout(400)
+                      path = salida / (nombre + ".png")
+                      page.screenshot(path=str(path), animations="disabled")
+                      if path.stat().st_size < 10000:
+                          raise RuntimeError("Captura vacía: " + str(path))
+                      print(f"{path}: {path.stat().st_size} bytes")
+                      page.close()
+              finally:
+                  browser.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-ui-sinteticas
+          path: docs/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publicar imágenes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/*.png
+          if git diff --cached --quiet; then
+            echo "Capturas sin cambios"
+            exit 0
+          fi
+          git diff --cached --check
+          git commit -m "docs: incorporar capturas verificadas de la interfaz"
+          git push origin HEAD:main
