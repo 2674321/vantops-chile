@@ -38,4 +38,11 @@ describe("MapHomePreview", () => {
     await userEvent.click(screen.getByRole("button", { name: "Desplegar mapa" }));
     expect(await screen.findByRole("button", { name: /Radio público/ })).toBeInTheDocument();
   });
+
+  it("shows the selected B1 empty state only after expanding a map without radii", async () => {
+    render(<MemoryRouter><MapHomePreview /></MemoryRouter>);
+    expect(screen.queryByText("Aún no hay radios en este mapa. Abre el editor para definir el primero.")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Desplegar mapa" }));
+    expect(await screen.findByText("Aún no hay radios en este mapa. Abre el editor para definir el primero.")).toBeInTheDocument();
+  });
 });

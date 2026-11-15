@@ -1,6 +1,6 @@
 # Guía operativa — integración B1 y preparación de la siguiente fase
 
-Estado al preparar este documento: `v1.1.0-beta.2` en producción. **Este cambio incorpora recursos al README/documentación; no cambia los assets instalables ni publica APK.**
+Estado actual: integración de producto completada en `v1.1.0-beta.4`. **No publica APK ni copia el kit completo al bundle.**
 
 ## Selección de recursos de los kits
 
@@ -39,4 +39,7 @@ Estado al preparar este documento: `v1.1.0-beta.2` en producción. **Este cambio
 
 ## Qué se hizo en esta etapa
 
-Se actualizó la **presentación GitHub** y se agregaron fuentes de marca B1 reutilizables; la integración en `src/` y `public/`, el nuevo homepage y la APK quedan para la etapa de desarrollo, con pruebas.
+La marca B1 ya se usa en `src/`, favicon y manifest PWA. Se seleccionaron solo
+los activos indispensables, se validaron por SHA-256 y se conservaron separados
+los recursos Android futuros. El mapa protagonista se completó en beta.3; la APK
+continúa como decisión técnica posterior, sin artefacto publicado.

@@ -10,7 +10,18 @@ export default defineConfig(({ command }) => ({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon-192.png", "icon-512.png"],
+      includeAssets: [
+        "favicon.svg",
+        "favicon-16.png",
+        "favicon-32.png",
+        "favicon-48.png",
+        "apple-touch-icon-180.png",
+        "icon-192.png",
+        "icon-512.png",
+        "icon-maskable-192.png",
+        "icon-maskable-512.png",
+        "icon-monochrome-512.png",
+      ],
       manifest: {
         name: "VantOPS Chile",
         short_name: "VantOPS",
@@ -28,10 +39,22 @@ export default defineConfig(({ command }) => ({
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },
           {
-            src: "icon-512.png",
+            src: "icon-maskable-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "icon-maskable-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
+          },
+          {
+            src: "icon-monochrome-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "monochrome",
           },
         ],
         shortcuts: [

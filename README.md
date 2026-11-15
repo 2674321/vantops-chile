@@ -10,11 +10,11 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.3 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.4 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 **Accesos directos:** [Abrir VantOPS Chile](https://2674321.github.io/vantops-chile/) · [Mapa de operaciones](https://2674321.github.io/vantops-chile/#/utilidades/mapa) · [Utilidades](https://2674321.github.io/vantops-chile/#/utilidades) · [Identidad B1](docs/branding/README.md)
 
-> **Marca B1 — Vector V Andino:** logo principal elegido para VantOPS Chile; refleja navegación, ruta, ubicación y territorio. La PWA y sus iconos instalables se actualizarán en un hito técnico posterior con validación en dispositivos.
+> **Marca B1 — Vector V Andino:** identidad integrada en la barra de navegación, favicon e iconos instalables PWA. Los recursos maskable tienen margen seguro y las rutas respetan la base `/vantops-chile/`.
 
 
 ## Preguntas rápidas
