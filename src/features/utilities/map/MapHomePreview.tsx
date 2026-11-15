@@ -53,9 +53,8 @@ export function MapHomePreview() {
         <div className="flex items-start gap-3">
           <span className="rounded-xl bg-sky-500/15 p-2.5 text-sky-300"><MapIcon className="h-6 w-6" aria-hidden /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-400">Herramienta destacada</p>
             <h2 className="mt-1 text-xl font-semibold text-slate-100">Mapa de operaciones</h2>
-            <p className="mt-1 text-sm text-slate-300">Elige ubicación, dibuja radios y mide distancias.</p>
+            <p className="mt-1 text-sm text-slate-300">Elige ubicación, crea radios personalizados, mueve zonas, añade pines y mide distancias.</p>
             {!storageError && <p className="mt-2 text-xs font-medium text-slate-400">{maps.length === 0 ? "Sin mapas guardados todavía" : `${maps.length} ${maps.length === 1 ? "mapa guardado" : "mapas guardados"} en este dispositivo`}</p>}
             {storageError && <p role="alert" className="mt-2 text-xs text-red-300">No fue posible leer los mapas locales. Puedes abrir el editor y reintentar sin perder el resto de Inicio.</p>}
           </div>

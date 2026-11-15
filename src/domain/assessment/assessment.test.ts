@@ -7,6 +7,7 @@ import {
   findModel,
   createAircraftProfile,
   applyAircraftLimits,
+  searchAircraftCatalog,
 } from "./aircraft";
 import type { FlightAssessmentInput } from "./types";
 import type { FlightLimits } from "./limits";
@@ -275,6 +276,16 @@ describe("AIRCRAFT_CATALOG", () => {
 
   it("findManufacturer returns undefined for unknown id", () => {
     expect(findManufacturer("nonexistent")).toBeUndefined();
+  });
+
+  it("searches models without case or accents and by aircraft type", () => {
+    expect(searchAircraftCatalog("mavic 3").some(({ model }) => model.id === "dji-mavic-3-pro")).toBe(true);
+    expect(searchAircraftCatalog("ala fija").some(({ model }) => model.id === "sensefly-ebee-x")).toBe(true);
+    expect(searchAircraftCatalog("WINGTRA").some(({ model }) => model.id === "wingtra-ray")).toBe(true);
+  });
+
+  it("exposes an expanded curated catalog", () => {
+    expect(AIRCRAFT_CATALOG.flatMap((manufacturer) => manufacturer.models).length).toBeGreaterThanOrEqual(60);
   });
 });
 

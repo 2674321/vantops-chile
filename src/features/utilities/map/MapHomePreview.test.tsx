@@ -20,6 +20,10 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("MapHomePreview", () => {
+  it("does not render the removed featured-tool label", () => {
+    render(<MemoryRouter><MapHomePreview /></MemoryRouter>);
+    expect(screen.queryByText("Herramienta destacada")).not.toBeInTheDocument();
+  });
   it("keeps Leaflet preview collapsed until the user expands it", async () => {
     render(<MemoryRouter><MapHomePreview /></MemoryRouter>);
     expect(screen.queryByTestId("home-map-canvas")).not.toBeInTheDocument();

@@ -46,6 +46,8 @@ describe("operational map geometry", () => {
     }));
     const map = { id: "map-1", schemaVersion: 1, name: "QA", zones, createdAt: now, updatedAt: now };
     expect(isValidSavedOperationalMap(map)).toBe(true);
+    expect(isValidSavedOperationalMap({ ...map, pins: [{ id: "pin-1", name: "Despegue", coordinate: zones[0].center, color: "#22c55e" }] })).toBe(true);
+    expect(isValidSavedOperationalMap({ ...map, pins: [{ id: "pin-1", name: "", coordinate: zones[0].center, color: "#22c55e" }] })).toBe(false);
     expect(isValidSavedOperationalMap({ ...map, zones: [zones[0], zones[0]] })).toBe(false);
   });
 });

@@ -2,6 +2,29 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.5] - 2026-11-15
+
+### Added
+- Radios personalizados desde el panel principal, sin tener que crear un preset y
+  editarlo después.
+- Pines persistentes con nombre, color, selección, arrastre y eliminación; los
+  respaldos anteriores siguen siendo válidos porque `pins` es aditivo y opcional.
+- Catálogo curado de 60+ perfiles de DJI, Autel, Skydio, Parrot, SenseFly,
+  Wingtra, Quantum Systems y Freefly, con búsqueda tolerante a mayúsculas y
+  acentos, agrupación por fabricante/tipo y enlaces oficiales.
+
+### Changed
+- El centro del radio seleccionado se puede arrastrar directamente y la cámara
+  solo se recentra ante acciones explícitas, reduciendo saltos y parpadeos.
+- El selector pre-vuelo usa submenús plegables y resultados de búsqueda en vez
+  de dos listas desplegables largas.
+- Inicio elimina la etiqueta `Herramienta destacada` y describe las capacidades
+  actuales del mapa.
+
+### Compatibility
+- Sin migración de Dexie ni cambio del formato de backup; mapas beta.2–beta.4
+  cargan con una colección de pines vacía.
+
 ## [1.1.0-beta.4] - 2026-11-15
 
 ### Added

@@ -10,7 +10,7 @@ import { getDB, resetDB } from "../../../storage/db";
 import * as mapRepository from "../../../storage/repositories/operationalMapRepository";
 import { OperationalMapPage } from "./OperationalMapPage";
 
-vi.mock("./OperationalMapCanvas", () => ({ default: ({ onMapPick }: { onMapPick: (point: { latitude: number; longitude: number }) => void }) => <div data-testid="map-canvas">Mapa<button type="button" onClick={() => onMapPick({ latitude: -32, longitude: -71 })}>Punto mapa</button></div> }));
+vi.mock("./OperationalMapCanvas", () => ({ default: ({ onMapPick, onMoveZone, onMovePin }: { onMapPick: (point: { latitude: number; longitude: number }) => void; onMoveZone?: (id: string, point: { latitude: number; longitude: number }) => void; onMovePin?: (id: string, point: { latitude: number; longitude: number }) => void }) => <div data-testid="map-canvas">Mapa<button type="button" onClick={() => onMapPick({ latitude: -32, longitude: -71 })}>Punto mapa</button><button type="button" onClick={() => onMoveZone?.("zone-test", { latitude: -31, longitude: -70 })}>Mover radio simulado</button><button type="button" onClick={() => onMovePin?.("pin-test", { latitude: -30, longitude: -69 })}>Mover pin simulado</button></div> }));
 
 beforeEach(async () => {
   resetDB();
@@ -33,6 +33,19 @@ describe("OperationalMapPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Guardar mapa" }));
     await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
     expect((await mapRepository.listOperationalMaps())[0]).toMatchObject({ name: "Mapa QA público", zones: [{ radiusMeters: 500 }, { radiusMeters: 250 }] });
+  });
+
+  it("adds a custom radius and a persistent pin", async () => {
+    render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
+    await screen.findByTestId("map-canvas");
+    await userEvent.clear(screen.getByLabelText("Radio personalizado en metros"));
+    await userEvent.type(screen.getByLabelText("Radio personalizado en metros"), "1350");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir radio personalizado" }));
+    await userEvent.click(screen.getByRole("button", { name: "Poner pin" }));
+    await userEvent.click(screen.getByRole("button", { name: "Punto mapa" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar mapa" }));
+    await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
+    expect((await mapRepository.listOperationalMaps())[0]).toMatchObject({ zones: [{ radiusMeters: 1350 }], pins: [{ coordinate: { latitude: -32, longitude: -71 } }] });
   });
 
   it("rejects a partial numeric radius instead of parsing its prefix", async () => {
