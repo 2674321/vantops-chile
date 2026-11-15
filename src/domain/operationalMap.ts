@@ -4,6 +4,7 @@ import { MAX_RADIUS_METERS, MIN_RADIUS_METERS, validateRadiusMeters } from "./op
 
 export const OPERATIONAL_MAP_SCHEMA_VERSION = 1 as const;
 export const MAX_ZONES_PER_MAP = 50;
+export const MAX_PINS_PER_MAP = 100;
 export const MAX_OPERATIONAL_MAPS = 100;
 export const MAP_ZONE_COLORS = ["#38bdf8", "#22c55e", "#f59e0b", "#f43f5e", "#a78bfa", "#e2e8f0"] as const;
 
@@ -17,6 +18,13 @@ export interface MapRadiusZone {
   fillOpacity: number;
 }
 
+export interface MapPin {
+  id: string;
+  name: string;
+  coordinate: Coordinate;
+  color: string;
+}
+
 export interface SavedOperationalMap {
   id: string;
   schemaVersion: typeof OPERATIONAL_MAP_SCHEMA_VERSION;
@@ -24,6 +32,8 @@ export interface SavedOperationalMap {
   description?: string;
   initialView?: { center: Coordinate; zoom: number };
   zones: MapRadiusZone[];
+  /** Optional for backwards compatibility with maps created before beta.5. */
+  pins?: MapPin[];
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +105,14 @@ export function isValidMapRadiusZone(value: unknown): value is MapRadiusZone {
     && value.fillOpacity >= 0 && value.fillOpacity <= 0.5;
 }
 
+export function isValidMapPin(value: unknown): value is MapPin {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" && value.id.length > 0 && value.id.length <= 120
+    && typeof value.name === "string" && value.name.trim().length > 0 && value.name.length <= 120
+    && isRecord(value.coordinate) && isValidCoordinate(value.coordinate as unknown as Coordinate)
+    && typeof value.color === "string" && (MAP_ZONE_COLORS as readonly string[]).includes(value.color);
+}
+
 export function isValidSavedOperationalMap(value: unknown): value is SavedOperationalMap {
   if (!isRecord(value)) return false;
   if (value.schemaVersion !== OPERATIONAL_MAP_SCHEMA_VERSION) return false;
@@ -104,6 +122,10 @@ export function isValidSavedOperationalMap(value: unknown): value is SavedOperat
   if (!isTimestamp(value.createdAt) || !isTimestamp(value.updatedAt)) return false;
   if (!Array.isArray(value.zones) || value.zones.length > MAX_ZONES_PER_MAP || !value.zones.every(isValidMapRadiusZone)) return false;
   if (new Set(value.zones.map((zone) => zone.id)).size !== value.zones.length) return false;
+  if (value.pins !== undefined) {
+    if (!Array.isArray(value.pins) || value.pins.length > MAX_PINS_PER_MAP || !value.pins.every(isValidMapPin)) return false;
+    if (new Set(value.pins.map((pin) => pin.id)).size !== value.pins.length) return false;
+  }
   if (value.initialView !== undefined) {
     if (!isRecord(value.initialView) || !isRecord(value.initialView.center)) return false;
     if (!isValidCoordinate(value.initialView.center as unknown as Coordinate)) return false;
@@ -113,5 +135,5 @@ export function isValidSavedOperationalMap(value: unknown): value is SavedOperat
 }
 
 export function operationalMapLimitsDescription(): string {
-  return `Radios entre ${MIN_RADIUS_METERS} y ${MAX_RADIUS_METERS} m; hasta ${MAX_ZONES_PER_MAP} zonas por mapa. Límites técnicos, no aeronáuticos.`;
+  return `Radios entre ${MIN_RADIUS_METERS} y ${MAX_RADIUS_METERS} m; hasta ${MAX_ZONES_PER_MAP} zonas y ${MAX_PINS_PER_MAP} pines por mapa. Límites técnicos, no aeronáuticos.`;
 }

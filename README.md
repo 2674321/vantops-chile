@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.4 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.5 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 **Accesos directos:** [Abrir VantOPS Chile](https://2674321.github.io/vantops-chile/) · [Mapa de operaciones](https://2674321.github.io/vantops-chile/#/utilidades/mapa) · [Utilidades](https://2674321.github.io/vantops-chile/#/utilidades) · [Identidad B1](docs/branding/README.md)
 
@@ -44,10 +44,10 @@ Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estab
 Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v3 incluye preparaciones, mapas y preferencias, y sigue importando respaldos v1/v2.
 
 **¿Qué permite Utilidades → Mapa de operaciones?**
-Crear varios radios con centros independientes, medir distancias y guardar mapas localmente. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
+Crear radios preset o personalizados, mover sus centros por arrastre, añadir pines, medir distancias y guardar mapas localmente. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
 
 **¿Cómo abro rápidamente el mapa?**
-Inicio muestra una tarjeta destacada que se despliega bajo demanda sin solicitar GPS automáticamente. La navegación ofrece accesos directos a **Mapa** y **Utilidades** tanto en móvil como en escritorio; el editor completo conserva la ruta `/#/utilidades/mapa`.
+Inicio muestra una tarjeta de mapa que se despliega bajo demanda sin solicitar GPS automáticamente. La navegación ofrece accesos directos a **Mapa** y **Utilidades** tanto en móvil como en escritorio; el editor completo conserva la ruta `/#/utilidades/mapa`.
 
 **¿Puedo cambiar unidades o ver más detalle?**
 Sí. Ajustes permite elegir km/h, m/s o kt; °C o °F; sistema métrico o imperial; y activar el modo experto. El dominio conserva km/h, °C y metros como unidades canónicas: cambiar la presentación no altera físicamente tus límites ni vuelve la evaluación más permisiva.
@@ -219,8 +219,8 @@ La UI nunca depende del JSON crudo de APIs externas.
 - **Referencias por item**: items normativos incluyen enlace a fuente oficial DGAC con expansión en UI
 - **Corrección de afirmaciones absolutas**: eliminada referencia universal a "400 ft AGL", METAR contextualizado como "revisar información meteorológica disponible"
 - **DAN 91 Ed. 4 / ENM 5 (JUL 2023)** y **DAN 151 Ed. 3 (MAY 2024)** como fuentes verificadas
-- **Selector de aeronave**: fabricante → modelo → tipo con 8 fabricantes y 30+ modelos
-- **Base de aeronaves**: DJI (13 modelos), Autel (3), Skydio (2), Parrot (2), SenseFly (1), Wingtra (1), Quantum Systems (1), Genérico (5)
+- **Selector de aeronave**: búsqueda instantánea, submenús por fabricante y agrupación por tipo
+- **Base de aeronaves**: catálogo curado de 60+ modelos de 8 fabricantes, más 5 perfiles genéricos y enlaces a fuentes oficiales
 - **Modo genérico**: 5 perfiles genéricos para aeronaves no catalogadas
 - **Estado "modelo no disponible"**: fallback a perfil genérico con mensaje informativo
 - **Persistencia**: manufacturer, model, activeAircraft en localStorage

@@ -5600,6 +5600,8 @@ P2 — Funciones futuras (solo con necesidad concreta y fuente verificada)
 - `1.1.0-beta.3`: mapa protagonista, navegación responsive y QA ampliado.
 - `1.1.0-beta.4`: identidad B1 integrada en web/PWA, iconos maskable dedicados,
   rutas GitHub Pages y activos de mapa seleccionados bajo demanda.
+- `1.1.0-beta.5`: radios personalizados y arrastrables, pines persistentes, cámara
+  estable y selector pre-vuelo buscable con catálogo ampliado y submenús.
 - APK/Capacitor/TWA permanece pendiente de una decisión técnica y QA real en
   dispositivo; no existe APK publicada.
 
