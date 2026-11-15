@@ -9,6 +9,7 @@ import { formatRadius } from "../../../domain/operationZone";
 import { useOnlineStatus } from "../../../hooks/useOnlineStatus";
 import { listOperationalMaps } from "../../../storage/repositories/operationalMapRepository";
 import { esCL as t } from "../../../i18n/es-CL";
+import noRadiiIllustration from "../../../assets/states/no-radii.svg";
 
 const OperationalMapCanvas = lazy(() => import("./OperationalMapCanvas"));
 const PREVIEW_CENTER: Coordinate = { latitude: -33.4489, longitude: -70.6693 };
@@ -78,6 +79,12 @@ export function MapHomePreview() {
             <Suspense fallback={<div className="flex h-[320px] items-center justify-center rounded-xl border border-slate-800 text-sm text-slate-400">Cargando vista del mapa…</div>}>
               <OperationalMapCanvas center={center} zones={selectedMap?.zones ?? []} selectedZoneId={selectedZone?.id ?? null} measurement={{}} tool="explore" fitNonce={selectedMap ? 1 : 0} onMapPick={() => undefined} onSelectZone={setSelectedZoneId} variant="preview" />
             </Suspense>
+            {(!selectedMap || selectedMap.zones.length === 0) && (
+              <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <img src={noRadiiIllustration} width="72" height="72" loading="lazy" alt="" aria-hidden className="h-16 w-16 shrink-0 object-contain" />
+                <p className="text-sm text-slate-300">Aún no hay radios en este mapa. Abre el editor para definir el primero.</p>
+              </div>
+            )}
             {selectedMap && selectedMap.zones.length > 0 && (
               <div className="flex flex-wrap gap-2" aria-label="Radios del mapa guardado">
                 {selectedMap.zones.map((zone) => <button key={zone.id} type="button" onClick={() => setSelectedZoneId(zone.id)} className={`rounded-lg border px-3 py-2 text-left text-xs ${selectedZone?.id === zone.id ? "border-sky-500 bg-sky-950/40 text-sky-100" : "border-slate-700 text-slate-300"}`}><span className="font-medium">{zone.name}</span> · {formatRadius(zone.radiusMeters)}</button>)}

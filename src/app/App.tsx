@@ -1,12 +1,13 @@
 import { Suspense, lazy, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench, Map as MapIcon, Menu, Info } from "lucide-react";
+import { BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench, Map as MapIcon, Menu, Info } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ToastProvider } from "../components/toast/ToastProvider";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
+import brandMarkUrl from "../assets/brand/b1-symbol.svg";
 
 const DashboardPage = lazy(() => import("../features/dashboard/DashboardPage"));
 const SettingsPage = lazy(() => import("../features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
@@ -59,7 +60,10 @@ function PrimaryNavigation() {
   return (
     <nav aria-label="Navegación principal" className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pb-2 pt-3 sm:px-6">
-        <NavLink to="/" className={brandLinkClass}><Plane aria-hidden className="h-4 w-4" />{t.appName}</NavLink>
+        <NavLink to="/" className={brandLinkClass} aria-label={`${t.appName} · Inicio`}>
+          <img src={brandMarkUrl} width="24" height="24" alt="" aria-hidden className="h-6 w-6 shrink-0" />
+          {t.appName}
+        </NavLink>
         <OnlineIndicator />
       </div>
       <div className="mx-auto hidden w-full max-w-5xl flex-wrap items-center gap-1 px-6 pb-2 sm:flex">

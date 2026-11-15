@@ -2,6 +2,25 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.4] - 2026-11-15
+
+### Added
+- Identidad B1 Vector V Andino dentro del producto: marca accesible en el header,
+  favicon SVG/PNG, Apple Touch y familias PWA standard, maskable y monochrome.
+- Estado vacío ilustrado y marcador de centro de operación seleccionados del kit,
+  cargados solo en los flujos de mapa que los necesitan.
+- Regresión de integridad SHA-256 para los activos B1 P0 y rutas base-aware.
+
+### Changed
+- El manifest usa iconos maskable dedicados de 192/512 px con margen seguro,
+  en vez de declarar como adaptable el mismo PNG estándar.
+- Las referencias de `index.html` funcionan bajo `/vantops-chile/` y conservan
+  el modo local de Vite.
+
+### Compatibility
+- Sin cambios en el motor meteorológico, Dexie v4, backup v3, `id`, `scope`,
+  `start_url` ni rutas hash de la PWA.
+
 ## [1.1.0-beta.3] - 2026-11-15
 
 ### Added

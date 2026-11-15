@@ -1,9 +1,17 @@
 import { useEffect, useRef } from "react";
-import { latLng, latLngBounds } from "leaflet";
-import { Circle, CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { icon, latLng, latLngBounds } from "leaflet";
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Coordinate } from "../../../domain/coordinate";
 import type { MapRadiusZone } from "../../../domain/operationalMap";
+import operationCenterUrl from "../../../assets/map/operation-center.svg";
+
+const operationCenterIcon = icon({
+  iconUrl: operationCenterUrl,
+  iconSize: [36, 36],
+  iconAnchor: [18, 31],
+  tooltipAnchor: [0, -28],
+});
 
 export type MapTool = "explore" | "center" | "measure";
 
@@ -71,6 +79,7 @@ function MapInteraction({ tool, onPick }: { tool: MapTool; onPick: (coordinate: 
 
 export default function OperationalMapCanvas(props: Props) {
   const { center, zones, selectedZoneId, measurement, tool, fitNonce, onMapPick, onSelectZone, variant = "editor" } = props;
+  const selectedVisibleZone = zones.find((zone) => zone.id === selectedZoneId && zone.visible);
   return (
     <div className={variant === "preview" ? "relative z-0 h-[320px] overflow-hidden rounded-xl border border-slate-700 sm:h-[390px]" : "relative z-0 h-[55dvh] min-h-[390px] overflow-hidden rounded-xl border border-slate-700 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px]"}>
       <MapContainer center={[center.latitude, center.longitude]} zoom={12} scrollWheelZoom className="h-full w-full" style={{ background: "#020617" }}>
@@ -84,6 +93,7 @@ export default function OperationalMapCanvas(props: Props) {
             <Tooltip>{zone.name} · {Math.round(zone.radiusMeters)} m</Tooltip>
           </Circle>
         ))}
+        {selectedVisibleZone && <Marker position={[selectedVisibleZone.center.latitude, selectedVisibleZone.center.longitude]} icon={operationCenterIcon} alt="Centro de operación seleccionado"><Tooltip>{selectedVisibleZone.name} · centro de planificación</Tooltip></Marker>}
         {measurement.a && <CircleMarker center={[measurement.a.latitude, measurement.a.longitude]} radius={7} pathOptions={{ color: "#f59e0b", fillOpacity: 0.8 }}><Tooltip permanent>A</Tooltip></CircleMarker>}
         {measurement.b && <CircleMarker center={[measurement.b.latitude, measurement.b.longitude]} radius={7} pathOptions={{ color: "#22c55e", fillOpacity: 0.8 }}><Tooltip permanent>B</Tooltip></CircleMarker>}
         {measurement.a && measurement.b && <Polyline positions={[[measurement.a.latitude, measurement.a.longitude], [measurement.b.latitude, measurement.b.longitude]]} pathOptions={{ color: "#f8fafc", dashArray: "8 6" }} />}

@@ -5595,6 +5595,14 @@ P2 — Funciones futuras (solo con necesidad concreta y fuente verificada)
 > Regla de producto vigente: VantOPS **informa**; DGAC/AIS **determina**. Nunca
 > presentar resultados como autorización legal de vuelo.
 
+## Hitos beta 1.1 cerrados
+
+- `1.1.0-beta.3`: mapa protagonista, navegación responsive y QA ampliado.
+- `1.1.0-beta.4`: identidad B1 integrada en web/PWA, iconos maskable dedicados,
+  rutas GitHub Pages y activos de mapa seleccionados bajo demanda.
+- APK/Capacitor/TWA permanece pendiente de una decisión técnica y QA real en
+  dispositivo; no existe APK publicada.
+
 ---
 
 ## FIN DEL ROADMAP MAESTRO DE VANTOPS CHILE

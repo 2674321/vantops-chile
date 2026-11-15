@@ -51,6 +51,7 @@ jobs:
           escenas = [
           ("01-escritorio", "/", 1440, 900, ""),
           ("02-movil", "/", 390, 844, ""),
+          ("03-inicio-mapa-b1", "/", 390, 844, "Desplegar mapa"),
           ]
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
