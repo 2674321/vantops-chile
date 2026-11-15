@@ -1,7 +1,7 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench } from "lucide-react";
-import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench, Map as MapIcon, Menu, Info } from "lucide-react";
+import { HashRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -46,6 +46,53 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : "text-slate-400 hover:bg-slate-900 hover:text-slate-200",
   );
 
+const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400",
+    isActive ? "bg-slate-800 text-sky-300" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200",
+  );
+
+function PrimaryNavigation() {
+  const location = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const secondaryActive = ["/bitacora", "/lugares", "/ajustes", "/acerca"].some((path) => location.pathname.startsWith(path));
+  return (
+    <nav aria-label="Navegación principal" className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pb-2 pt-3 sm:px-6">
+        <NavLink to="/" className={brandLinkClass}><Plane aria-hidden className="h-4 w-4" />{t.appName}</NavLink>
+        <OnlineIndicator />
+      </div>
+      <div className="mx-auto hidden w-full max-w-5xl flex-wrap items-center gap-1 px-6 pb-2 sm:flex">
+        <NavLink to="/" end className={navLinkClass}><span aria-hidden>⌂</span>{t.nav.home}</NavLink>
+        <NavLink to="/utilidades/mapa" className={navLinkClass}><MapIcon aria-hidden className="h-4 w-4" />Mapa</NavLink>
+        <NavLink to="/operacion" className={navLinkClass}><ClipboardCheck aria-hidden className="h-4 w-4" />{t.nav.operation}</NavLink>
+        <NavLink to="/bitacora" className={navLinkClass}><BookOpen aria-hidden className="h-4 w-4" />{t.nav.logbook}</NavLink>
+        <NavLink to="/utilidades" end className={navLinkClass}><Wrench aria-hidden className="h-4 w-4" />{t.nav.utilities}</NavLink>
+        <NavLink to="/lugares" className={navLinkClass}><MapPin aria-hidden className="h-4 w-4" />{t.nav.places}</NavLink>
+        <NavLink to="/ajustes" className={navLinkClass}><Settings2 aria-hidden className="h-4 w-4" />{t.nav.settings}</NavLink>
+        <NavLink to="/acerca" className={navLinkClass}><Info aria-hidden className="h-4 w-4" />{t.nav.about}</NavLink>
+      </div>
+      <div className="px-2 pb-2 sm:hidden">
+        <div className="grid grid-cols-5 gap-1">
+          <NavLink to="/" end className={mobileNavLinkClass}><span aria-hidden className="text-base">⌂</span>{t.nav.home}</NavLink>
+          <NavLink to="/utilidades/mapa" className={mobileNavLinkClass}><MapIcon aria-hidden className="h-4 w-4" />Mapa</NavLink>
+          <NavLink to="/operacion" className={mobileNavLinkClass}><ClipboardCheck aria-hidden className="h-4 w-4" />Operación</NavLink>
+          <NavLink to="/utilidades" end className={mobileNavLinkClass}><Wrench aria-hidden className="h-4 w-4" />Utilidades</NavLink>
+          <button type="button" aria-expanded={moreOpen} aria-controls="mobile-secondary-nav" onClick={() => setMoreOpen((value) => !value)} className={cn(mobileNavLinkClass({ isActive: secondaryActive || moreOpen }))}><Menu aria-hidden className="h-4 w-4" />Más</button>
+        </div>
+        {moreOpen && (
+          <div id="mobile-secondary-nav" className="mt-1 grid grid-cols-4 gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+            <NavLink to="/bitacora" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><BookOpen aria-hidden className="h-4 w-4" />Bitácora</NavLink>
+            <NavLink to="/lugares" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><MapPin aria-hidden className="h-4 w-4" />Lugares</NavLink>
+            <NavLink to="/ajustes" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><Settings2 aria-hidden className="h-4 w-4" />Ajustes</NavLink>
+            <NavLink to="/acerca" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><Info aria-hidden className="h-4 w-4" />Acerca</NavLink>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
+
 function LoadingFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -61,46 +108,7 @@ export function App() {
         <ToastProvider>
           <HashRouter>
           <div className="flex min-h-dvh flex-col">
-            <nav aria-label="Navegación principal" className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-              <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pb-2 pt-3 sm:px-6">
-                <NavLink to="/" className={brandLinkClass}>
-                  <Plane aria-hidden className="h-4 w-4" />
-                  {t.appName}
-                </NavLink>
-                <OnlineIndicator />
-              </div>
-              <div className="mx-auto w-full max-w-2xl px-5 pb-2 sm:px-6">
-                <div className="no-scrollbar flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-                  <NavLink to="/" end className={navLinkClass}>
-                    <span aria-hidden>⌂</span>
-                    {t.nav.home}
-                  </NavLink>
-                  <NavLink to="/bitacora" className={navLinkClass}>
-                    <BookOpen aria-hidden className="h-4 w-4" />
-                    {t.nav.logbook}
-                  </NavLink>
-                  <NavLink to="/operacion" className={navLinkClass}>
-                    <ClipboardCheck aria-hidden className="h-4 w-4" />
-                    {t.nav.operation}
-                  </NavLink>
-                  <NavLink to="/lugares" className={navLinkClass}>
-                    <MapPin aria-hidden className="h-4 w-4" />
-                    {t.nav.places}
-                  </NavLink>
-                  <NavLink to="/utilidades" className={navLinkClass}>
-                    <Wrench aria-hidden className="h-4 w-4" />
-                    {t.nav.utilities}
-                  </NavLink>
-                  <NavLink to="/ajustes" className={navLinkClass}>
-                    <Settings2 aria-hidden className="h-4 w-4" />
-                    {t.nav.settings}
-                  </NavLink>
-                  <NavLink to="/acerca" className={navLinkClass}>
-                    {t.nav.about}
-                  </NavLink>
-                </div>
-              </div>
-            </nav>
+            <PrimaryNavigation />
 
             <main className="flex-1">
               <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-6">

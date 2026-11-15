@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.2 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.3 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 **Accesos directos:** [Abrir VantOPS Chile](https://2674321.github.io/vantops-chile/) · [Mapa de operaciones](https://2674321.github.io/vantops-chile/#/utilidades/mapa) · [Utilidades](https://2674321.github.io/vantops-chile/#/utilidades) · [Identidad B1](docs/branding/README.md)
 
@@ -45,6 +45,9 @@ Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaura
 
 **¿Qué permite Utilidades → Mapa de operaciones?**
 Crear varios radios con centros independientes, medir distancias y guardar mapas localmente. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
+
+**¿Cómo abro rápidamente el mapa?**
+Inicio muestra una tarjeta destacada que se despliega bajo demanda sin solicitar GPS automáticamente. La navegación ofrece accesos directos a **Mapa** y **Utilidades** tanto en móvil como en escritorio; el editor completo conserva la ruta `/#/utilidades/mapa`.
 
 **¿Puedo cambiar unidades o ver más detalle?**
 Sí. Ajustes permite elegir km/h, m/s o kt; °C o °F; sistema métrico o imperial; y activar el modo experto. El dominio conserva km/h, °C y metros como unidades canónicas: cambiar la presentación no altera físicamente tus límites ni vuelve la evaluación más permisiva.

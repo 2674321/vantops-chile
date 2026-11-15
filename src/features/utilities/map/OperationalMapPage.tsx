@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Copy, Crosshair, Expand, Eye, EyeOff, LocateFixed, MapPin, Plus, Ruler, Save, Shrink, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { formatCoordinate, parseCoordinateFields, type Coordinate } from "../../../domain/coordinate";
@@ -31,11 +31,13 @@ const fieldClass = "h-10 w-full rounded-lg border border-slate-700 bg-slate-950 
 
 export function OperationalMapPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialQueryRef = useRef({ mapId: searchParams.get("mapId"), zoneId: searchParams.get("zoneId"), mode: searchParams.get("mode") });
   const toast = useToast();
   const online = useOnlineStatus();
   const [maps, setMaps] = useState<SavedOperationalMap[]>([]);
   const [draft, setDraft] = useState(() => emptyMap(DEFAULT_CENTER));
-  const [savedSnapshot, setSavedSnapshot] = useState("");
+  const [savedFingerprint, setSavedFingerprint] = useState("");
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [lat, setLat] = useState(String(DEFAULT_CENTER.latitude));
@@ -49,41 +51,57 @@ export function OperationalMapPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expertMode, setExpertMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { void (async () => {
-    const [storedMaps, storedPlaces, storedPlans, last, preferences] = await Promise.all([listOperationalMaps(), listPlaces(), listFlightPlans(), loadLastCoordinate(), loadDisplayPreferences()]);
-    setMaps(storedMaps); setPlaces(storedPlaces); setPlans(storedPlans); setExpertMode(preferences.expertMode);
-    if (storedMaps[0]) openMap(storedMaps[0]); else if (last) applyCenter(last);
+    try {
+      const [storedMaps, storedPlaces, storedPlans, last, preferences] = await Promise.all([listOperationalMaps(), listPlaces(), listFlightPlans(), loadLastCoordinate(), loadDisplayPreferences()]);
+      setMaps(storedMaps); setPlaces(storedPlaces); setPlans(storedPlans); setExpertMode(preferences.expertMode);
+      const requestedMap = storedMaps.find((map) => map.id === initialQueryRef.current.mapId);
+      const initial = requestedMap ?? storedMaps[0];
+      if (initial) openMap(initial, initialQueryRef.current.zoneId); else if (last) applyCenter(last);
+      if (initialQueryRef.current.mode === "measure") setTool("measure");
+    } catch {
+      setError("No fue posible abrir el almacenamiento local. El borrador seguirá disponible mientras esta pantalla permanezca abierta.");
+    } finally {
+      setLoading(false);
+    }
   })(); }, []);
 
   const selectedZone = draft.zones.find((zone) => zone.id === selectedZoneId) ?? null;
-  const dirty = JSON.stringify(draft) !== savedSnapshot;
+  const draftFingerprint = useMemo(() => JSON.stringify(draft), [draft]);
+  const dirty = !loading && draftFingerprint !== savedFingerprint;
   const measurementResult = useMemo(() => measurement.a && measurement.b ? { distance: haversineDistanceMeters(measurement.a, measurement.b), bearing: initialBearingDegrees(measurement.a, measurement.b) } : null, [measurement]);
 
   useEffect(() => {
     if (!dirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    const confirmDiscard = () => window.confirm("Hay cambios sin guardar en el mapa. ¿Salir y descartarlos?");
     const protectInternalLink = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target.closest("a") : null;
-      if (target?.getAttribute("href")?.includes("#/") && !window.confirm("Hay cambios sin guardar en el mapa. ¿Salir y descartarlos?")) {
+      if (target?.getAttribute("href")?.includes("#/") && !confirmDiscard()) {
         event.preventDefault();
         event.stopPropagation();
       }
     };
+    const protectBrowserBack = () => {
+      if (!confirmDiscard()) window.history.forward();
+    };
     window.addEventListener("beforeunload", beforeUnload);
+    window.addEventListener("popstate", protectBrowserBack, true);
     document.addEventListener("click", protectInternalLink, true);
-    return () => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", protectInternalLink, true); };
+    return () => { window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("popstate", protectBrowserBack, true); document.removeEventListener("click", protectInternalLink, true); };
   }, [dirty]);
 
   function applyCenter(next: Coordinate) { setCenter(next); setLat(String(next.latitude)); setLon(String(next.longitude)); }
-  function openMap(map: SavedOperationalMap) { const copy = structuredClone(map); setDraft(copy); setSavedSnapshot(JSON.stringify(copy)); const next = copy.initialView?.center ?? copy.zones[0]?.center ?? DEFAULT_CENTER; applyCenter(next); setSelectedZoneId(copy.zones[0]?.id ?? null); setError(null); }
+  function confirmDraftReplacement(action: string) { return !dirty || window.confirm(`Hay cambios sin guardar. ¿${action} y descartarlos?`); }
+  function openMap(map: SavedOperationalMap, requestedZoneId?: string | null) { const copy = structuredClone(map); setDraft(copy); setSavedFingerprint(JSON.stringify(copy)); const selected = copy.zones.find((zone) => zone.id === requestedZoneId) ?? copy.zones[0]; const next = selected?.center ?? copy.initialView?.center ?? DEFAULT_CENTER; applyCenter(next); setSelectedZoneId(selected?.id ?? null); setError(null); }
   function mutate(mutator: (map: SavedOperationalMap) => SavedOperationalMap) { setDraft((current) => ({ ...mutator(current), updatedAt: new Date().toISOString() })); }
   function leave(target: string) { if (!dirty || window.confirm("Hay cambios sin guardar en el mapa. ¿Salir y descartarlos?")) navigate(target); }
   function updateZone(id: string, changes: Partial<MapRadiusZone>) { mutate((map) => ({ ...map, zones: map.zones.map((zone) => zone.id === id ? { ...zone, ...changes } : zone) })); }
 
   function pickOnMap(point: Coordinate) {
-    applyCenter(point);
-    if (tool === "center") { if (selectedZoneId) updateZone(selectedZoneId, { center: point }); setTool("explore"); return; }
+    if (tool === "center") { applyCenter(point); if (selectedZoneId) updateZone(selectedZoneId, { center: point }); setTool("explore"); return; }
     if (tool === "measure") setMeasurement((current) => !current.a || current.b ? { a: point } : { ...current, b: point });
   }
 
@@ -97,31 +115,46 @@ export function OperationalMapPage() {
   function duplicateZone(zone: MapRadiusZone) { const copy = { ...zone, id: createLocalId(), name: `${zone.name} (copia)` }; mutate((map) => ({ ...map, zones: [...map.zones, copy] })); setSelectedZoneId(copy.id); }
   function removeZone(id: string) { if (!window.confirm("¿Eliminar este radio del mapa?")) return; mutate((map) => ({ ...map, zones: map.zones.filter((zone) => zone.id !== id) })); setSelectedZoneId(null); }
 
-  async function save() {
+  async function save(): Promise<boolean> {
     setSaving(true); setError(null);
-    try { await saveOperationalMap(draft); const refreshed = await listOperationalMaps(); setMaps(refreshed); setSavedSnapshot(JSON.stringify(draft)); toast.success("Mapa guardado localmente."); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo guardar el mapa."); }
+    try { const snapshot = structuredClone(draft); await saveOperationalMap(snapshot); const refreshed = await listOperationalMaps(); setMaps(refreshed); setSavedFingerprint(JSON.stringify(snapshot)); toast.success("Mapa guardado localmente."); return true; }
+    catch (caught) { setError(caught instanceof Error || caught instanceof DOMException ? caught.message : "No se pudo guardar el mapa. Conserva esta pantalla abierta y copia los datos importantes antes de reintentar."); return false; }
     finally { setSaving(false); }
   }
 
-  async function duplicateMap() { try { const copy = await duplicateOperationalMap(draft); setMaps(await listOperationalMaps()); openMap(copy); toast.success("Mapa duplicado."); } catch { setError("Guarda el mapa antes de duplicarlo."); } }
-  async function deleteMap() { if (!maps.some((map) => map.id === draft.id) || !window.confirm("¿Eliminar el mapa completo? Esta acción no elimina planes históricos.")) return; await deleteOperationalMap(draft.id); const next = await listOperationalMaps(); setMaps(next); if (next[0]) openMap(next[0]); else { const fresh = emptyMap(center); setDraft(fresh); setSavedSnapshot(""); } }
+  async function duplicateMap() { if (dirty && !window.confirm("¿Duplicar el estado actual como un mapa nuevo? El original guardado no se modificará.")) return; try { const copy = await duplicateOperationalMap(draft); setMaps(await listOperationalMaps()); openMap(copy); toast.success("Mapa duplicado."); } catch { setError("No se pudo duplicar el mapa en este dispositivo."); } }
+  async function deleteMap() { if (!maps.some((map) => map.id === draft.id) || !confirmDraftReplacement("eliminar este mapa")) return; if (!window.confirm("¿Eliminar el mapa completo? Esta acción no elimina planes históricos.")) return; await deleteOperationalMap(draft.id); const next = await listOperationalMaps(); setMaps(next); if (next[0]) openMap(next[0]); else { const fresh = emptyMap(center); setDraft(fresh); setSavedFingerprint(""); setSelectedZoneId(null); } }
+
+  async function useZoneInPlan() {
+    if (!selectedZone) return;
+    if (dirty) {
+      if (!window.confirm("Esta zona tiene cambios sin guardar. ¿Guardar el mapa y continuar a la preparación?")) return;
+      if (!await save()) return;
+    }
+    navigate(`/operacion/nueva?mapId=${encodeURIComponent(draft.id)}&zoneId=${encodeURIComponent(selectedZone.id)}&returnTo=${encodeURIComponent("/utilidades/mapa")}`);
+  }
 
   function applyManual() { const parsed = parseCoordinateFields(lat, lon); if (!parsed.ok) { setError("Ingresa coordenadas WGS84 válidas; no se reemplazarán por 0,0."); return; } applyCenter(parsed.coordinate); setError(null); }
-  function useLocation() { if (!navigator.geolocation) { setError("Geolocalización no disponible. Usa coordenadas o búsqueda."); return; } navigator.geolocation.getCurrentPosition((position) => { applyCenter({ latitude: position.coords.latitude, longitude: position.coords.longitude }); setError(position.coords.accuracy ? `Precisión informada por el dispositivo: ±${Math.round(position.coords.accuracy)} m.` : null); }, (geoError) => { setError(geoError.code === geoError.PERMISSION_DENIED ? "Permiso denegado. Puedes usar coordenadas, lugares o búsqueda." : geoError.code === geoError.TIMEOUT ? "Tiempo agotado al obtener ubicación." : "No fue posible obtener la ubicación."); }, { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }); }
+  function useLocation() { if (!navigator.geolocation) { setError("Geolocalización no disponible. Usa coordenadas o búsqueda."); return; } navigator.geolocation.getCurrentPosition((position) => { applyCenter({ latitude: position.coords.latitude, longitude: position.coords.longitude }); setError(position.coords.accuracy ? `Precisión informada por el dispositivo: ±${Math.round(position.coords.accuracy)} m.` : null); }, (geoError) => { setError(geoError.code === 1 ? "Permiso denegado. Puedes usar coordenadas, lugares o búsqueda." : geoError.code === 3 ? "Tiempo agotado al obtener ubicación." : "No fue posible obtener la ubicación."); }, { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }); }
   async function copyCoordinates() { try { await navigator.clipboard.writeText(formatCoordinate(center)); toast.success("Coordenadas copiadas."); } catch { setError("No fue posible copiar. Selecciona el texto manualmente."); } }
   async function pasteCoordinates() { try { const text = await navigator.clipboard.readText(); const parts = text.split(/[;,\s]+/).filter(Boolean); if (parts.length < 2) throw new Error(); setLat(parts[0]); setLon(parts[1]); const parsed = parseCoordinateFields(parts[0], parts[1]); if (!parsed.ok) throw new Error(); applyCenter(parsed.coordinate); } catch { setError("El portapapeles no contiene latitud y longitud válidas."); } }
+  async function copyDraftJson() { try { await navigator.clipboard.writeText(JSON.stringify(draft, null, 2)); toast.success("Borrador copiado como JSON."); } catch { setError("No fue posible copiar el borrador. Mantén esta pantalla abierta y vuelve a intentar."); } }
+
+  if (loading) return <output className="flex min-h-[60dvh] items-center justify-center text-sm text-slate-400">Cargando mapas locales…</output>;
 
   const content = (
     <div className={expanded ? "fixed inset-0 z-[1000] overflow-y-auto bg-slate-950 p-3 sm:p-5" : "relative left-1/2 w-[calc(100vw-2rem)] max-w-[1400px] -translate-x-1/2 space-y-4 sm:w-[calc(100vw-3rem)]"}>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="ghost" onClick={() => expanded ? setExpanded(false) : leave("/utilidades")} aria-label="Volver"><ArrowLeft className="h-4 w-4" /></Button>
-        <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold text-slate-100">Mapa de operaciones</h1><p className="text-xs text-slate-500">{dirty ? "Cambios sin guardar" : "Guardado"}</p></div>
+        <div className="min-w-0 flex-1"><h1 className="text-base font-semibold leading-tight text-slate-100 sm:text-lg">Mapa de operaciones</h1><p className={`text-xs ${dirty ? "text-amber-300" : "text-emerald-400"}`} aria-live="polite">{dirty ? "Cambios sin guardar" : "Guardado en este dispositivo"}</p></div>
         <Button size="sm" variant="outline" aria-label={expanded ? "Salir de mapa expandido" : "Expandir mapa"} onClick={() => setExpanded((value) => !value)}>{expanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}<span className="hidden sm:inline">{expanded ? "Salir" : "Expandir"}</span></Button>
         <Button size="sm" aria-label="Guardar mapa" onClick={save} disabled={saving}><Save className="h-4 w-4" /><span className="hidden sm:inline">{saving ? "Guardando…" : "Guardar"}</span></Button>
       </div>
       {!online && <output className="block rounded-lg border border-amber-800/50 bg-amber-950/30 p-2 text-xs text-amber-200">Sin conexión: los radios y mapas locales siguen disponibles; los mosaicos y la búsqueda pueden no cargar.</output>}
-      <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-3 text-xs text-amber-200">{t.utilities.disclaimer}</p>
+      <details className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+        <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">Radios de planificación, no autorizaciones · Ver aviso</summary>
+        <p className="mt-2">{t.utilities.disclaimer}</p>
+      </details>
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -136,11 +169,12 @@ export function OperationalMapPage() {
         <aside className="min-w-0 space-y-3">
           <Card><CardHeader><CardTitle>Mapa local</CardTitle></CardHeader><CardContent className="space-y-2">
             <input aria-label="Nombre del mapa" value={draft.name} maxLength={120} onChange={(event) => mutate((map) => ({ ...map, name: event.target.value }))} className={fieldClass} />
-            <select aria-label="Abrir mapa guardado" value={maps.some((map) => map.id === draft.id) ? draft.id : ""} onChange={(event) => { const map = maps.find((item) => item.id === event.target.value); if (map) openMap(map); }} className={fieldClass}><option value="">Mapa nuevo sin guardar</option>{maps.map((map) => <option key={map.id} value={map.id}>{map.name}</option>)}</select>
-            <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => { const fresh = emptyMap(center); setDraft(fresh); setSavedSnapshot(""); setSelectedZoneId(null); }}>Nuevo</Button><Button size="sm" variant="outline" onClick={duplicateMap}>Duplicar</Button><Button size="sm" variant="ghost" onClick={deleteMap}><Trash2 className="h-4 w-4" />Eliminar</Button></div>
+            <select aria-label="Abrir mapa guardado" value={maps.some((map) => map.id === draft.id) ? draft.id : ""} onChange={(event) => { const map = maps.find((item) => item.id === event.target.value); if (map && confirmDraftReplacement("abrir otro mapa")) openMap(map); else event.currentTarget.value = maps.some((item) => item.id === draft.id) ? draft.id : ""; }} className={fieldClass}><option value="">Mapa nuevo sin guardar</option>{maps.map((map) => <option key={map.id} value={map.id}>{map.name}</option>)}</select>
+            <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => { if (!confirmDraftReplacement("crear un mapa nuevo")) return; const fresh = emptyMap(center); setDraft(fresh); setSavedFingerprint(""); setSelectedZoneId(null); setMeasurement({}); }}>Nuevo</Button><Button size="sm" variant="outline" onClick={duplicateMap}>Duplicar</Button><Button size="sm" variant="ghost" onClick={deleteMap}><Trash2 className="h-4 w-4" />Eliminar</Button></div>
           </CardContent></Card>
           <Card><CardHeader><CardTitle>Ubicación y centro</CardTitle></CardHeader><CardContent className="space-y-3">
             <LocationSearch onSelect={applyCenter} />
+            <p className="-mt-2 text-xs text-slate-400">Escribir no mueve el mapa. Selecciona un resultado o usa “Centrar” para actualizar el punto.</p>
             <div className="grid grid-cols-2 gap-2"><input aria-label="Latitud WGS84" inputMode="decimal" value={lat} onChange={(event) => setLat(event.target.value)} className={fieldClass} /><input aria-label="Longitud WGS84" inputMode="decimal" value={lon} onChange={(event) => setLon(event.target.value)} className={fieldClass} /></div>
             <p className="text-[11px] text-slate-500">WGS84 / EPSG:4326 · punto seleccionado: {formatCoordinate(center)}</p>
             <div className="flex flex-wrap gap-2"><Button size="sm" onClick={applyManual}>Centrar</Button><Button size="sm" variant="outline" onClick={useLocation}><LocateFixed className="h-4 w-4" />Mi ubicación</Button><Button size="sm" variant="outline" onClick={copyCoordinates}><Copy className="h-4 w-4" />Copiar</Button><Button size="sm" variant="outline" onClick={pasteCoordinates}>Pegar</Button></div>
@@ -158,9 +192,9 @@ export function OperationalMapPage() {
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selectedZone.visible} onChange={(event) => updateZone(selectedZone.id, { visible: event.target.checked })} />Visible</label>
             <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setTool("center")}><MapPin className="h-4 w-4" />Cambiar centro</Button><Button size="sm" variant="outline" onClick={() => duplicateZone(selectedZone)}>Duplicar</Button><Button size="sm" variant="ghost" onClick={() => removeZone(selectedZone.id)}><Trash2 className="h-4 w-4" />Eliminar</Button></div>
             {(() => { const metrics = zoneMetrics(selectedZone.radiusMeters); return <div className="rounded-lg bg-slate-950 p-3 text-xs text-slate-400"><p>Centro: {formatCoordinate(selectedZone.center)}</p><p>Diámetro: {formatRadius(metrics.diameterMeters)}</p><p>Área geométrica: {metrics.areaSquareMeters >= 1_000_000 ? `${(metrics.areaSquareMeters / 1_000_000).toFixed(3)} km²` : `${Math.round(metrics.areaSquareMeters).toLocaleString("es-CL")} m²`}</p><p>Perímetro: {formatRadius(metrics.perimeterMeters)}</p>{expertMode && <p>Geometría calculada localmente; círculo Leaflet en metros.</p>}</div>; })()}
-            <Button className="w-full" onClick={() => leave(`/operacion/nueva?mapId=${encodeURIComponent(draft.id)}&zoneId=${encodeURIComponent(selectedZone.id)}&returnTo=${encodeURIComponent("/utilidades/mapa")}`)}>Usar en nueva preparación</Button>
+            <Button className="w-full" onClick={useZoneInPlan}>Usar en nueva preparación</Button>
           </CardContent></Card>}
-          {error && <p role="alert" className="rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">{error}</p>}
+          {error && <div role="alert" className="space-y-2 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-300"><p>{error}</p><Button size="sm" variant="outline" onClick={copyDraftJson}>Copiar borrador JSON</Button></div>}
         </aside>
       </div>
     </div>

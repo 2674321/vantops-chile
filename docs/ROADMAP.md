@@ -2488,6 +2488,11 @@ El usuario puede consultar condiciones reales.
 > medición geodésica, mapas locales en Dexie v4, backup v3 compatible y copia
 > explícita de una zona hacia una preparación. La geometría no representa
 > autorización ni información oficial de espacio aéreo.
+>
+> **R1.1.0-beta.3** convierte el mapa en una función protagonista: acceso directo
+> en navegación, preview desplegable y lazy en Inicio, portada de Utilidades más
+> clara, protección uniforme del borrador y correcciones de recenter/fit bounds.
+> Mantiene Dexie v4 y backup v3 sin migración de datos adicional.
 
 **Resultado:**
 

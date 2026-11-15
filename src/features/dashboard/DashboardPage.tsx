@@ -47,6 +47,7 @@ import {
   captureObservationSnapshot,
   captureWeatherSnapshot,
 } from "../../domain/flightPlan/snapshots";
+import { MapHomePreview } from "../utilities/map/MapHomePreview";
 
 const MapPicker = lazy(() => import("../map/LocationMap"));
 
@@ -295,6 +296,8 @@ export default function DashboardPage() {
       </header>
 
       <InstallPromptCard />
+
+      <MapHomePreview />
 
       <AircraftSelector onAircraftChange={handleAircraftChange} />
 

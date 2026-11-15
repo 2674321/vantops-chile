@@ -1,5 +1,7 @@
 # Matriz QA — Utilidades / Mapa de operaciones
 
+> Cierre de beta.2. La ampliación beta.3 continúa en `BETA3_MAP_UX_QA.md`.
+
 Estados: PASS, FAIL, NO EJECUTADO, NO APLICA.
 
 | Caso | Estado | Evidencia |

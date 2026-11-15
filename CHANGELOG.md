@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.3] - 2026-11-15
+
+### Added
+- Accesos directos visibles a `Mapa` y `Utilidades` en navegación móvil y escritorio,
+  sin depender de desplazamiento horizontal oculto.
+- Panel protagonista y desplegable en Inicio con conteo real de mapas locales,
+  vista previa lazy de solo lectura y salto contextual al editor completo.
+- Recuperación manual del borrador como JSON ante fallos persistentes de escritura.
+- QA con ubicación sintética, denegación/timeout, fallos de IndexedDB, teclado,
+  pérdida de mosaicos y cinco viewports responsive.
+
+### Changed
+- Utilidades presenta el mapa como primera herramienta, diferencia la vista de
+  Inicio del editor completo y ofrece acceso directo al modo de medición.
+- El editor distingue coordenada seleccionada, centro de zona y puntos de
+  medición; medir ya no recentra la cámara.
+- El ajuste de bounds solo ocurre por acción explícita y tolera cambios de tamaño
+  del contenedor sin reencuadres posteriores.
+- Las operaciones que reemplazan un borrador confirman de forma homogénea; una
+  zona modificada se guarda antes de copiarla a una preparación.
+
+### Fixed
+- El panel Inicio ya no puede provocar un error de Leaflet al cambiar de viewport
+  con radios visibles.
+- El estado `Guardado` solo aparece después de completar la escritura real.
+- La indicación sobre el mapa no se superpone a los controles de zoom y el aviso
+  aeronáutico ocupa menos alto móvil sin perder su mensaje explícito.
+
 ## [1.1.0-beta.2] - 2026-11-15
 
 ### Added
