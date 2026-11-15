@@ -73,6 +73,8 @@ Pantallas reales del código de la PWA, capturadas en un entorno de prueba sin c
 |---|---|
 | ![VantOPS en escritorio](docs/screenshots/01-escritorio.png) | ![VantOPS en móvil](docs/screenshots/02-movil.png) |
 
+![Inicio móvil con mapa desplegable e identidad B1](docs/screenshots/03-inicio-mapa-b1.png)
+
 ![Dashboard VantOPS](docs/screenshots/dashboard.png)
 
 ## Stack

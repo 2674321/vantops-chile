@@ -58,4 +58,14 @@ Fecha: 2026-11-15. Estados: PASS, FAIL, NO EJECUTADO, NO APLICA.
 - Capturas: el workflow real incorpora `01-escritorio.png`, `02-movil.png` y
   `03-inicio-mapa-b1.png` desde la aplicación ejecutada, sin datos personales.
 
-PR, CI, Deploy y smoke del SHA publicado se completan después de integrar.
+## Publicación
+
+- PR: PASS · [#6](https://github.com/2674321/vantops-chile/pull/6).
+- Merge de implementación: `e520ffc4448a2f9343cd00fc4f0dcebfb3dabdd3`.
+- CI: PASS · [run 43749355462](https://github.com/2674321/vantops-chile/actions/runs/43749355462).
+- Deploy Pages: PASS · [run 43749355562](https://github.com/2674321/vantops-chile/actions/runs/43749355562).
+- Capturas reales: PASS · [run 43749355547](https://github.com/2674321/vantops-chile/actions/runs/43749355547), commit `1863a8155331da9927620c52e3023c65ed6a516f`.
+- Smoke público: PASS; `v1.1.0-beta.4`, marca B1, manifest/iconos y rutas.
+- Actualización PWA: PASS tras activación y recarga; el mapa local previo siguió
+  presente (`1 mapa guardado en este dispositivo`).
+- Producción móvil 390×844: PASS sin overflow; consola sin errores.
