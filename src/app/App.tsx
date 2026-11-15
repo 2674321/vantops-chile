@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2 } from "lucide-react";
+import { Plane, BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
@@ -19,6 +19,8 @@ const AboutPage = lazy(() => import("../features/about/AboutPage").then((m) => (
 const ExportImportPage = lazy(() => import("../features/logbook/ExportImportPage").then((m) => ({ default: m.ExportImportPage })));
 const FlightPlansPage = lazy(() => import("../features/plans/FlightPlansPage").then((m) => ({ default: m.FlightPlansPage })));
 const FlightPlanForm = lazy(() => import("../features/plans/FlightPlanForm").then((m) => ({ default: m.FlightPlanForm })));
+const UtilitiesPage = lazy(() => import("../features/utilities/UtilitiesPage").then((m) => ({ default: m.UtilitiesPage })));
+const OperationalMapPage = lazy(() => import("../features/utilities/map/OperationalMapPage").then((m) => ({ default: m.OperationalMapPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +87,10 @@ export function App() {
                     <MapPin aria-hidden className="h-4 w-4" />
                     {t.nav.places}
                   </NavLink>
+                  <NavLink to="/utilidades" className={navLinkClass}>
+                    <Wrench aria-hidden className="h-4 w-4" />
+                    {t.nav.utilities}
+                  </NavLink>
                   <NavLink to="/ajustes" className={navLinkClass}>
                     <Settings2 aria-hidden className="h-4 w-4" />
                     {t.nav.settings}
@@ -112,6 +118,8 @@ export function App() {
                     <Route path="/operacion/nueva" element={<FlightPlanForm />} />
                     <Route path="/operacion/:id" element={<FlightPlanForm />} />
                     <Route path="/lugares" element={<PlacesPage />} />
+                    <Route path="/utilidades" element={<UtilitiesPage />} />
+                    <Route path="/utilidades/mapa" element={<OperationalMapPage />} />
                     <Route path="/acerca" element={<AboutPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

@@ -20,6 +20,7 @@ import { createPlace, listPlaces } from "./repositories/placeRepository";
 import { loadSetting } from "./repositories/settingsRepository";
 import { createFlightPlan, listFlightPlans } from "./repositories/flightPlanRepository";
 import type { FlightRecord, BatteryRecord } from "../domain/logbook/types";
+import { saveOperationalMap, listOperationalMaps } from "./repositories/operationalMapRepository";
 
 async function wipeDatabase(): Promise<void> {
   const db = getDB();
@@ -28,6 +29,7 @@ async function wipeDatabase(): Promise<void> {
   await db.places.clear();
   await db.settings.clear();
   await db.plans.clear();
+  await db.operationalMaps.clear();
 }
 
 beforeEach(async () => {
@@ -36,21 +38,30 @@ beforeEach(async () => {
 });
 
 describe("export → import → equivalence", () => {
-  it("round-trips v2 plans and their linkable snapshots", async () => {
+  it("round-trips v3 plans, maps and their linkable snapshots", async () => {
     const plan = await createFlightPlan({
       location: { latitude: -33.45, longitude: -70.65 },
       locationLabel: "Sitio de prueba",
       status: "REVIEWED",
       flightLimitsSnapshot: { windMaxKmh: 25, windReferenceHeight: 100 },
     });
-    const backup = await exportBackup("1.1.0-rc");
-    expect(backup.version).toBe(2);
+    const now = new Date().toISOString();
+    await saveOperationalMap({
+      id: "map-roundtrip", schemaVersion: 1, name: "Mapa de prueba",
+      zones: [{ id: "zone-roundtrip", name: "Radio 500 m", center: { latitude: -33.45, longitude: -70.65 }, radiusMeters: 500, color: "#38bdf8", visible: true, fillOpacity: 0.12 }],
+      createdAt: now, updatedAt: now,
+    });
+    const backup = await exportBackup("1.1.0-beta.2");
+    expect(backup.version).toBe(3);
     expect(backup.plans).toHaveLength(1);
+    expect(backup.operationalMaps).toHaveLength(1);
 
     await wipeDatabase();
     const summary = await importBackup(backup);
     expect(summary.plans).toBe(1);
+    expect(summary.operationalMaps).toBe(1);
     expect(await listFlightPlans()).toEqual([plan]);
+    expect((await listOperationalMaps())[0]).toMatchObject({ id: "map-roundtrip" });
   });
 
   it("round-trips flights, batteries and places with identical values", async () => {

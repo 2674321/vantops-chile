@@ -2483,6 +2483,11 @@ El usuario puede consultar condiciones reales.
 > **R0.9.0** añade una capa transversal de UX/fiabilidad: sistema de toasts propio, validación de coordenadas/fechas/batería sin fallback a `0,0`, feedback y estados en curso en todas las operaciones CRUD, confirmaciones destructivas inline, accesibilidad (`aria-invalid`/`aria-label`/labels) y corrección de la transición offline→online.
 >
 > **R1.0.0** cierra el MVP: corrige la exactitud temporal del METAR (minuto real, sin zona horaria fija), deriva la frescura meteorológica del dato (`dataTime`) en lugar de la recepción (evita "actualizado ahora" con caché de Workbox), añade timezone del lugar a la línea de tiempo y a la hora solar, tipa los errores de todos los providers, endurece el `ErrorBoundary`, incorpora tests de UI/hooks con jsdom y consolida PWA, respaldo, accesibilidad, rendimiento y documentación.
+>
+> **R1.1.0-beta.2** añade `Utilidades → Mapa de operaciones`: radios múltiples,
+> medición geodésica, mapas locales en Dexie v4, backup v3 compatible y copia
+> explícita de una zona hacia una preparación. La geometría no representa
+> autorización ni información oficial de espacio aéreo.
 
 **Resultado:**
 

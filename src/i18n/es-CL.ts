@@ -6,8 +6,15 @@ export const esCL = {
     logbook: "Bitácora",
     operation: "Mi operación",
     places: "Lugares",
+    utilities: "Utilidades",
     settings: "Ajustes",
     about: "Acerca",
+  },
+  utilities: {
+    eyebrow: "Herramientas geográficas",
+    title: "Utilidades",
+    description: "Medición y planificación local, sin cuenta y sin enviar automáticamente tu ubicación.",
+    disclaimer: "Los círculos, radios y áreas son herramientas de planificación y medición. No representan zonas de vuelo autorizadas ni sustituyen la información oficial DGAC/AIS, NOTAM o permisos aplicables.",
   },
   dashboard: {
     useMyLocation: "Usar mi ubicación",

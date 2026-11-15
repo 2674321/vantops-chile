@@ -4,11 +4,13 @@ import { downloadTextFile } from "../lib/download";
 import { isValidCoordinate } from "../domain/coordinate";
 import type { FlightRecord, BatteryRecord, SavedPlace } from "../domain/logbook/types";
 import type { FlightPlan, FlightPlanStatus } from "../domain/flightPlan/types";
+import type { SavedOperationalMap } from "../domain/operationalMap";
+import { MAX_OPERATIONAL_MAPS, isValidSavedOperationalMap } from "../domain/operationalMap";
 
 export const BACKUP_FORMAT = "vantops-backup" as const;
-export const CURRENT_BACKUP_VERSION = 2;
+export const CURRENT_BACKUP_VERSION = 3;
 export const MIN_BACKUP_VERSION = 1;
-export const MAX_BACKUP_VERSION = 2;
+export const MAX_BACKUP_VERSION = 3;
 
 const IMPORTABLE_SETTING_KEYS = new Set([
   "flightLimits",
@@ -30,6 +32,7 @@ export interface BackupData {
   places: SavedPlace[];
   settings: Record<string, unknown>;
   plans?: FlightPlan[];
+  operationalMaps?: SavedOperationalMap[];
 }
 
 export interface ImportSummary {
@@ -38,6 +41,7 @@ export interface ImportSummary {
   places: number;
   settings: number;
   plans: number;
+  operationalMaps: number;
 }
 
 export class BackupValidationError extends Error {
@@ -54,6 +58,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
   const places = await db.places.toArray();
   const settings = await listSettings();
   const plans = await db.plans.toArray();
+  const operationalMaps = await db.operationalMaps.toArray();
   return {
     format: BACKUP_FORMAT,
     version: CURRENT_BACKUP_VERSION,
@@ -64,6 +69,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
     places,
     settings,
     plans,
+    operationalMaps,
   };
 }
 
@@ -173,6 +179,8 @@ export function validateBackup(data: unknown): data is BackupData {
   if (data.settings !== undefined && !validateSettings(data.settings)) return false;
   if (data.plans !== undefined && !Array.isArray(data.plans)) return false;
   if (data.version >= 2 && !Array.isArray(data.plans)) return false;
+  if (data.operationalMaps !== undefined && !Array.isArray(data.operationalMaps)) return false;
+  if (data.version >= 3 && !Array.isArray(data.operationalMaps)) return false;
   return true;
 }
 
@@ -211,6 +219,15 @@ export function inspectBackup(data: unknown): { ok: true; data: BackupData } | {
   if (data.version >= 2 && !Array.isArray(data.plans)) {
     return { ok: false, error: "El respaldo v2 no contiene la sección de planes." };
   }
+  if (data.operationalMaps !== undefined && !Array.isArray(data.operationalMaps)) {
+    return { ok: false, error: "La sección de mapas de operaciones es inválida." };
+  }
+  if (data.version >= 3 && !Array.isArray(data.operationalMaps)) {
+    return { ok: false, error: "El respaldo v3 no contiene la sección de mapas de operaciones." };
+  }
+  if (Array.isArray(data.operationalMaps) && data.operationalMaps.length > MAX_OPERATIONAL_MAPS) {
+    return { ok: false, error: `El respaldo excede el límite de ${MAX_OPERATIONAL_MAPS} mapas.` };
+  }
 
   const flightsValid = data.flights.every(validateFlight);
   if (!flightsValid) {
@@ -228,6 +245,10 @@ export function inspectBackup(data: unknown): { ok: true; data: BackupData } | {
   if (!plansValid) {
     return { ok: false, error: "Existen planes corruptos en el respaldo." };
   }
+  const mapsValid = data.operationalMaps === undefined || data.operationalMaps.every(isValidSavedOperationalMap);
+  if (!mapsValid) {
+    return { ok: false, error: "Existen mapas o radios corruptos en el respaldo." };
+  }
 
   return { ok: true, data: data as unknown as BackupData };
 }
@@ -244,10 +265,11 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
   const places = Array.isArray(inspection.data.places) ? inspection.data.places : [];
   const settings = isRecord(inspection.data.settings) ? inspection.data.settings : {};
   const plans = Array.isArray(inspection.data.plans) ? inspection.data.plans : [];
+  const operationalMaps = Array.isArray(inspection.data.operationalMaps) ? inspection.data.operationalMaps : [];
 
-  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0, plans: 0 };
+  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0, plans: 0, operationalMaps: 0 };
 
-  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings, db.plans], async () => {
+  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings, db.plans, db.operationalMaps], async () => {
     for (const flight of flights) {
       if (!validateFlight(flight)) continue;
       const existing = await db.flights.get(flight.id);
@@ -295,6 +317,17 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
       } else if (plan.updatedAt > existing.updatedAt) {
         await db.plans.put(plan);
         summary.plans++;
+      }
+    }
+
+    for (const map of operationalMaps) {
+      const existing = await db.operationalMaps.get(map.id);
+      if (!existing) {
+        await db.operationalMaps.add(map);
+        summary.operationalMaps++;
+      } else if (map.updatedAt > existing.updatedAt) {
+        await db.operationalMaps.put(map);
+        summary.operationalMaps++;
       }
     }
 

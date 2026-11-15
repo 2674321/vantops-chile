@@ -36,6 +36,12 @@ export default defineConfig(({ command }) => ({
         ],
         shortcuts: [
           {
+            name: "Mapa de operaciones",
+            short_name: "Mapa",
+            url: "/vantops-chile/#/utilidades/mapa",
+            icons: [{ src: "icon-192.png", sizes: "192x192" }],
+          },
+          {
             name: "Mi operación",
             short_name: "Operación",
             url: "/vantops-chile/#/operacion",

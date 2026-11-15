@@ -41,6 +41,13 @@ describe("validateBackup", () => {
     expect(validateBackup({ ...common, version: 1 })).toBe(true);
   });
 
+  it("requires and validates operational maps in v3", () => {
+    const common = { format: "vantops-backup", version: 3, exportedAt: new Date().toISOString(), appVersion: "1.1.0-beta.2", flights: [], batteries: [], places: [], settings: {}, plans: [] };
+    expect(validateBackup(common)).toBe(false);
+    expect(validateBackup({ ...common, operationalMaps: [] })).toBe(true);
+    expect(inspectBackup({ ...common, operationalMaps: [{ id: "bad" }] })).toMatchObject({ ok: false });
+  });
+
   it("accepts valid backup", () => {
     const backup: BackupData = {
       format: "vantops-backup",

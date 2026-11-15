@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Save } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { OPERATION_TYPE_LABELS, type OperationType } from "../../domain/logbook/types";
@@ -13,14 +13,18 @@ import {
   updateFlightPlan,
 } from "../../storage/repositories/flightPlanRepository";
 import { useToast } from "../../components/toast/useToast";
+import { getOperationalMap } from "../../storage/repositories/operationalMapRepository";
+import { validateRadiusMeters } from "../../domain/operationZone";
 
 export function FlightPlanForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [label, setLabel] = useState("");
+  const [radiusMeters, setRadiusMeters] = useState("");
   const [scheduledStartAt, setScheduledStartAt] = useState("");
   const [scheduledEndAt, setScheduledEndAt] = useState("");
   const [operationType, setOperationType] = useState<OperationType>("OTHER");
@@ -43,6 +47,7 @@ export function FlightPlanForm() {
         setLat(String(plan.location.latitude));
         setLon(String(plan.location.longitude));
         setLabel(plan.locationLabel ?? "");
+        setRadiusMeters(plan.radiusMeters ? String(plan.radiusMeters) : "");
         setScheduledStartAt(plan.scheduledStartAt?.slice(0, 16) ?? "");
         setScheduledEndAt(plan.scheduledEndAt?.slice(0, 16) ?? "");
         setOperationType(plan.operationType ?? "OTHER");
@@ -56,9 +61,24 @@ export function FlightPlanForm() {
           setLon(String(coordinate.longitude));
         }
       }
+      const mapId = searchParams.get("mapId");
+      const zoneId = searchParams.get("zoneId");
+      if (mapId && zoneId) {
+        const sourceMap = await getOperationalMap(mapId);
+        const zone = sourceMap?.zones.find((item) => item.id === zoneId);
+        if (sourceMap && zone) {
+          const replace = !id || window.confirm("¿Reemplazar la ubicación y el radio de esta preparación con una copia de la zona seleccionada?");
+          if (replace) {
+            setLat(String(zone.center.latitude));
+            setLon(String(zone.center.longitude));
+            setRadiusMeters(String(zone.radiusMeters));
+            setLabel(`${zone.name} · ${sourceMap.name}`);
+          }
+        }
+      }
       setLoading(false);
     })();
-  }, [id]);
+  }, [id, searchParams]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -72,12 +92,18 @@ export function FlightPlanForm() {
       setError("El término previsto no puede ser anterior al inicio.");
       return;
     }
+    const parsedRadius = radiusMeters.trim() === "" ? undefined : Number(radiusMeters);
+    if (parsedRadius !== undefined && !validateRadiusMeters(parsedRadius).ok) {
+      setError("Ingresa un radio válido entre 50 m y 50 km.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const common = {
         location: coordinate.coordinate,
         locationLabel: label.trim() || undefined,
+        radiusMeters: parsedRadius,
         scheduledStartAt: scheduledStartAt ? new Date(scheduledStartAt).toISOString() : undefined,
         scheduledEndAt: scheduledEndAt ? new Date(scheduledEndAt).toISOString() : undefined,
         operationType,
@@ -105,7 +131,7 @@ export function FlightPlanForm() {
         });
       }
       toast.success(id ? "Preparación actualizada." : "Preparación guardada localmente.");
-      navigate("/operacion");
+      navigate(searchParams.get("returnTo") || "/operacion");
     } catch {
       setError("No se pudo guardar la preparación en este dispositivo.");
       setSaving(false);
@@ -133,6 +159,11 @@ export function FlightPlanForm() {
               <div><label htmlFor="plan-lat" className="mb-1 block text-xs text-slate-400">Latitud</label><input id="plan-lat" inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" /></div>
               <div><label htmlFor="plan-lon" className="mb-1 block text-xs text-slate-400">Longitud</label><input id="plan-lon" inputMode="decimal" value={lon} onChange={(e) => setLon(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" /></div>
             </div>
+            <div>
+              <label htmlFor="plan-radius" className="mb-1 block text-xs text-slate-400">Radio de planificación (metros, opcional)</label>
+              <input id="plan-radius" inputMode="decimal" value={radiusMeters} onChange={(e) => setRadiusMeters(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+              <p className="mt-1 text-[11px] text-slate-500">Es una copia para esta preparación; cambios posteriores al mapa no se sincronizan.</p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div><label htmlFor="plan-start" className="mb-1 block text-xs text-slate-400">Inicio previsto</label><input id="plan-start" type="datetime-local" value={scheduledStartAt} onChange={(e) => setScheduledStartAt(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" /></div>
               <div><label htmlFor="plan-end" className="mb-1 block text-xs text-slate-400">Término previsto</label><input id="plan-end" type="datetime-local" value={scheduledEndAt} onChange={(e) => setScheduledEndAt(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" /></div>
@@ -145,6 +176,7 @@ export function FlightPlanForm() {
           </CardContent>
         </Card>
         <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-3 text-xs text-amber-200">“Revisado” significa que tú revisaste la preparación. No constituye aprobación ni autorización de la DGAC.</p>
+        <Button type="button" variant="outline" className="w-full" onClick={() => navigate("/utilidades/mapa")}>Abrir Mapa de operaciones</Button>
         <Button type="submit" disabled={saving} className="w-full"><Save className="mr-2 h-4 w-4" />{saving ? "Guardando…" : "Guardar preparación"}</Button>
       </form>
     </div>

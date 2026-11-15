@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.2] - 2026-11-15
+
+### Added
+- Menú `Utilidades` y mapa de operaciones independiente con rutas hash públicas.
+- Radios múltiples concéntricos o independientes, edición de centro, nombre,
+  color, visibilidad, duplicación y medidas geométricas locales.
+- Medición geodésica entre dos puntos con distancia Haversine y rumbo inicial.
+- Mapas locales persistidos en Dexie v4; selección desde lugares y preparaciones.
+- Backup v3 con mapas y radios, compatible con importaciones v1 y v2.
+- Copia explícita de una zona guardada a una nueva preparación, sin sincronización
+  posterior ni interpretación aeronáutica.
+
+### Changed
+- El mapa usa la URL oficial de mosaicos OSM, atribución visible y carga lazy.
+- El buscador conserva acción explícita, caché y separación mínima de solicitudes;
+  no implementa autocompletado ni descarga de cartografía offline.
+
 ## [1.1.0-beta.1] - 2026-11-14
 
 Beta pública compatible con los datos locales de 1.0.1. No se declara release

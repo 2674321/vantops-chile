@@ -184,6 +184,7 @@ export function ExportImportPage() {
                   <p>{preview.places.length} lugares</p>
                 )}
                 {Array.isArray(preview.plans) && <p>{preview.plans.length} planes de operación</p>}
+                {Array.isArray(preview.operationalMaps) && <p>{preview.operationalMaps.length} mapas de operaciones</p>}
                 {settingsCount > 0 && (
                   <p>
                     {settingsCount} configuraciones (límites de vuelo, aeronave activa, última ubicación)
@@ -218,6 +219,7 @@ export function ExportImportPage() {
                 Importados: {importResult.flights} vuelos · {importResult.batteries} baterías
                 {importResult.places > 0 && ` · ${importResult.places} lugares`}
                 {importResult.plans > 0 && ` · ${importResult.plans} planes`}
+                {importResult.operationalMaps > 0 && ` · ${importResult.operationalMaps} mapas`}
                 {importResult.settings > 0 && ` · ${importResult.settings} configuraciones`}
               </p>
             </div>

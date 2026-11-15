@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.1 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.2 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 ## Preguntas rápidas
 
@@ -24,7 +24,7 @@ No autoriza vuelos, no entrega permisos y no representa a ninguna autoridad. Es 
 No. No hay registro, cuentas ni sincronización. Todo funciona en tu dispositivo.
 
 **¿Dónde se guardan mis datos?**
-IndexedDB (Dexie) para preparaciones, bitácora, baterías, lugares y configuración; localStorage para diagnóstico local y preferencias livianas. Nunca salen del dispositivo: no hay analytics ni telemetría.
+IndexedDB (Dexie) para preparaciones, mapas de operaciones, bitácora, baterías, lugares y configuración; localStorage para diagnóstico local y preferencias livianas. Nunca salen automáticamente del dispositivo: no hay analytics ni telemetría.
 
 **¿Funciona sin conexión?**
 Sí, la PWA es instalable y funciona offline. Las fuentes en vivo (clima, METAR, buscador) requieren conexión; pueden entregar datos en caché con aviso de antigüedad.
@@ -36,7 +36,10 @@ Open-Meteo (clima y elevación), VATSIM METAR (observaciones en aeródromo; feed
 Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estable para consumo público. El METAR de VATSIM se muestra como referencia informativa y la integración oficial queda pendiente.
 
 **¿Cómo respaldo mi bitácora?**
-Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v2 incluye preparaciones y preferencias, y sigue importando respaldos v1 de 1.0.1.
+Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v3 incluye preparaciones, mapas y preferencias, y sigue importando respaldos v1/v2.
+
+**¿Qué permite Utilidades → Mapa de operaciones?**
+Crear varios radios con centros independientes, medir distancias y guardar mapas localmente. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
 
 **¿Puedo cambiar unidades o ver más detalle?**
 Sí. Ajustes permite elegir km/h, m/s o kt; °C o °F; sistema métrico o imperial; y activar el modo experto. El dominio conserva km/h, °C y metros como unidades canónicas: cambiar la presentación no altera físicamente tus límites ni vuelve la evaluación más permisiva.
