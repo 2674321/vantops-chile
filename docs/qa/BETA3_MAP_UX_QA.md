@@ -71,4 +71,11 @@ Fecha: 2026-11-15. Estados permitidos: PASS, FAIL, NO EJECUTADO, NO APLICA.
 
 ## Publicación
 
-Se completa después del CI, Deploy y smoke del SHA final en GitHub Pages.
+- Implementación publicada: `9870e325a638c21408aeb68a700ca7fb2396da30`.
+- CI: PASS · [run 43747411713](https://github.com/2674321/vantops-chile/actions/runs/43747411713).
+- GitHub Pages: PASS · [run 43747411777](https://github.com/2674321/vantops-chile/actions/runs/43747411777).
+- Smoke público: PASS en `https://2674321.github.io/vantops-chile/`.
+- Versión visible: `v1.1.0-beta.3`.
+- Inicio: 0 mosaicos contraído y 4 mosaicos Leaflet tras expandir; `aria-expanded` cambia de `false` a `true`.
+- Rutas `#/utilidades`, `#/utilidades/mapa` y `#/acerca`: PASS.
+- Viewports 390×844 y 1440×900: PASS sin overflow documental; consola sin errores.
