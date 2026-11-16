@@ -18,6 +18,33 @@
 > Condiciones sin segundo mapa y contacto público completo. Dexie v5 y backup v4
 > permanecen sin cambios.
 
+> **Actualización beta 8 (2026-11-16):** el mapa incorpora un centro operacional
+> para iniciar y cerrar jornadas con cero o múltiples vuelos. Las sesiones son
+> locales, recuperables y transaccionales; Dexie avanza a v6 y el respaldo a v5
+> manteniendo importación de formatos v1-v4.
+
+> **Backlog beta 9 (propuesta abierta; no compromete el cierre de beta 8):**
+> 1. **GPS y ubicaciones:** investigar la discrepancia reportada (punto en
+>    Totoralillo estando en Coquimbo con Internet compartida por teléfono);
+>    registrar fuente, `accuracy` y diferenciar posición del navegador, punto
+>    seleccionado y ubicación congelada del vuelo. Bloquear el uso operativo de
+>    posiciones con precisión inadecuada sin confirmación explícita.
+> 2. **Bitácora:** garantizar que cada vuelo conserva su ubicación confirmada;
+>    mover pines/radios no debe sobrescribirla. Mejorar edición, estado de
+>    guardado e historial de cambios.
+> 3. **Pines:** mayor visibilidad y contraste, iconos por categoría (despegue,
+>    aterrizaje, obstáculo, acceso, base, emergencia), colores configurables y
+>    movimiento explícito para impedir cambios accidentales.
+> 4. **Radios:** un único botón «Añadir radio» con radio predefinida o libre,
+>    sin botón redundante; paleta de colores ampliada.
+> 5. **Condiciones:** comparación de 2–4 puntos seleccionados del mapa con
+>    fuente, frescura y METAR independientes; sin inventar datos.
+> 6. **Recursos gráficos B1:** incorporar selectivamente assets útiles de
+>    MEGAPACK B1.2 (2.142 archivos) y PACK 02 (662 archivos) — estados UI,
+>    pines, onboarding — sin inflar el bundle ni importar decoraciones.
+> 7. **APK Android futura:** reservar recursos launcher/adaptive B1; no
+>    declarar APK publicada hasta su propio hito.
+
 ---
 
 # 1. Corrección de alcance

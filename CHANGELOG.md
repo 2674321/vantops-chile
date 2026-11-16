@@ -2,6 +2,35 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.8] - 2026-11-16
+
+### Added
+- Centro operacional integrado sobre el mapa con modos Mapa, Operación y
+  Registro, banner persistente y controles de inicio/cierre sin remontar Leaflet.
+- Sesiones operacionales durables con cero o múltiples vuelos, una sola sesión
+  activa por dispositivo, recuperación tras recarga y cierre manual explícito.
+- Registro transaccional de vuelos con snapshots de ubicación y aeronave,
+  batería opcional, corrección horaria declarada y estados interrumpidos sin
+  inventar aterrizajes.
+- Respaldo v5 para sesiones y vínculos de vuelos; política segura que rechaza
+  importar una segunda operación activa.
+
+### Changed
+- Dexie avanza aditivamente a v6. Bitácora y Mi operación muestran contexto y
+  accesos de la sesión activa, sin mezclar horas de operación con horas de vuelo.
+- Los campos `datetime-local` convierten entre hora local y UTC sin truncar ni
+  desplazar los registros existentes.
+
+### Fixed
+- Finalizar una jornada sin despegar conserva una sesión de cero vuelos y no
+  crea entradas ficticias de bitácora.
+- Recargar durante un vuelo conserva el evento pendiente; el sistema exige una
+  decisión humana antes de crear el registro final.
+
+### Compatibility
+- Migración Dexie v1-v5 a v6 sin eliminar tablas o registros. El importador v5
+  mantiene compatibilidad con respaldos v1-v4.
+
 ## [1.1.0-beta.7] - 2026-11-16
 
 ### Added

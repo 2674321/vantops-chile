@@ -11,6 +11,8 @@ import {
   updateFlightPlan,
 } from "../../storage/repositories/flightPlanRepository";
 import { useToast } from "../../components/toast/useToast";
+import type { OperationSession } from "../../domain/operations/types";
+import { listOperationSessions, loadActiveOperationSession } from "../../storage/repositories/operationSessionRepository";
 
 export function FlightPlansPage() {
   const navigate = useNavigate();
@@ -18,10 +20,15 @@ export function FlightPlansPage() {
   const [plans, setPlans] = useState<FlightPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<OperationSession[]>([]);
+  const [activeSession, setActiveSession] = useState<OperationSession | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      setPlans(await listFlightPlans());
+      const [nextPlans, nextSessions, active] = await Promise.all([listFlightPlans(), listOperationSessions(500), loadActiveOperationSession()]);
+      setPlans(nextPlans);
+      setSessions(nextSessions);
+      setActiveSession(active);
     } catch {
       toast.error("No se pudieron cargar los planes locales.");
     } finally {
@@ -72,6 +79,8 @@ export function FlightPlansPage() {
         </Button>
       </div>
 
+      {activeSession && <button type="button" onClick={() => navigate("/?workspace=operation")} className="flex w-full items-center justify-between rounded-lg border border-sky-700 bg-sky-950/30 p-3 text-left"><span><span className="block text-sm font-semibold text-sky-200">Operación en curso</span><span className="text-xs text-slate-400">{activeSession.locationSnapshot.label ?? "Punto del mapa"}</span></span><span className="text-sm text-sky-300">Continuar →</span></button>}
+
       {loading && <p className="text-sm text-slate-400">Cargando…</p>}
       {!loading && plans.length === 0 && (
         <Card>
@@ -100,6 +109,7 @@ export function FlightPlansPage() {
             {plan.linkedFlightId && (
               <p className="text-xs text-emerald-300">Vinculado a un vuelo registrado.</p>
             )}
+            {sessions.some((session) => session.planId === plan.id) && <p className="text-xs text-sky-300">{sessions.filter((session) => session.planId === plan.id).length} sesiones · {sessions.filter((session) => session.planId === plan.id).reduce((sum, session) => sum + session.flights.filter((flight) => flight.status === "LANDED").length, 0)} vuelos</p>}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => navigate(`/operacion/${plan.id}`)}>
                 Reanudar

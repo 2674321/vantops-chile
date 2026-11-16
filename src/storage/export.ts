@@ -7,11 +7,14 @@ import type { FlightPlan, FlightPlanStatus } from "../domain/flightPlan/types";
 import type { SavedOperationalMap } from "../domain/operationalMap";
 import { MAX_OPERATIONAL_MAPS, isValidSavedOperationalMap } from "../domain/operationalMap";
 import { isValidFormDraft, type FormDraft } from "../domain/drafts";
+import { validateOperationSession } from "../domain/operations/logic";
+import { MAX_OPERATION_SESSIONS_PER_BACKUP, type OperationSession } from "../domain/operations/types";
+import { ACTIVE_OPERATION_SETTING_ID } from "./repositories/operationSessionRepository";
 
 export const BACKUP_FORMAT = "vantops-backup" as const;
-export const CURRENT_BACKUP_VERSION = 4;
+export const CURRENT_BACKUP_VERSION = 5;
 export const MIN_BACKUP_VERSION = 1;
-export const MAX_BACKUP_VERSION = 4;
+export const MAX_BACKUP_VERSION = 5;
 
 const IMPORTABLE_SETTING_KEYS = new Set([
   "flightLimits",
@@ -36,6 +39,7 @@ export interface BackupData {
   plans?: FlightPlan[];
   operationalMaps?: SavedOperationalMap[];
   drafts?: FormDraft[];
+  operationSessions?: OperationSession[];
 }
 
 export interface ImportSummary {
@@ -46,6 +50,7 @@ export interface ImportSummary {
   plans: number;
   operationalMaps: number;
   drafts: number;
+  operationSessions: number;
 }
 
 export class BackupValidationError extends Error {
@@ -64,6 +69,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
   const plans = await db.plans.toArray();
   const operationalMaps = await db.operationalMaps.toArray();
   const drafts = await db.drafts.toArray();
+  const operationSessions = await db.operationSessions.toArray();
   return {
     format: BACKUP_FORMAT,
     version: CURRENT_BACKUP_VERSION,
@@ -76,6 +82,7 @@ export async function exportBackup(appVersion: string): Promise<BackupData> {
     plans,
     operationalMaps,
     drafts,
+    operationSessions,
   };
 }
 
@@ -189,6 +196,8 @@ export function validateBackup(data: unknown): data is BackupData {
   if (data.version >= 3 && !Array.isArray(data.operationalMaps)) return false;
   if (data.drafts !== undefined && !Array.isArray(data.drafts)) return false;
   if (data.version >= 4 && !Array.isArray(data.drafts)) return false;
+  if (data.operationSessions !== undefined && !Array.isArray(data.operationSessions)) return false;
+  if (data.version >= 5 && !Array.isArray(data.operationSessions)) return false;
   return true;
 }
 
@@ -235,7 +244,14 @@ export function inspectBackup(data: unknown): { ok: true; data: BackupData } | {
   }
   if (data.drafts !== undefined && !Array.isArray(data.drafts)) return { ok: false, error: "La sección de borradores es inválida." };
   if (data.version >= 4 && !Array.isArray(data.drafts)) return { ok: false, error: "El respaldo v4 no contiene borradores." };
+  if (data.operationSessions !== undefined && !Array.isArray(data.operationSessions)) return { ok: false, error: "La sección de sesiones operacionales es inválida." };
+  if (data.version >= 5 && !Array.isArray(data.operationSessions)) return { ok: false, error: "El respaldo v5 no contiene sesiones operacionales." };
   if (Array.isArray(data.drafts) && (data.drafts.length > 1000 || !data.drafts.every(isValidFormDraft) || new Set(data.drafts.map((draft) => draft.id)).size !== data.drafts.length)) return { ok: false, error: "Existen borradores corruptos en el respaldo." };
+  if (Array.isArray(data.operationSessions)) {
+    if (data.operationSessions.length > MAX_OPERATION_SESSIONS_PER_BACKUP) return { ok: false, error: `El respaldo excede el límite de ${MAX_OPERATION_SESSIONS_PER_BACKUP} sesiones operacionales.` };
+    if (!data.operationSessions.every(validateOperationSession) || new Set(data.operationSessions.map((session) => session.id)).size !== data.operationSessions.length) return { ok: false, error: "Existen sesiones operacionales corruptas en el respaldo." };
+    if (data.operationSessions.filter((session) => session.status === "ACTIVE").length > 1) return { ok: false, error: "El respaldo contiene más de una operación activa." };
+  }
   if (Array.isArray(data.operationalMaps) && data.operationalMaps.length > MAX_OPERATIONAL_MAPS) {
     return { ok: false, error: `El respaldo excede el límite de ${MAX_OPERATIONAL_MAPS} mapas.` };
   }
@@ -278,10 +294,17 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
   const plans = Array.isArray(inspection.data.plans) ? inspection.data.plans : [];
   const operationalMaps = Array.isArray(inspection.data.operationalMaps) ? inspection.data.operationalMaps : [];
   const drafts = Array.isArray(inspection.data.drafts) ? inspection.data.drafts : [];
+  const operationSessions = Array.isArray(inspection.data.operationSessions) ? inspection.data.operationSessions : [];
 
-  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0, plans: 0, operationalMaps: 0, drafts: 0 };
+  const localActive = await db.operationSessions.where("status").equals("ACTIVE").first();
+  const importedActive = operationSessions.find((session) => session.status === "ACTIVE");
+  if (localActive && importedActive && localActive.id !== importedActive.id) {
+    throw new BackupValidationError("Finaliza la operación activa de este dispositivo antes de importar otra operación activa.");
+  }
 
-  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings, db.plans, db.operationalMaps, db.drafts], async () => {
+  const summary: ImportSummary = { flights: 0, batteries: 0, places: 0, settings: 0, plans: 0, operationalMaps: 0, drafts: 0, operationSessions: 0 };
+
+  await db.transaction("rw", [db.flights, db.batteries, db.places, db.settings, db.plans, db.operationalMaps, db.drafts, db.operationSessions], async () => {
     for (const flight of flights) {
       if (!validateFlight(flight)) continue;
       const existing = await db.flights.get(flight.id);
@@ -348,6 +371,14 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
       if (!existing || draft.updatedAt > existing.updatedAt) { await db.drafts.put(draft); summary.drafts++; }
     }
 
+    for (const session of operationSessions) {
+      const existing = await db.operationSessions.get(session.id);
+      if (!existing || session.updatedAt > existing.updatedAt) {
+        await db.operationSessions.put(session);
+        summary.operationSessions++;
+      }
+    }
+
     for (const key of IMPORTABLE_SETTING_KEYS) {
       if (Object.prototype.hasOwnProperty.call(settings, key)) {
         const value = settings[key];
@@ -359,6 +390,10 @@ export async function importBackup(data: BackupData): Promise<ImportSummary> {
         summary.settings++;
       }
     }
+
+    const active = await db.operationSessions.where("status").equals("ACTIVE").first();
+    if (active) await db.settings.put({ id: ACTIVE_OPERATION_SETTING_ID, value: JSON.stringify(active.id), updatedAt: new Date().toISOString() });
+    else await db.settings.delete(ACTIVE_OPERATION_SETTING_ID);
   });
 
   return summary;

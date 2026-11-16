@@ -117,6 +117,7 @@ export interface FlightRecord {
   createdAt: string;
   updatedAt: string;
   planId?: string;
+  operationSessionId?: string;
 }
 
 export interface BatteryRecord {

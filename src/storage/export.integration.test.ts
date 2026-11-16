@@ -21,6 +21,8 @@ import { loadSetting } from "./repositories/settingsRepository";
 import { createFlightPlan, listFlightPlans } from "./repositories/flightPlanRepository";
 import type { FlightRecord, BatteryRecord } from "../domain/logbook/types";
 import { saveOperationalMap, listOperationalMaps } from "./repositories/operationalMapRepository";
+import { completeOperation, startOperation } from "./repositories/operationSessionRepository";
+import { buildLocationSelection } from "../domain/locationSelection";
 
 async function wipeDatabase(): Promise<void> {
   const db = getDB();
@@ -30,6 +32,8 @@ async function wipeDatabase(): Promise<void> {
   await db.settings.clear();
   await db.plans.clear();
   await db.operationalMaps.clear();
+  await db.drafts.clear();
+  await db.operationSessions.clear();
 }
 
 beforeEach(async () => {
@@ -38,7 +42,7 @@ beforeEach(async () => {
 });
 
 describe("export → import → equivalence", () => {
-  it("round-trips v4 plans, maps, drafts and their linkable snapshots", async () => {
+  it("round-trips v5 plans, maps, drafts and their linkable snapshots", async () => {
     const plan = await createFlightPlan({
       location: { latitude: -33.45, longitude: -70.65 },
       locationLabel: "Sitio de prueba",
@@ -52,7 +56,7 @@ describe("export → import → equivalence", () => {
       createdAt: now, updatedAt: now,
     });
     const backup = await exportBackup("1.1.0-beta.2");
-    expect(backup.version).toBe(4);
+    expect(backup.version).toBe(5);
     expect(backup.plans).toHaveLength(1);
     expect(backup.operationalMaps).toHaveLength(1);
 
@@ -62,6 +66,26 @@ describe("export → import → equivalence", () => {
     expect(summary.operationalMaps).toBe(1);
     expect(await listFlightPlans()).toEqual([plan]);
     expect((await listOperationalMaps())[0]).toMatchObject({ id: "map-roundtrip" });
+  });
+
+  it("round-trips completed operational sessions without creating flights", async () => {
+    const location = buildLocationSelection({ latitude: -33.45, longitude: -70.65 }, "map-click", { label: "Sesión respaldo" });
+    const active = await startOperation({ commandId: "backup-start", locationSnapshot: location, nowIso: "2026-11-16T10:00:00.000Z" });
+    const completed = await completeOperation(active.id, "backup-end", "2026-11-16T10:15:00.000Z");
+    const backup = await exportBackup("1.1.0-beta.8");
+    expect(backup.operationSessions).toEqual([completed]);
+    await wipeDatabase();
+    const summary = await importBackup(backup);
+    expect(summary.operationSessions).toBe(1);
+    expect(await getDB().operationSessions.get(completed.id)).toEqual(completed);
+    expect(await getDB().flights.count()).toBe(0);
+  });
+
+  it("rejects a v5 backup with more than one active operation", () => {
+    const location = buildLocationSelection({ latitude: -33.45, longitude: -70.65 }, "map-click");
+    const base = { schemaVersion: 1 as const, status: "ACTIVE" as const, locationSnapshot: location, startedAt: "2026-11-16T10:00:00.000Z", flights: [], startCommandId: "start", createdAt: "2026-11-16T10:00:00.000Z", updatedAt: "2026-11-16T10:00:00.000Z" };
+    const inspection = inspectBackup({ format: "vantops-backup", version: 5, exportedAt: new Date().toISOString(), appVersion: "1.1.0-beta.8", flights: [], batteries: [], places: [], settings: {}, plans: [], operationalMaps: [], drafts: [], operationSessions: [{ ...base, id: "one" }, { ...base, id: "two", startCommandId: "start-two" }] });
+    expect(inspection).toMatchObject({ ok: false });
   });
 
   it("round-trips flights, batteries and places with identical values", async () => {

@@ -19,6 +19,7 @@ import { loadActiveLocation } from "../../storage/activeLocationRepository";
 import { mapPickerPath } from "../../domain/mapPickIntent";
 import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { AutosaveStatus } from "../../components/autosave/AutosaveStatus";
+import { isoToLocalDatetimeInput, localDatetimeInputToIso } from "../../lib/datetimeLocal";
 
 export function FlightPlanForm() {
   const { id } = useParams<{ id: string }>();
@@ -71,8 +72,8 @@ export function FlightPlanForm() {
         setLon(String(plan.location.longitude));
         setLabel(plan.locationLabel ?? "");
         setRadiusMeters(plan.radiusMeters ? String(plan.radiusMeters) : "");
-        setScheduledStartAt(plan.scheduledStartAt?.slice(0, 16) ?? "");
-        setScheduledEndAt(plan.scheduledEndAt?.slice(0, 16) ?? "");
+        setScheduledStartAt(plan.scheduledStartAt ? isoToLocalDatetimeInput(plan.scheduledStartAt) : "");
+        setScheduledEndAt(plan.scheduledEndAt ? isoToLocalDatetimeInput(plan.scheduledEndAt) : "");
         setOperationType(plan.operationType ?? "OTHER");
         setStatus(plan.status);
         setNotes(plan.operatorNotes ?? "");
@@ -128,8 +129,8 @@ export function FlightPlanForm() {
         location: coordinate.coordinate,
         locationLabel: label.trim() || undefined,
         radiusMeters: parsedRadius,
-        scheduledStartAt: scheduledStartAt ? new Date(scheduledStartAt).toISOString() : undefined,
-        scheduledEndAt: scheduledEndAt ? new Date(scheduledEndAt).toISOString() : undefined,
+        scheduledStartAt: scheduledStartAt ? localDatetimeInputToIso(scheduledStartAt) : undefined,
+        scheduledEndAt: scheduledEndAt ? localDatetimeInputToIso(scheduledEndAt) : undefined,
         operationType,
         status,
         operatorNotes: notes.trim() || undefined,
