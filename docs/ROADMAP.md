@@ -13,6 +13,11 @@
 > versión nueva con una única recarga controlada para evitar clientes retenidos
 > en una beta anterior.
 
+> **Actualización beta 7 (2026-11-16):** la aplicación adopta un workspace
+> centrado en el mapa, panel operativo plegable, cartografía Calles/Topográfico,
+> Condiciones sin segundo mapa y contacto público completo. Dexie v5 y backup v4
+> permanecen sin cambios.
+
 ---
 
 # 1. Corrección de alcance

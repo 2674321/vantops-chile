@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import { divIcon, icon, latLng, latLngBounds, type Marker as LeafletMarker, type LeafletEvent } from "leaflet";
-import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, ScaleControl, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Coordinate } from "../../../domain/coordinate";
 import type { MapRadiusZone } from "../../../domain/operationalMap";
 import operationCenterUrl from "../../../assets/map/operation-center.svg";
+import { resolveBasemap, type BasemapId } from "../../../domain/basemap";
 
 const operationCenterIcon = icon({
   iconUrl: operationCenterUrl,
@@ -32,6 +33,8 @@ interface Props {
   onSelectPin?: (id: string) => void;
   onMoveZone?: (id: string, coordinate: Coordinate) => void;
   onMovePin?: (id: string, coordinate: Coordinate) => void;
+  basemapId?: BasemapId;
+  onBasemapError?: () => void;
   variant?: "editor" | "preview";
 }
 
@@ -92,12 +95,14 @@ function MapInteraction({ tool, onPick }: { tool: MapTool; onPick: (coordinate: 
 }
 
 export default function OperationalMapCanvas(props: Props) {
-  const { center, zones, pins = [], selectedZoneId, selectedPinId = null, movablePinId = null, movableZoneId = null, measurement, tool, fitNonce, recenterNonce = 0, onMapPick, onSelectZone, onSelectPin, onMoveZone, onMovePin, variant = "editor" } = props;
+  const { center, zones, pins = [], selectedZoneId, selectedPinId = null, movablePinId = null, movableZoneId = null, measurement, tool, fitNonce, recenterNonce = 0, onMapPick, onSelectZone, onSelectPin, onMoveZone, onMovePin, basemapId = "osm-standard", onBasemapError, variant = "editor" } = props;
   const selectedVisibleZone = zones.find((zone) => zone.id === selectedZoneId && zone.visible);
+  const basemap = resolveBasemap(basemapId);
   return (
-    <div className={variant === "preview" ? "relative z-0 h-[320px] overflow-hidden rounded-xl border border-slate-700 sm:h-[390px]" : "relative z-0 h-[55dvh] min-h-[390px] overflow-hidden rounded-xl border border-slate-700 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px]"}>
+    <div className={variant === "preview" ? "relative z-0 h-[320px] overflow-hidden rounded-xl border border-slate-700 sm:h-[390px]" : "relative z-0 h-full min-h-[320px] overflow-hidden border border-slate-700 lg:min-h-0"}>
       <MapContainer center={[center.latitude, center.longitude]} zoom={12} scrollWheelZoom className="h-full w-full" style={{ background: "#020617" }}>
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" className="brightness-75 contrast-125" />
+        <TileLayer key={basemap.id} attribution={basemap.attribution} url={basemap.url ?? ""} maxZoom={basemap.maxZoom} eventHandlers={{ tileerror: () => onBasemapError?.() }} />
+        <ScaleControl imperial={false} />
         <KeepMapSized />
         <IntentionalRecenter center={center} nonce={recenterNonce} />
         <FitVisibleZones zones={zones} nonce={fitNonce} />

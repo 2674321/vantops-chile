@@ -9,11 +9,12 @@ import { ToastProvider } from "../../../components/toast/ToastProvider";
 import { getDB, resetDB } from "../../../storage/db";
 import * as mapRepository from "../../../storage/repositories/operationalMapRepository";
 import { listPlaces } from "../../../storage/repositories/placeRepository";
-import { OperationalMapPage } from "./OperationalMapPage";
+import { OperationalMapPage, parseOperationalPanelTab } from "./OperationalMapPage";
 
 vi.mock("./OperationalMapCanvas", () => ({ default: ({ onMapPick, onMoveZone, onMovePin }: { onMapPick: (point: { latitude: number; longitude: number }) => void; onMoveZone?: (id: string, point: { latitude: number; longitude: number }) => void; onMovePin?: (id: string, point: { latitude: number; longitude: number }) => void }) => <div data-testid="map-canvas">Mapa<button type="button" onClick={() => onMapPick({ latitude: -32, longitude: -71 })}>Punto mapa</button><button type="button" onClick={() => onMoveZone?.("zone-test", { latitude: -31, longitude: -70 })}>Mover radio simulado</button><button type="button" onClick={() => onMovePin?.("pin-test", { latitude: -30, longitude: -69 })}>Mover pin simulado</button></div> }));
 
 beforeEach(async () => {
+  localStorage.clear();
   resetDB();
   await getDB().delete();
   resetDB();
@@ -23,12 +24,19 @@ beforeEach(async () => {
 afterEach(() => cleanup());
 
 describe("OperationalMapPage", () => {
+  it("parses supported deep-linked panels safely", () => {
+    expect(parseOperationalPanelTab("pines")).toBe("pines");
+    expect(parseOperationalPanelTab("unknown")).toBe("ubicacion");
+  });
+
   it("creates multiple zones and persists the map", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     expect(await screen.findByTestId("map-canvas")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     await userEvent.click(screen.getByRole("button", { name: "250 m" }));
     expect(screen.getAllByText(/Radio/).length).toBeGreaterThanOrEqual(2);
+    await userEvent.click(screen.getByRole("tab", { name: "Lugar" }));
     await userEvent.clear(screen.getByLabelText("Nombre del mapa"));
     await userEvent.type(screen.getByLabelText("Nombre del mapa"), "Mapa QA público");
     await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
@@ -39,11 +47,13 @@ describe("OperationalMapPage", () => {
   it("adds a custom radius and a persistent pin", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
+    await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.clear(screen.getByLabelText("Radio personalizado en metros"));
     await userEvent.type(screen.getByLabelText("Radio personalizado en metros"), "1350");
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio personalizado" }));
-    await userEvent.click(screen.getByRole("button", { name: "Poner pin" }));
+    await userEvent.click(screen.getByRole("button", { name: "Pin" }));
     await userEvent.click(screen.getByRole("button", { name: "Punto mapa" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Lugar" }));
     await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
     await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
     const storedMap = (await mapRepository.listOperationalMaps())[0];
@@ -55,6 +65,7 @@ describe("OperationalMapPage", () => {
   it("rejects a partial numeric radius instead of parsing its prefix", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
+    await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     const radius = screen.getByLabelText("Radio en metros");
     await userEvent.clear(radius);
@@ -104,6 +115,7 @@ describe("OperationalMapPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<MemoryRouter initialEntries={["/utilidades/mapa"]}><ToastProvider><Routes><Route path="/utilidades/mapa" element={<OperationalMapPage />} /><Route path="/operacion/nueva" element={<h1>Preparación segura</h1>} /></Routes></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
+    await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     await userEvent.clear(screen.getByLabelText("Radio en metros"));
     await userEvent.type(screen.getByLabelText("Radio en metros"), "750");
@@ -117,7 +129,7 @@ describe("OperationalMapPage", () => {
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: (success: PositionCallback) => success({ coords: { latitude: -33.0472, longitude: -71.6127, accuracy: 12 } } as GeolocationPosition) } });
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
-    await userEvent.click(screen.getByRole("button", { name: "Mi ubicación" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mi GPS" }));
     expect(screen.getByLabelText("Latitud WGS84")).toHaveValue("-33.0472");
     expect(screen.getByRole("alert")).toHaveTextContent("±12 m");
   });
@@ -129,7 +141,7 @@ describe("OperationalMapPage", () => {
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: (_success: PositionCallback, failure: PositionErrorCallback) => failure({ code } as GeolocationPositionError) } });
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
-    await userEvent.click(screen.getByRole("button", { name: "Mi ubicación" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mi GPS" }));
     expect(screen.getByRole("alert")).toHaveTextContent(message);
     expect(screen.getByRole("button", { name: "Centrar" })).toBeInTheDocument();
   });

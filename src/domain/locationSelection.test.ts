@@ -12,7 +12,8 @@ describe("shared location contract", () => {
 
   it("keeps map selection destinations allowlisted", () => {
     expect(parseMapPickIntent("javascript:alert(1)")).toBe("none");
-    expect(mapPickerPath("flight-new")).toBe("/utilidades/mapa?pickFor=flight-new");
+    expect(mapPickerPath("flight-new")).toBe("/?pickFor=flight-new");
     expect(destinationForPick("plan-new")).toBe("/operacion/nueva");
+    expect(destinationForPick("dashboard")).toBe("/condiciones");
   });
 });

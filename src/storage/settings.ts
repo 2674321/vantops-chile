@@ -7,12 +7,18 @@ import {
   DEFAULT_DISPLAY_PREFERENCES,
   type DisplayPreferences,
 } from "../domain/displayPreferences";
+import {
+  DEFAULT_BASEMAP_ID,
+  isBasemapId,
+  type BasemapId,
+} from "../domain/basemap";
 
 const LIMITS_KEY = "flightLimits";
 const AIRCRAFT_KEY = "activeAircraft";
 const LAST_COORD_KEY = "lastCoordinate";
 const OPERATION_RADIUS_KEY = "operationZoneRadius";
 const DISPLAY_PREFERENCES_KEY = "displayPreferences";
+const BASEMAP_PREFERENCE_KEY = "selectedBasemap";
 
 const LS_LIMITS_KEY = "vantops:flightLimits";
 const LS_AIRCRAFT_KEY = "vantops:activeAircraft";
@@ -190,4 +196,14 @@ export async function loadDisplayPreferences(): Promise<DisplayPreferences> {
 
 export async function saveDisplayPreferences(preferences: DisplayPreferences): Promise<void> {
   await saveSetting(DISPLAY_PREFERENCES_KEY, preferences);
+}
+
+export async function loadBasemapPreference(): Promise<BasemapId> {
+  const stored = await loadSetting<unknown>(BASEMAP_PREFERENCE_KEY);
+  return isBasemapId(stored) ? stored : DEFAULT_BASEMAP_ID;
+}
+
+export async function saveBasemapPreference(id: BasemapId): Promise<void> {
+  if (!isBasemapId(id)) throw new Error("Tipo de mapa inválido");
+  await saveSetting(BASEMAP_PREFERENCE_KEY, id);
 }

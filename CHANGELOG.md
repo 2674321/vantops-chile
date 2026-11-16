@@ -2,6 +2,29 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.7] - 2026-11-16
+
+### Added
+- Workspace `map-first`: el mapa abre en la ruta raíz con toolbar compacta,
+  panel plegable, pestañas navegables y scroll lateral independiente.
+- Mapas base Calles (OpenStreetMap) y Topográfico (OpenTopoMap), con atribución,
+  persistencia local, fallback seguro y Satélite visible como no configurado.
+- Filtros de pines globales, asociados al mapa y favoritos; acceso directo a
+  Condiciones usando el punto operacional seleccionado.
+- LinkedIn e Instagram públicos del propietario en Acerca → Contacto.
+
+### Changed
+- Navegación reducida a Mapa, Mi operación, Bitácora, Condiciones y Más; las
+  rutas históricas de Mapa, Utilidades y Lugares redirigen conservando parámetros.
+- El dashboard meteorológico pasa a Condiciones y deja de montar un segundo mapa
+  o solicitar otra ubicación.
+- El selector efectivo usa la coordenada real del pin o radio activo, evitando
+  enviar un centro anterior a preparaciones o bitácora.
+
+### Compatibility
+- Dexie permanece en v5 y el respaldo en v4. No se eliminan ni transforman
+  mapas, pines, radios, checklist, borradores, preparaciones o vuelos previos.
+
 ## [1.1.0-beta.6] - 2026-11-15
 
 ### Added

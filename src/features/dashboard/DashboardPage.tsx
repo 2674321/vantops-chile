@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWeatherSnapshot } from "../../providers/weather/openMeteoWeather";
@@ -13,10 +13,9 @@ import { OperationWindowCard } from "../assessment/OperationWindowCard";
 import { ChecklistCard } from "../checklist/ChecklistCard";
 import { AircraftSelector } from "../aircraft/AircraftSelector";
 import { InstallPromptCard } from "../pwa/InstallPromptCard";
-import { LocationSearch } from "./LocationSearch";
 import { OperationZoneControl } from "./OperationZoneControl";
 import { Button } from "../../components/ui/button";
-import { MapPin, Navigation, MapIcon, Plane, Battery, Settings2, AlertTriangle, ClipboardCheck } from "lucide-react";
+import { MapPin, Plane, Battery, ClipboardCheck } from "lucide-react";
 import { useLastCoordinate } from "../../hooks/useLastCoordinate";
 import { computeSolarTimes } from "../../providers/solar/suncalcSolar";
 import { evaluateFlight } from "../../domain/assessment/evaluator";
@@ -47,20 +46,13 @@ import {
   captureObservationSnapshot,
   captureWeatherSnapshot,
 } from "../../domain/flightPlan/snapshots";
-import { MapHomePreview } from "../utilities/map/MapHomePreview";
-
-const MapPicker = lazy(() => import("../map/LocationMap"));
 
 export default function DashboardPage() {
-  const { coordinate, saveCoordinate } = useLastCoordinate();
-  const [manualLat, setManualLat] = useState("");
-  const [manualLon, setManualLon] = useState("");
+  const { coordinate } = useLastCoordinate();
   const [aircraft, setAircraft] = useState<AircraftProfile | null>(null);
   const [flightLimits, setFlightLimits] = useState<FlightLimits>({});
   const [operationRadius, setOperationRadius] = useState<number | null>(null);
   const [displayPreferences, setDisplayPreferences] = useState<DisplayPreferences>(DEFAULT_DISPLAY_PREFERENCES);
-  const [geoError, setGeoError] = useState<string | null>(null);
-  const [manualError, setManualError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const toast = useToast();
@@ -230,53 +222,6 @@ export default function DashboardPage() {
     navigate,
   ]);
 
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setManualError(null);
-    const lat = Number.parseFloat(manualLat);
-    const lon = Number.parseFloat(manualLon);
-    if (Number.isNaN(lat) || Number.isNaN(lon)) {
-      setManualError("Ingresa valores numéricos válidos para latitud y longitud.");
-      return;
-    }
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      setManualError("Coordenadas inválidas. Revisa los valores ingresados.");
-      return;
-    }
-    saveCoordinate({ latitude: lat, longitude: lon });
-    toast.info(t.feedback.locationUpdated);
-  };
-
-  const handleGeolocation = () => {
-    setGeoError(null);
-    if (!navigator.geolocation) {
-      setGeoError("Geolocalización no disponible en este dispositivo.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeoError(null);
-        saveCoordinate({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-        toast.info(t.feedback.locationUpdated);
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setGeoError("Permiso de ubicación rechazado. Puedes ingresar coordenadas manualmente.");
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          setGeoError("Ubicación no disponible en este dispositivo.");
-        } else if (err.code === err.TIMEOUT) {
-          setGeoError("Tiempo agotado al obtener la ubicación. Intenta nuevamente.");
-        } else {
-          setGeoError("Error desconocido al obtener la ubicación.");
-        }
-      },
-      { timeout: 10_000, maximumAge: 60_000 }
-    );
-  };
-
   return (
     <div className="mx-auto w-full max-w-2xl space-y-7 px-5 py-10 sm:px-6">
       {!online && (
@@ -290,14 +235,12 @@ export default function DashboardPage() {
 
       <header className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {t.appName}
+          Condiciones
         </h1>
-        <p className="text-base text-slate-400">{t.tagline}</p>
+        <p className="text-base text-slate-400">Meteorología, evaluación y checklist del punto activo del mapa.</p>
       </header>
 
       <InstallPromptCard />
-
-      <MapHomePreview />
 
       <AircraftSelector onAircraftChange={handleAircraftChange} />
 
@@ -321,109 +264,21 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button onClick={handleGeolocation} className="h-12 text-base">
-          <Navigation className="mr-2 h-4 w-4" />
-          {t.dashboard.useMyLocation}
-        </Button>
-        <Button variant="outline" onClick={() => navigate("/ajustes")} className="h-12 text-base">
-          <Settings2 className="mr-2 h-4 w-4" />
-          Ajustes
-        </Button>
-      </div>
-
-      {geoError && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-lg border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-300"
-        >
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <span>{geoError}</span>
-        </div>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="h-4 w-4 text-sky-400" />
-            Coordenadas
+            Punto activo del mapa
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {coordinate && (
-            <p className="mb-3 text-sm text-slate-300">
-              {coordinate.latitude.toFixed(5)}, {coordinate.longitude.toFixed(5)}
-            </p>
-          )}
-
-          <LocationSearch onSelect={saveCoordinate} />
-
-          <form
-            className="grid gap-3 sm:grid-cols-2"
-            onSubmit={handleManualSubmit}
-          >
-            <input
-              className="h-11 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
-              inputMode="decimal"
-              placeholder="-29.9070"
-              aria-label="Latitud"
-              value={manualLat}
-              onChange={(e) => setManualLat(e.target.value)}
-            />
-            <input
-              className="h-11 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 text-base outline-none focus:border-sky-500"
-              inputMode="decimal"
-              placeholder="-71.2500"
-              aria-label="Longitud"
-              value={manualLon}
-              onChange={(e) => setManualLon(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="outline"
-              className="w-full sm:col-span-2"
-            >
-              {t.dashboard.showWeather}
-            </Button>
-          </form>
-
-          {manualError && (
-            <p role="alert" className="text-sm text-red-400">
-              {manualError}
-            </p>
-          )}
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-300">{coordinate ? `${coordinate.latitude.toFixed(5)}, ${coordinate.longitude.toFixed(5)}` : "Aún no has confirmado un punto operacional."}</p>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/?panel=ubicacion")}>Cambiar punto en el mapa</Button>
         </CardContent>
       </Card>
 
-      {!coordinate && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <MapIcon className="h-10 w-10 text-slate-600" />
-            <p className="text-sm text-slate-400">
-              Usa tu ubicación o ingresa coordenadas para ver el mapa y el clima.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {coordinate && (
         <section className="space-y-6">
-          <Suspense
-            fallback={
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-400">
-                  Cargando mapa…
-                </CardContent>
-              </Card>
-            }
-          >
-            <MapPicker
-              coordinate={coordinate}
-              radiusMeters={operationRadius}
-              onPick={saveCoordinate}
-            />
-          </Suspense>
-
           <OperationZoneControl
             radiusMeters={operationRadius}
             onChange={handleRadiusChange}
