@@ -13,7 +13,7 @@ describe("PublicContactPanel", () => {
     );
     expect(screen.getByRole("link", { name: /Instagram/ })).toHaveAttribute(
       "href",
-      "https://www.instagram.com/__mudrock/",
+      "https://www.instagram.com/__mudrock",
     );
     expect(screen.queryByText("Enlace aún no configurado")).not.toBeInTheDocument();
   });

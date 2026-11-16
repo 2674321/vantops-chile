@@ -10,7 +10,7 @@ Rama: `feat/vantops-map-first-terrain-workspace`
 - Viewports comprobados: 320×700, 390×844, 1366×768 y 1440×900. En 320 y 390 se midió `documentElement.scrollWidth === clientWidth`; en escritorio, `body.scrollHeight === innerHeight`.
 - Se verificó visualmente el mapa raíz, panel abierto/colapsado, scroll interno, cambio Calles/Topográfico, atribución, paneles y contacto.
 - Capturas: `beta7-map-desktop.png`, `beta7-map-mobile.png`, `beta7-conditions-desktop.png` y `beta7-contact-mobile.png` en `docs/screenshots/`.
-- Evidencia automatizada final: lint y TypeScript sin errores; 62 archivos de prueba, 656 tests aprobados y 1 omitido; build PWA correcto con 56 entradas precache (860,40 KiB).
+- Evidencia automatizada final: lint y TypeScript sin errores; 60 archivos de prueba, 650 tests aprobados y 1 omitido; build PWA correcto con 56 entradas precache (856,91 KiB).
 - `NO EJECUTADO` se usa cuando no hubo una prueba real del escenario exacto; no se infiere un PASS solo por lectura de código.
 
 ## Matriz U01–U75
