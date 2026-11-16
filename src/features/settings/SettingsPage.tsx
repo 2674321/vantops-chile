@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -25,6 +25,8 @@ import {
   temperatureUnitLabel,
   type DisplayPreferences,
 } from "../../domain/displayPreferences";
+import { AutosaveController, type AutosaveView } from "../../lib/autosave/AutosaveController";
+import { AutosaveStatus } from "../../components/autosave/AutosaveStatus";
 
 type LimitKey =
   | "windMaxKmh"
@@ -61,6 +63,20 @@ function stringifyLimit(value: number | undefined): string {
   return value == null ? "" : String(value);
 }
 
+interface SettingsDraft { limits: Partial<Record<LimitKey, string>>; preferences: DisplayPreferences; windReferenceHeight: 10 | 100; }
+
+function parseSettingsDraft(draft: SettingsDraft): { ok: true; limits: FlightLimits } | { ok: false; error: string } {
+  const parsed: FlightLimits = { windReferenceHeight: draft.windReferenceHeight };
+  for (const field of LIMIT_FIELDS) {
+    const raw = draft.limits[field.key] ?? "";
+    const value = parseLimit(raw);
+    if (value === undefined && raw.trim() !== "") return { ok: false, error: t.settings.invalidValue(t.settings.fields[field.key].label) };
+    if (value !== undefined) parsed[field.key] = field.key === "windMaxKmh" || field.key === "gustMaxKmh" ? speedToKmh(value, draft.preferences.speedUnit) : field.key === "temperatureMinC" || field.key === "temperatureMaxC" ? temperatureToC(value, draft.preferences.temperatureUnit) : field.key === "visibilityMinMeters" ? distanceToMeters(value, draft.preferences.distanceUnit) : value;
+  }
+  if (parsed.temperatureMinC != null && parsed.temperatureMaxC != null && parsed.temperatureMinC >= parsed.temperatureMaxC) return { ok: false, error: t.settings.temperatureOrder };
+  return { ok: true, limits: parsed };
+}
+
 export function SettingsPage() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -71,6 +87,11 @@ export function SettingsPage() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [windReferenceHeight, setWindReferenceHeight] = useState<10 | 100>(10);
   const [preferences, setPreferences] = useState<DisplayPreferences>(DEFAULT_DISPLAY_PREFERENCES);
+  const lastStaged = useRef("");
+  const autosave = useMemo(() => new AutosaveController<SettingsDraft>(async (draft) => { const parsed = parseSettingsDraft(draft); if (!parsed.ok) throw new Error(parsed.error); try { await Promise.all([saveFlightLimits(parsed.limits), saveDisplayPreferences(draft.preferences)]); } catch { throw new Error(t.feedback.limitsSaveError); } }, (draft) => { const parsed = parseSettingsDraft(draft); return parsed.ok ? null : parsed.error; }, 700), []);
+  const [saveState, setSaveState] = useState<AutosaveView>(autosave.snapshot);
+
+  useEffect(() => autosave.subscribe(setSaveState), [autosave]);
 
   useEffect(() => {
     Promise.all([loadFlightLimits(), loadDisplayPreferences()]).then(([stored, display]) => {
@@ -84,9 +105,26 @@ export function SettingsPage() {
         temperatureMaxC: stringifyLimit(stored.temperatureMaxC == null ? undefined : temperatureFromC(stored.temperatureMaxC, display.temperatureUnit)),
       });
       setWindReferenceHeight(stored.windReferenceHeight === 100 ? 100 : 10);
+      const initialDraft = { limits: {
+        windMaxKmh: stringifyLimit(stored.windMaxKmh == null ? undefined : speedFromKmh(stored.windMaxKmh, display.speedUnit)),
+        gustMaxKmh: stringifyLimit(stored.gustMaxKmh == null ? undefined : speedFromKmh(stored.gustMaxKmh, display.speedUnit)),
+        precipitationMaxMm: stringifyLimit(stored.precipitationMaxMm), visibilityMinMeters: stringifyLimit(stored.visibilityMinMeters == null ? undefined : distanceFromMeters(stored.visibilityMinMeters, display.distanceUnit)),
+        temperatureMinC: stringifyLimit(stored.temperatureMinC == null ? undefined : temperatureFromC(stored.temperatureMinC, display.temperatureUnit)), temperatureMaxC: stringifyLimit(stored.temperatureMaxC == null ? undefined : temperatureFromC(stored.temperatureMaxC, display.temperatureUnit)),
+      }, preferences: display, windReferenceHeight: stored.windReferenceHeight === 100 ? 100 as const : 10 as const };
+      lastStaged.current = JSON.stringify(initialDraft);
+      autosave.resetFromStorage(initialDraft);
       setLoaded(true);
     });
-  }, []);
+  }, [autosave]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const draft = { limits, preferences, windReferenceHeight };
+    const serialized = JSON.stringify(draft);
+    if (serialized === lastStaged.current) return;
+    lastStaged.current = serialized;
+    autosave.stage(draft);
+  }, [autosave, limits, loaded, preferences, windReferenceHeight]);
 
   const changePreferences = useCallback((next: DisplayPreferences) => {
     setLimits((current) => {
@@ -113,47 +151,16 @@ export function SettingsPage() {
 
   const handleSave = useCallback(async () => {
     if (saving) return;
-    const parsed: FlightLimits = { windReferenceHeight };
-    for (const field of LIMIT_FIELDS) {
-      const raw = limits[field.key] ?? "";
-      const value = parseLimit(raw);
-      if (value === undefined && raw.trim() !== "") {
-        setFormError(
-          t.settings.invalidValue(t.settings.fields[field.key].label)
-        );
-        return;
-      }
-      if (value !== undefined) {
-        parsed[field.key] =
-          field.key === "windMaxKmh" || field.key === "gustMaxKmh"
-            ? speedToKmh(value, preferences.speedUnit)
-            : field.key === "temperatureMinC" || field.key === "temperatureMaxC"
-              ? temperatureToC(value, preferences.temperatureUnit)
-              : field.key === "visibilityMinMeters"
-                ? distanceToMeters(value, preferences.distanceUnit)
-                : value;
-      }
-    }
-
-    if (
-      parsed.temperatureMinC != null &&
-      parsed.temperatureMaxC != null &&
-      parsed.temperatureMinC >= parsed.temperatureMaxC
-    ) {
-      setFormError(t.settings.temperatureOrder);
-      return;
-    }
-
     setSaving(true);
     try {
-      await Promise.all([saveFlightLimits(parsed), saveDisplayPreferences(preferences)]);
+      autosave.stage({ limits, preferences, windReferenceHeight });
+      if (!await autosave.flush()) return;
+      setFormError(null);
       toast.success(t.feedback.limitsSaved);
-    } catch {
-      setFormError(t.feedback.limitsSaveError);
     } finally {
       setSaving(false);
     }
-  }, [limits, saving, toast, windReferenceHeight, preferences]);
+  }, [autosave, limits, saving, toast, windReferenceHeight, preferences]);
 
   const handleClear = useCallback(async () => {
     setSaving(true);
@@ -169,6 +176,9 @@ export function SettingsPage() {
         temperatureMaxC: "",
       });
       setFormError(null);
+      const cleared = { limits: { windMaxKmh: "", gustMaxKmh: "", precipitationMaxMm: "", visibilityMinMeters: "", temperatureMinC: "", temperatureMaxC: "" }, preferences, windReferenceHeight: 10 as const };
+      lastStaged.current = JSON.stringify(cleared);
+      autosave.resetFromStorage(cleared);
       setConfirmClear(false);
       toast.success(t.feedback.limitsCleared);
     } catch {
@@ -176,7 +186,7 @@ export function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [toast]);
+  }, [autosave, preferences, toast]);
 
   const configured = LIMIT_FIELDS.some((field) => (limits[field.key] ?? "").trim() !== "");
 
@@ -207,6 +217,7 @@ export function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <AutosaveStatus state={saveState} onRetry={() => void autosave.retry()} />
           <p className="rounded-lg border border-slate-700 bg-slate-800/40 p-3 text-xs text-slate-300">
             {t.settings.intro}
           </p>
