@@ -30,6 +30,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
   formularios siguen utilizables si IndexedDB está bloqueado o no disponible.
 - Cambiar de mapa espera el guardado pendiente en vez de recargar o descartar
   cambios mediante confirmaciones repetitivas.
+- La PWA comprueba nuevas publicaciones al abrirse, al recuperar conexión, al
+  volver a primer plano y cada hora; cuando el worker nuevo toma el control, la
+  pestaña se recarga una sola vez para no quedar mostrando una beta anterior.
 
 ## [1.1.0-beta.5] - 2026-11-15
 
