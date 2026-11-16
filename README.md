@@ -34,6 +34,11 @@ IndexedDB (Dexie) para preparaciones, mapas de operaciones, bitácora, baterías
 **¿Funciona sin conexión?**
 Sí, la PWA es instalable y funciona offline. Las fuentes en vivo (clima, METAR, buscador) requieren conexión; pueden entregar datos en caché con aviso de antigüedad.
 
+**¿Cómo recibe una versión nueva?**
+Con conexión, la PWA comprueba actualizaciones al abrirse, al volver a primer
+plano, al recuperar la red y periódicamente. Cuando la nueva versión queda
+activa, la pestaña se recarga una sola vez; los datos locales no se eliminan.
+
 **¿De dónde vienen los datos meteorológicos?**
 Open-Meteo (clima y elevación), VATSIM METAR (observaciones en aeródromo; feed comunitario, **no oficial**), Nominatim/OpenStreetMap (búsqueda) y SunCalc (sol, calculado en el dispositivo). El METAR puede corresponder a una alternativa más distante cuando la estación nominal no reporta, y no representa el punto exacto de operación. Detalles y licencias en la sección [Fuentes de datos](#fuentes-de-datos).
 

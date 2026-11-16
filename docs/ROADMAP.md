@@ -8,6 +8,11 @@
 > **Nombre sugerido del repositorio:** `vantops-chile`  
 > **Enfoque:** gratuito, público, privacy-first, mobile-first y basado en datos reales.
 
+> **Actualización beta 6 (2026-11-15):** el registro PWA comprueba publicaciones
+> al iniciar, recuperar conexión, volver a primer plano y cada hora; activa la
+> versión nueva con una única recarga controlada para evitar clientes retenidos
+> en una beta anterior.
+
 ---
 
 # 1. Corrección de alcance
