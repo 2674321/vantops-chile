@@ -8,7 +8,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 - Selección geográfica compartida y trazable entre mapa, nueva preparación y
   nueva entrada de bitácora, sin solicitar GPS automáticamente.
 - Autoguardado serializado con estados visibles, reintento y `flush` antes de
-  cambiar de mapa o navegar; borradores recuperables de preparaciones y vuelos.
+  cambiar de mapa o navegar; preferencias validadas y borradores recuperables
+  de preparaciones y vuelos usan el mismo contrato de persistencia.
 - Pines canónicos basados en `SavedPlace`, con búsqueda, favoritos, notas,
   movimiento explícito y migración transaccional de pines beta.5.
 - Contacto público con GitHub y correo; redes sociales solo se muestran cuando

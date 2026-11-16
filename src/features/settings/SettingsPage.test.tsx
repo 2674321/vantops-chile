@@ -71,6 +71,14 @@ describe("SettingsPage", () => {
     expect(await screen.findByText("Límites guardados")).toBeInTheDocument();
   });
 
+  it("autosaves a complete valid change after the debounce", async () => {
+    renderPage();
+    const wind = await screen.findByLabelText("Viento máximo (10 m)");
+    fireEvent.change(wind, { target: { value: "28" } });
+    await waitFor(() => expect(saveLimitsMock).toHaveBeenCalledWith({ windMaxKmh: 28, windReferenceHeight: 10 }), { timeout: 2_000 });
+    expect(screen.getByText("Guardado en este dispositivo")).toBeInTheDocument();
+  });
+
   it("loads and persists the 100 m wind reference without changing the limit", async () => {
     loadLimitsMock.mockResolvedValue({ windMaxKmh: 30, windReferenceHeight: 100 });
     renderPage();
