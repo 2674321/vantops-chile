@@ -162,12 +162,12 @@ export function OperationalMapPage() {
   return <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950">
     <div className="w-full min-w-0 max-w-full shrink-0 overflow-hidden border-b border-slate-800">
     <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain px-2 py-2 sm:px-4">
-      <div className="mr-auto hidden min-w-44 sm:block"><h1 className="truncate text-sm font-semibold text-slate-100">{draft.name}</h1><AutosaveStatus state={saveState} onRetry={() => void autosave.retry()} /></div>
+      <div className="mr-auto hidden min-w-44 lg:block"><h1 className="truncate text-sm font-semibold text-slate-100">{draft.name}</h1><AutosaveStatus state={saveState} onRetry={() => void autosave.retry()} /></div>
       <Button size="sm" variant={tool === "explore" ? "default" : "outline"} onClick={() => setTool("explore")}><Eye className="h-4 w-4 sm:hidden" /><span className="sr-only sm:not-sr-only">Explorar</span></Button>
-      <Button size="sm" variant={tool === "center" ? "default" : "outline"} onClick={() => setTool("center")}><Crosshair className="h-4 w-4" /><span className="hidden md:inline">Punto</span></Button>
-      <Button size="sm" variant={tool === "pin" ? "default" : "outline"} onClick={() => setTool("pin")}><MapPin className="h-4 w-4" /><span className="hidden md:inline">Pin</span></Button>
-      <Button size="sm" variant={tool === "measure" ? "default" : "outline"} onClick={() => setTool("measure")}><Ruler className="h-4 w-4" /><span className="hidden md:inline">Medir</span></Button>
-      <Button size="sm" variant="outline" onClick={() => addZone()}><Plus className="h-4 w-4" /><span className="hidden md:inline">Radio</span></Button>
+      <Button size="sm" variant={tool === "center" ? "default" : "outline"} onClick={() => setTool("center")}><Crosshair className="h-4 w-4" /><span className="hidden lg:inline">Punto</span></Button>
+      <Button size="sm" variant={tool === "pin" ? "default" : "outline"} onClick={() => setTool("pin")}><MapPin className="h-4 w-4" /><span className="hidden lg:inline">Pin</span></Button>
+      <Button size="sm" variant={tool === "measure" ? "default" : "outline"} onClick={() => setTool("measure")}><Ruler className="h-4 w-4" /><span className="hidden lg:inline">Medir</span></Button>
+      <Button size="sm" variant="outline" onClick={() => addZone()}><Plus className="h-4 w-4" /><span className="hidden lg:inline">Radio</span></Button>
       <label className="hidden h-9 shrink-0 items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-slate-300 sm:flex"><Layers className="h-4 w-4" /><span className="sr-only">Tipo de mapa</span><select aria-label="Tipo de mapa" value={basemapId} onChange={(event) => void changeBasemap(event.target.value)} className="bg-transparent outline-none">{BASEMAP_CATALOG.map((item) => <option key={item.id} value={item.id} disabled={!item.enabled}>{item.name}{item.enabled ? "" : " · No configurado"}</option>)}</select></label>
       <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => setFitNonce((value) => value + 1)}>Ajustar</Button>
       <Button size="sm" variant="ghost" aria-expanded={panelOpen} aria-controls="operational-side-panel" onClick={() => setPanelOpen((value) => !value)}>{panelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}<span className="sr-only">{panelOpen ? "Cerrar panel" : "Abrir panel"}</span></Button>

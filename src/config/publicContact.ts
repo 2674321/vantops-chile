@@ -9,7 +9,7 @@ export const PUBLIC_CONTACT: PublicContact = {
     "linkedin.com",
   ),
   instagram: verifyPublicSocialUrl(
-    import.meta.env.VITE_PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/__mudrock/",
+    import.meta.env.VITE_PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/__mudrock",
     "instagram.com",
   ),
 };

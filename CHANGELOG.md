@@ -16,10 +16,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 ### Changed
 - Navegación reducida a Mapa, Mi operación, Bitácora, Condiciones y Más; las
   rutas históricas de Mapa, Utilidades y Lugares redirigen conservando parámetros.
+- Se retira definitivamente la antigua pantalla informativa de Utilidades y su
+  preview duplicado; los enlaces históricos abren el workspace operativo.
 - El dashboard meteorológico pasa a Condiciones y deja de montar un segundo mapa
   o solicitar otra ubicación.
 - El selector efectivo usa la coordenada real del pin o radio activo, evitando
   enviar un centro anterior a preparaciones o bitácora.
+
+### Fixed
+- La toolbar ya no desborda horizontalmente en tablet de 768 px y los enlaces
+  públicos usan las URLs exactas de LinkedIn e Instagram facilitadas.
 
 ### Compatibility
 - Dexie permanece en v5 y el respaldo en v4. No se eliminan ni transforman
