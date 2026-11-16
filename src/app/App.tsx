@@ -1,6 +1,6 @@
 import { Suspense, lazy, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BookOpen, ClipboardCheck, MapPin, WifiOff, Wifi, Settings2, Wrench, Map as MapIcon, Menu, Info } from "lucide-react";
+import { BookOpen, ClipboardCheck, WifiOff, Wifi, Settings2, Wrench, Map as MapIcon, Menu, Info } from "lucide-react";
 import { HashRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { esCL as t } from "../i18n/es-CL";
@@ -15,7 +15,6 @@ const LogbookPage = lazy(() => import("../features/logbook/LogbookPage").then((m
 const FlightDetailPage = lazy(() => import("../features/logbook/FlightDetailPage").then((m) => ({ default: m.FlightDetailPage })));
 const FlightForm = lazy(() => import("../features/logbook/FlightForm").then((m) => ({ default: m.FlightForm })));
 const BatteryPage = lazy(() => import("../features/logbook/BatteryPage").then((m) => ({ default: m.BatteryPage })));
-const PlacesPage = lazy(() => import("../features/places/PlacesPage").then((m) => ({ default: m.PlacesPage })));
 const AboutPage = lazy(() => import("../features/about/AboutPage").then((m) => ({ default: m.AboutPage })));
 const ExportImportPage = lazy(() => import("../features/logbook/ExportImportPage").then((m) => ({ default: m.ExportImportPage })));
 const FlightPlansPage = lazy(() => import("../features/plans/FlightPlansPage").then((m) => ({ default: m.FlightPlansPage })));
@@ -56,7 +55,7 @@ const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
 function PrimaryNavigation() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
-  const secondaryActive = ["/bitacora", "/lugares", "/ajustes", "/acerca"].some((path) => location.pathname.startsWith(path));
+  const secondaryActive = ["/bitacora", "/ajustes", "/acerca"].some((path) => location.pathname.startsWith(path));
   return (
     <nav aria-label="Navegación principal" className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pb-2 pt-3 sm:px-6">
@@ -72,7 +71,6 @@ function PrimaryNavigation() {
         <NavLink to="/operacion" className={navLinkClass}><ClipboardCheck aria-hidden className="h-4 w-4" />{t.nav.operation}</NavLink>
         <NavLink to="/bitacora" className={navLinkClass}><BookOpen aria-hidden className="h-4 w-4" />{t.nav.logbook}</NavLink>
         <NavLink to="/utilidades" end className={navLinkClass}><Wrench aria-hidden className="h-4 w-4" />{t.nav.utilities}</NavLink>
-        <NavLink to="/lugares" className={navLinkClass}><MapPin aria-hidden className="h-4 w-4" />{t.nav.places}</NavLink>
         <NavLink to="/ajustes" className={navLinkClass}><Settings2 aria-hidden className="h-4 w-4" />{t.nav.settings}</NavLink>
         <NavLink to="/acerca" className={navLinkClass}><Info aria-hidden className="h-4 w-4" />{t.nav.about}</NavLink>
       </div>
@@ -85,9 +83,8 @@ function PrimaryNavigation() {
           <button type="button" aria-expanded={moreOpen} aria-controls="mobile-secondary-nav" onClick={() => setMoreOpen((value) => !value)} className={cn(mobileNavLinkClass({ isActive: secondaryActive || moreOpen }))}><Menu aria-hidden className="h-4 w-4" />Más</button>
         </div>
         {moreOpen && (
-          <div id="mobile-secondary-nav" className="mt-1 grid grid-cols-4 gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+          <div id="mobile-secondary-nav" className="mt-1 grid grid-cols-3 gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
             <NavLink to="/bitacora" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><BookOpen aria-hidden className="h-4 w-4" />Bitácora</NavLink>
-            <NavLink to="/lugares" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><MapPin aria-hidden className="h-4 w-4" />Lugares</NavLink>
             <NavLink to="/ajustes" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><Settings2 aria-hidden className="h-4 w-4" />Ajustes</NavLink>
             <NavLink to="/acerca" onClick={() => setMoreOpen(false)} className={mobileNavLinkClass}><Info aria-hidden className="h-4 w-4" />Acerca</NavLink>
           </div>
@@ -129,7 +126,7 @@ export function App() {
                     <Route path="/operacion" element={<FlightPlansPage />} />
                     <Route path="/operacion/nueva" element={<FlightPlanForm />} />
                     <Route path="/operacion/:id" element={<FlightPlanForm />} />
-                    <Route path="/lugares" element={<PlacesPage />} />
+                    <Route path="/lugares" element={<Navigate to="/utilidades/mapa?panel=pines" replace />} />
                     <Route path="/utilidades" element={<UtilitiesPage />} />
                     <Route path="/utilidades/mapa" element={<OperationalMapPage />} />
                     <Route path="/acerca" element={<AboutPage />} />
@@ -138,6 +135,7 @@ export function App() {
                 </Suspense>
               </div>
             </main>
+            <footer className="border-t border-slate-900 px-4 py-4 text-center text-xs text-slate-500"><a className="hover:text-sky-400" href="https://github.com/2674321" target="_blank" rel="noopener noreferrer">GitHub</a><span aria-hidden> · </span><a className="hover:text-sky-400" href="mailto:pvc.devno@gmail.com">pvc.devno@gmail.com</a></footer>
           </div>
         </HashRouter>
         </ToastProvider>

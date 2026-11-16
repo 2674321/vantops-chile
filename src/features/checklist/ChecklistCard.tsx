@@ -19,6 +19,7 @@ import type { SolarTimes } from "../../domain/solar";
 import type { FlightAssessment } from "../../domain/assessment/types";
 import type { AircraftProfile } from "../../domain/assessment/aircraft";
 import { esCL as t } from "../../i18n/es-CL";
+import { searchChecklistItems } from "../../domain/checklist/checklistSearch";
 
 const IFIS_BASE = "https://aipchile.dgac.gob.cl";
 
@@ -32,6 +33,7 @@ interface ChecklistCardProps {
   assessment: FlightAssessment | null;
   aircraft: AircraftProfile | null;
   stationIcao?: string;
+  storageScope?: string;
 }
 
 function kindBadgeClass(kind: ChecklistKind): string {
@@ -102,17 +104,19 @@ function ReferencePanel({ item, onClose, stationIcao }: { item: ChecklistItem; o
   );
 }
 
-export function ChecklistCard({ weather, solar, assessment, aircraft, stationIcao }: ChecklistCardProps) {
-  const [states, setStates] = useState<ChecklistState[]>(() => loadChecklistState());
+export function ChecklistCard({ weather, solar, assessment, aircraft, stationIcao, storageScope }: ChecklistCardProps) {
+  const [states, setStates] = useState<ChecklistState[]>(() => loadChecklistState(storageScope));
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [expandedRef, setExpandedRef] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<ChecklistCategory>>(new Set());
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   const [warningsExpanded, setWarningsExpanded] = useState(false);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<ChecklistCategory | "all">("all");
 
   useEffect(() => {
-    saveChecklistState(states);
-  }, [states]);
+    saveChecklistState(states, storageScope);
+  }, [states, storageScope]);
 
   const context = useMemo(
     () => getContextFromData(weather, solar, assessment),
@@ -129,7 +133,8 @@ export function ChecklistCard({ weather, solar, assessment, aircraft, stationIca
     [allItems, states]
   );
 
-  const grouped = useMemo(() => getItemsByCategory(allItems), [allItems]);
+  const filtered = useMemo(() => searchChecklistItems(allItems, states, { search, category }), [allItems, states, search, category]);
+  const grouped = useMemo(() => getItemsByCategory(filtered), [filtered]);
   const warnings = useMemo(() => getWarningItems(allItems, context), [allItems, context]);
 
   const stateMap = useMemo(() => new Map(states.map((s) => [s.itemId, s])), [states]);
@@ -149,7 +154,7 @@ export function ChecklistCard({ weather, solar, assessment, aircraft, stationIca
 
   const handleReset = () => {
     setStates(resetChecklist());
-    clearChecklistState();
+    clearChecklistState(storageScope);
     setShowConfirmReset(false);
   };
 
@@ -198,6 +203,12 @@ export function ChecklistCard({ weather, solar, assessment, aircraft, stationIca
             {t.checklist.requiredRemaining(progress.requiredRemaining)}
           </p>
         )}
+
+        <div className="grid gap-2 rounded-lg border border-slate-800 bg-slate-950/40 p-3 sm:grid-cols-2">
+          <label className="text-xs text-slate-400">Buscar verificación<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Hélices, GNSS, retorno…" className="mt-1 h-10 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" /></label>
+          <label className="text-xs text-slate-400">Submenú por grupo<select value={category} onChange={(event) => setCategory(event.target.value as ChecklistCategory | "all")} className="mt-1 h-10 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 text-sm text-slate-200"><option value="all">Todas las categorías</option>{CHECKLIST_CATEGORIES_ORDER.map((item) => <option key={item} value={item}>{CATEGORY_LABELS[item]}</option>)}</select></label>
+        </div>
+        {filtered.length === 0 && <p className="rounded-lg border border-slate-800 p-3 text-sm text-slate-400">No hay verificaciones que coincidan con los filtros.</p>}
 
         {warnings.length > 0 && (
           <div className="rounded-lg border border-amber-800/50 bg-amber-950/30">

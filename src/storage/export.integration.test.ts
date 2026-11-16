@@ -38,7 +38,7 @@ beforeEach(async () => {
 });
 
 describe("export → import → equivalence", () => {
-  it("round-trips v3 plans, maps and their linkable snapshots", async () => {
+  it("round-trips v4 plans, maps, drafts and their linkable snapshots", async () => {
     const plan = await createFlightPlan({
       location: { latitude: -33.45, longitude: -70.65 },
       locationLabel: "Sitio de prueba",
@@ -52,7 +52,7 @@ describe("export → import → equivalence", () => {
       createdAt: now, updatedAt: now,
     });
     const backup = await exportBackup("1.1.0-beta.2");
-    expect(backup.version).toBe(3);
+    expect(backup.version).toBe(4);
     expect(backup.plans).toHaveLength(1);
     expect(backup.operationalMaps).toHaveLength(1);
 

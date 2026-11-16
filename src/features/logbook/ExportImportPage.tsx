@@ -185,6 +185,7 @@ export function ExportImportPage() {
                 )}
                 {Array.isArray(preview.plans) && <p>{preview.plans.length} planes de operación</p>}
                 {Array.isArray(preview.operationalMaps) && <p>{preview.operationalMaps.length} mapas de operaciones</p>}
+                {Array.isArray(preview.drafts) && <p>{preview.drafts.length} borradores recuperables</p>}
                 {settingsCount > 0 && (
                   <p>
                     {settingsCount} configuraciones (límites de vuelo, aeronave activa, última ubicación)
@@ -220,6 +221,7 @@ export function ExportImportPage() {
                 {importResult.places > 0 && ` · ${importResult.places} lugares`}
                 {importResult.plans > 0 && ` · ${importResult.plans} planes`}
                 {importResult.operationalMaps > 0 && ` · ${importResult.operationalMaps} mapas`}
+                {importResult.drafts > 0 && ` · ${importResult.drafts} borradores`}
                 {importResult.settings > 0 && ` · ${importResult.settings} configuraciones`}
               </p>
             </div>

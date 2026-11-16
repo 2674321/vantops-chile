@@ -6,7 +6,7 @@ import { NOMINATIM_ATTRIBUTION } from "../../providers/geocoding/nominatimGeocod
 import type { Coordinate } from "../../domain/coordinate";
 
 interface LocationSearchProps {
-  onSelect: (coordinate: Coordinate) => void;
+  onSelect: (coordinate: Coordinate, label?: string) => void;
 }
 
 export function LocationSearch({ onSelect }: LocationSearchProps) {
@@ -84,7 +84,7 @@ export function LocationSearch({ onSelect }: LocationSearchProps) {
                 type="button"
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-left text-sm text-slate-300 hover:border-sky-600 hover:text-sky-300"
                 onClick={() => {
-                  onSelect({ latitude: result.latitude, longitude: result.longitude });
+                  onSelect({ latitude: result.latitude, longitude: result.longitude }, result.displayName);
                   setQuery("");
                   setResults([]);
                   setExecuted(false);

@@ -6,7 +6,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { OPERATION_TYPE_LABELS, type OperationType } from "../../domain/logbook/types";
 import type { FlightPlanStatus } from "../../domain/flightPlan/types";
 import { parseCoordinateFields } from "../../domain/coordinate";
-import { loadActiveAircraft, loadFlightLimits, loadLastCoordinate } from "../../storage/settings";
+import { loadActiveAircraft, loadFlightLimits } from "../../storage/settings";
 import {
   createFlightPlan,
   getFlightPlan,
@@ -15,6 +15,10 @@ import {
 import { useToast } from "../../components/toast/useToast";
 import { getOperationalMap } from "../../storage/repositories/operationalMapRepository";
 import { validateRadiusMeters } from "../../domain/operationZone";
+import { loadActiveLocation } from "../../storage/activeLocationRepository";
+import { mapPickerPath } from "../../domain/mapPickIntent";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
+import { AutosaveStatus } from "../../components/autosave/AutosaveStatus";
 
 export function FlightPlanForm() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +38,25 @@ export function FlightPlanForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const draft = usePersistentFormDraft({
+    id: id ? `flight-plan-edit-${id}` : "flight-plan-new",
+    kind: "flight-plan",
+    enabled: !loading,
+    payload: { lat, lon, label, radiusMeters, scheduledStartAt, scheduledEndAt, operationType, status, notes, postponedReason },
+    onRestore: (payload) => {
+      if (typeof payload.lat === "string") setLat(payload.lat);
+      if (typeof payload.lon === "string") setLon(payload.lon);
+      if (typeof payload.label === "string") setLabel(payload.label);
+      if (typeof payload.radiusMeters === "string") setRadiusMeters(payload.radiusMeters);
+      if (typeof payload.scheduledStartAt === "string") setScheduledStartAt(payload.scheduledStartAt);
+      if (typeof payload.scheduledEndAt === "string") setScheduledEndAt(payload.scheduledEndAt);
+      if (typeof payload.operationType === "string") setOperationType(payload.operationType as OperationType);
+      if (typeof payload.status === "string") setStatus(payload.status as FlightPlanStatus);
+      if (typeof payload.notes === "string") setNotes(payload.notes);
+      if (typeof payload.postponedReason === "string") setPostponedReason(payload.postponedReason);
+    },
+  });
 
   useEffect(() => {
     void (async () => {
@@ -55,10 +78,11 @@ export function FlightPlanForm() {
         setNotes(plan.operatorNotes ?? "");
         setPostponedReason(plan.postponedReason ?? "");
       } else {
-        const coordinate = await loadLastCoordinate();
-        if (coordinate) {
-          setLat(String(coordinate.latitude));
-          setLon(String(coordinate.longitude));
+        const selection = await loadActiveLocation();
+        if (selection) {
+          setLat(String(selection.coordinate.latitude));
+          setLon(String(selection.coordinate.longitude));
+          setLabel(selection.label ?? "");
         }
       }
       const mapId = searchParams.get("mapId");
@@ -130,6 +154,7 @@ export function FlightPlanForm() {
           flightLimitsSnapshot: limits,
         });
       }
+      await draft.discard();
       toast.success(id ? "Preparación actualizada." : "Preparación guardada localmente.");
       navigate(searchParams.get("returnTo") || "/operacion");
     } catch {
@@ -149,6 +174,7 @@ export function FlightPlanForm() {
         <h2 className="text-lg font-semibold text-slate-100">{id ? "Reanudar preparación" : "Nueva preparación"}</h2>
       </div>
       <form onSubmit={submit} className="space-y-4" noValidate>
+        <AutosaveStatus state={draft.status} onRetry={() => void draft.flush()} />
         <Card>
           <CardContent className="space-y-3 py-4">
             <div>
@@ -176,7 +202,7 @@ export function FlightPlanForm() {
           </CardContent>
         </Card>
         <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 p-3 text-xs text-amber-200">“Revisado” significa que tú revisaste la preparación. No constituye aprobación ni autorización de la DGAC.</p>
-        <Button type="button" variant="outline" className="w-full" onClick={() => navigate("/utilidades/mapa")}>Abrir Mapa de operaciones</Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => navigate(mapPickerPath("plan-new"))}>Cambiar desde Mapa operativo</Button>
         <Button type="submit" disabled={saving} className="w-full"><Save className="mr-2 h-4 w-4" />{saving ? "Guardando…" : "Guardar preparación"}</Button>
       </form>
     </div>

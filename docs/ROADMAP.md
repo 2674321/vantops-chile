@@ -5602,6 +5602,9 @@ P2 — Funciones futuras (solo con necesidad concreta y fuente verificada)
   rutas GitHub Pages y activos de mapa seleccionados bajo demanda.
 - `1.1.0-beta.5`: radios personalizados y arrastrables, pines persistentes, cámara
   estable y selector pre-vuelo buscable con catálogo ampliado y submenús.
+- `1.1.0-beta.6`: mapa y ubicación unificados, pines `SavedPlace`, autoguardado
+  serializado, borradores recuperables, backup v4, contacto público y checklist
+  buscable con progreso aislado por ubicación.
 - APK/Capacitor/TWA permanece pendiente de una decisión técnica y QA real en
   dispositivo; no existe APK publicada.
 

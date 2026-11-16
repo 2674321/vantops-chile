@@ -3,7 +3,7 @@ import { divIcon, icon, latLng, latLngBounds, type Marker as LeafletMarker, type
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Coordinate } from "../../../domain/coordinate";
-import type { MapPin, MapRadiusZone } from "../../../domain/operationalMap";
+import type { MapRadiusZone } from "../../../domain/operationalMap";
 import operationCenterUrl from "../../../assets/map/operation-center.svg";
 
 const operationCenterIcon = icon({
@@ -18,9 +18,11 @@ export type MapTool = "explore" | "center" | "measure" | "pin";
 interface Props {
   center: Coordinate;
   zones: MapRadiusZone[];
-  pins?: MapPin[];
+  pins?: Array<{ id: string; name: string; coordinate: Coordinate; color?: string; favorite?: boolean }>;
   selectedZoneId: string | null;
   selectedPinId?: string | null;
+  movablePinId?: string | null;
+  movableZoneId?: string | null;
   measurement: { a?: Coordinate; b?: Coordinate };
   tool: MapTool;
   fitNonce: number;
@@ -90,7 +92,7 @@ function MapInteraction({ tool, onPick }: { tool: MapTool; onPick: (coordinate: 
 }
 
 export default function OperationalMapCanvas(props: Props) {
-  const { center, zones, pins = [], selectedZoneId, selectedPinId = null, measurement, tool, fitNonce, recenterNonce = 0, onMapPick, onSelectZone, onSelectPin, onMoveZone, onMovePin, variant = "editor" } = props;
+  const { center, zones, pins = [], selectedZoneId, selectedPinId = null, movablePinId = null, movableZoneId = null, measurement, tool, fitNonce, recenterNonce = 0, onMapPick, onSelectZone, onSelectPin, onMoveZone, onMovePin, variant = "editor" } = props;
   const selectedVisibleZone = zones.find((zone) => zone.id === selectedZoneId && zone.visible);
   return (
     <div className={variant === "preview" ? "relative z-0 h-[320px] overflow-hidden rounded-xl border border-slate-700 sm:h-[390px]" : "relative z-0 h-[55dvh] min-h-[390px] overflow-hidden rounded-xl border border-slate-700 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px]"}>
@@ -105,11 +107,12 @@ export default function OperationalMapCanvas(props: Props) {
             <Tooltip>{zone.name} · {Math.round(zone.radiusMeters)} m</Tooltip>
           </Circle>
         ))}
-        {selectedVisibleZone && <Marker position={[selectedVisibleZone.center.latitude, selectedVisibleZone.center.longitude]} icon={operationCenterIcon} alt="Centro de operación seleccionado" draggable={variant === "editor" && Boolean(onMoveZone)} eventHandlers={{ dragend: (event: LeafletEvent) => { const next = (event.target as LeafletMarker).getLatLng(); onMoveZone?.(selectedVisibleZone.id, { latitude: next.lat, longitude: next.lng }); } }}><Tooltip>{selectedVisibleZone.name} · arrastra para mover</Tooltip></Marker>}
+        {selectedVisibleZone && <Marker position={[selectedVisibleZone.center.latitude, selectedVisibleZone.center.longitude]} icon={operationCenterIcon} alt="Centro de operación seleccionado" draggable={variant === "editor" && movableZoneId === selectedVisibleZone.id && Boolean(onMoveZone)} eventHandlers={{ dragend: (event: LeafletEvent) => { const next = (event.target as LeafletMarker).getLatLng(); onMoveZone?.(selectedVisibleZone.id, { latitude: next.lat, longitude: next.lng }); } }}><Tooltip>{selectedVisibleZone.name}{movableZoneId === selectedVisibleZone.id ? " · arrastra para mover" : ""}</Tooltip></Marker>}
         {pins.map((pin) => {
           const selected = pin.id === selectedPinId;
-          const pinIcon = divIcon({ className: "", html: `<span aria-hidden="true" style="display:block;width:${selected ? 22 : 18}px;height:${selected ? 22 : 18}px;border-radius:999px 999px 999px 3px;transform:rotate(-45deg);background:${pin.color};border:3px solid ${selected ? "#fff" : "#0f172a"};box-shadow:0 2px 8px #02061799"></span>`, iconSize: [selected ? 22 : 18, selected ? 22 : 18], iconAnchor: [selected ? 11 : 9, selected ? 20 : 16] });
-          return <Marker key={pin.id} position={[pin.coordinate.latitude, pin.coordinate.longitude]} icon={pinIcon} alt={`Pin ${pin.name}`} draggable={variant === "editor" && selected && Boolean(onMovePin)} eventHandlers={{ click: () => onSelectPin?.(pin.id), dragend: (event: LeafletEvent) => { const next = (event.target as LeafletMarker).getLatLng(); onMovePin?.(pin.id, { latitude: next.lat, longitude: next.lng }); } }}><Tooltip>{pin.name}{selected && variant === "editor" ? " · arrastra para mover" : ""}</Tooltip></Marker>;
+          const color = pin.color ?? (pin.favorite ? "#f59e0b" : "#38bdf8");
+          const pinIcon = divIcon({ className: "", html: `<span aria-hidden="true" style="display:block;width:${selected ? 22 : 18}px;height:${selected ? 22 : 18}px;border-radius:999px 999px 999px 3px;transform:rotate(-45deg);background:${color};border:3px solid ${selected ? "#fff" : "#0f172a"};box-shadow:0 2px 8px #02061799"></span>`, iconSize: [selected ? 22 : 18, selected ? 22 : 18], iconAnchor: [selected ? 11 : 9, selected ? 20 : 16] });
+          return <Marker key={pin.id} position={[pin.coordinate.latitude, pin.coordinate.longitude]} icon={pinIcon} alt={`Pin ${pin.name}`} draggable={variant === "editor" && movablePinId === pin.id && Boolean(onMovePin)} eventHandlers={{ click: () => onSelectPin?.(pin.id), dragend: (event: LeafletEvent) => { const next = (event.target as LeafletMarker).getLatLng(); onMovePin?.(pin.id, { latitude: next.lat, longitude: next.lng }); } }}><Tooltip>{pin.name}{pin.favorite ? " · Favorito" : ""}{movablePinId === pin.id ? " · arrastra para mover" : ""}</Tooltip></Marker>;
         })}
         {measurement.a && <CircleMarker center={[measurement.a.latitude, measurement.a.longitude]} radius={7} pathOptions={{ color: "#f59e0b", fillOpacity: 0.8 }}><Tooltip permanent>A</Tooltip></CircleMarker>}
         {measurement.b && <CircleMarker center={[measurement.b.latitude, measurement.b.longitude]} radius={7} pathOptions={{ color: "#22c55e", fillOpacity: 0.8 }}><Tooltip permanent>B</Tooltip></CircleMarker>}

@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.5 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.6 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 **Accesos directos:** [Abrir VantOPS Chile](https://2674321.github.io/vantops-chile/) · [Mapa de operaciones](https://2674321.github.io/vantops-chile/#/utilidades/mapa) · [Utilidades](https://2674321.github.io/vantops-chile/#/utilidades) · [Identidad B1](docs/branding/README.md)
 

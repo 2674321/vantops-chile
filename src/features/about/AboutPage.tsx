@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { esCL as t } from "../../i18n/es-CL";
 import { APP_VERSION } from "../../version";
+import { PublicContactPanel } from "./PublicContactPanel";
 
 function ExternalLink({ href, children }: { href: string; children: string }) {
   return (
@@ -29,6 +30,8 @@ export function AboutPage() {
         </CardHeader>
         <CardContent className="text-sm text-slate-300">{t.about.whatIs}</CardContent>
       </Card>
+
+      <PublicContactPanel />
 
       <Card>
         <CardHeader>

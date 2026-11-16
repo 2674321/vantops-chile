@@ -526,11 +526,13 @@ export default function DashboardPage() {
           </Card>
 
           <ChecklistCard
+            key={`location-${coordinate.latitude.toFixed(5)}-${coordinate.longitude.toFixed(5)}`}
             weather={weatherQuery.data ?? null}
             solar={solarTimes}
             assessment={assessment}
             aircraft={aircraft}
             stationIcao={stationIcao}
+            storageScope={`location-${coordinate.latitude.toFixed(5)}-${coordinate.longitude.toFixed(5)}`}
           />
         </section>
       )}
