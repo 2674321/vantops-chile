@@ -3,6 +3,7 @@ import type { FlightRecord, BatteryRecord, SavedPlace, SettingRecord } from "../
 import type { FlightPlan } from "../domain/flightPlan/types";
 import type { SavedOperationalMap } from "../domain/operationalMap";
 import type { FormDraft } from "../domain/drafts";
+import type { OperationSession } from "../domain/operations/types";
 
 const DB_NAME = "vantops";
 
@@ -14,6 +15,7 @@ export class VantOpsDB extends Dexie {
   plans!: Table<FlightPlan, string>;
   operationalMaps!: Table<SavedOperationalMap, string>;
   drafts!: Table<FormDraft, string>;
+  operationSessions!: Table<OperationSession, string>;
 
   constructor() {
     super(DB_NAME);
@@ -50,6 +52,16 @@ export class VantOpsDB extends Dexie {
       plans: "id, status, createdAt, updatedAt, scheduledStartAt, linkedFlightId",
       operationalMaps: "id, name, createdAt, updatedAt",
       drafts: "id, kind, updatedAt",
+    });
+    this.version(6).stores({
+      flights: "id, startedAt, createdAt, aircraftId, batteryId, planId, operationSessionId",
+      batteries: "id, name, createdAt",
+      places: "id, name, createdAt",
+      settings: "id",
+      plans: "id, status, createdAt, updatedAt, scheduledStartAt, linkedFlightId",
+      operationalMaps: "id, name, createdAt, updatedAt",
+      drafts: "id, kind, updatedAt",
+      operationSessions: "id, status, startedAt, endedAt, planId, updatedAt",
     });
   }
 }

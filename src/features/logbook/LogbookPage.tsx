@@ -9,6 +9,9 @@ import type { FlightRecord, BatteryRecord } from "../../domain/logbook/types";
 import { formatCoordinate } from "../../domain/coordinate";
 import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
+import type { OperationSession } from "../../domain/operations/types";
+import { listOperationSessions, loadActiveOperationSession } from "../../storage/repositories/operationSessionRepository";
+import { totalFlightSeconds } from "../../domain/operations/logic";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -50,6 +53,8 @@ export function LogbookPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<OperationSession[]>([]);
+  const [activeSession, setActiveSession] = useState<OperationSession | null>(null);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -59,16 +64,20 @@ export function LogbookPage() {
 
   async function loadData() {
     try {
-      const [f, count, time, b] = await Promise.all([
+      const [f, count, time, b, operationSessions, active] = await Promise.all([
         listFlights(50),
         countFlights(),
         getTotalFlightTime(),
         listBatteries(),
+        listOperationSessions(500),
+        loadActiveOperationSession(),
       ]);
       setFlights(f);
       setTotalCount(count);
       setTotalTime(time);
       setBatteries(b);
+      setSessions(operationSessions);
+      setActiveSession(active);
     } catch {
       toast.error(t.feedback.loadError);
     } finally {
@@ -121,6 +130,10 @@ export function LogbookPage() {
           {t.logbook.registerFlight}
         </Button>
       </div>
+
+      {activeSession && <button type="button" onClick={() => navigate("/?workspace=operation")} className="flex w-full items-center justify-between rounded-lg border border-sky-700 bg-sky-950/30 p-3 text-left"><span><span className="block text-sm font-semibold text-sky-200">Operación en curso</span><span className="text-xs text-slate-400">{activeSession.locationSnapshot.label ?? "Punto del mapa"}</span></span><span className="text-sm text-sky-300">Volver al mapa →</span></button>}
+
+      {sessions.length > 0 && <div className="grid grid-cols-2 gap-3"><div className="rounded-lg bg-slate-800/50 p-3 text-center"><p className="text-2xl font-bold text-slate-100">{sessions.length}</p><p className="text-xs text-slate-400">sesiones operacionales</p></div><div className="rounded-lg bg-slate-800/50 p-3 text-center"><p className="text-2xl font-bold text-slate-100">{formatDuration(sessions.reduce((sum, item) => sum + totalFlightSeconds(item), 0))}</p><p className="text-xs text-slate-400">vuelo desde sesiones</p></div></div>}
 
       {totalCount > 0 && (
         <div className="grid grid-cols-3 gap-3">
@@ -184,6 +197,7 @@ export function LogbookPage() {
                         <MapPin className="h-3 w-3" />
                         {formatCoordinate(flight.coordinate)}
                       </p>
+                      {flight.operationSessionId && <span className="mt-1 inline-block rounded bg-sky-950 px-1.5 py-0.5 text-[10px] text-sky-300">Sesión operacional</span>}
                     </div>
                     <div className="flex items-center gap-2 text-right">
                       <span className="text-xs text-slate-400">

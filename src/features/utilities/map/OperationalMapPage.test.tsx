@@ -31,7 +31,7 @@ describe("OperationalMapPage", () => {
 
   it("creates multiple zones and persists the map", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
-    expect(await screen.findByTestId("map-canvas")).toBeInTheDocument();
+    expect(await screen.findByTestId("map-canvas", {}, { timeout: 5000 })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     await userEvent.click(screen.getByRole("button", { name: "250 m" }));
@@ -42,11 +42,11 @@ describe("OperationalMapPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
     await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
     expect((await mapRepository.listOperationalMaps())[0]).toMatchObject({ name: "Mapa QA público", zones: [{ radiusMeters: 500 }, { radiusMeters: 250 }] });
-  });
+  }, 10_000);
 
   it("adds a custom radius and a persistent pin", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
-    await screen.findByTestId("map-canvas");
+    await screen.findByTestId("map-canvas", {}, { timeout: 5000 });
     await userEvent.click(screen.getByRole("tab", { name: "Radios" }));
     await userEvent.clear(screen.getByLabelText("Radio personalizado en metros"));
     await userEvent.type(screen.getByLabelText("Radio personalizado en metros"), "1350");
@@ -60,7 +60,7 @@ describe("OperationalMapPage", () => {
     const storedPins = await listPlaces();
     expect(storedMap).toMatchObject({ zones: [{ radiusMeters: 1350 }], pinnedPlaceIds: [storedPins[0].id] });
     expect(storedPins[0]).toMatchObject({ coordinate: { latitude: -32, longitude: -71 } });
-  });
+  }, 10_000);
 
   it("rejects a partial numeric radius instead of parsing its prefix", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);

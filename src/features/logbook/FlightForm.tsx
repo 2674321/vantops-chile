@@ -22,6 +22,7 @@ import { loadActiveLocation } from "../../storage/activeLocationRepository";
 import { mapPickerPath } from "../../domain/mapPickIntent";
 import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { AutosaveStatus } from "../../components/autosave/AutosaveStatus";
+import { isoToLocalDatetimeInput, localDatetimeInputToIso } from "../../lib/datetimeLocal";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -42,7 +43,7 @@ export function FlightForm() {
   const toast = useToast();
   const isEdit = Boolean(id);
 
-  const [startedAt, setStartedAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [startedAt, setStartedAt] = useState(() => isoToLocalDatetimeInput(new Date().toISOString()));
   const [endedAt, setEndedAt] = useState("");
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
@@ -83,8 +84,8 @@ export function FlightForm() {
     if (id) {
       getFlight(id).then((f) => {
         if (f) {
-          setStartedAt(f.startedAt.slice(0, 16));
-          setEndedAt(f.endedAt?.slice(0, 16) ?? "");
+          setStartedAt(isoToLocalDatetimeInput(f.startedAt));
+          setEndedAt(f.endedAt ? isoToLocalDatetimeInput(f.endedAt) : "");
           setLat(String(f.coordinate.latitude));
           setLon(String(f.coordinate.longitude));
           setBatteryId(f.batteryId ?? "");
@@ -103,8 +104,8 @@ export function FlightForm() {
           setSourcePlan(plan);
           setLat(String(plan.location.latitude));
           setLon(String(plan.location.longitude));
-          setStartedAt((plan.scheduledStartAt ?? new Date().toISOString()).slice(0, 16));
-          setEndedAt(plan.scheduledEndAt?.slice(0, 16) ?? "");
+          setStartedAt(isoToLocalDatetimeInput(plan.scheduledStartAt ?? new Date().toISOString()));
+          setEndedAt(plan.scheduledEndAt ? isoToLocalDatetimeInput(plan.scheduledEndAt) : "");
           setOperationType(plan.operationType ?? "OTHER");
           setNotes(plan.operatorNotes ?? "");
         }
@@ -174,8 +175,8 @@ export function FlightForm() {
     if (Object.keys(nextErrors).length > 0 || !coordinateResult.ok || !timeResult.ok) return;
     if (!startPctResult.ok || !endPctResult.ok) return;
 
-    const startIso = new Date(startedAt).toISOString();
-    const endIso = endedAt ? new Date(endedAt).toISOString() : undefined;
+    const startIso = localDatetimeInputToIso(startedAt);
+    const endIso = endedAt ? localDatetimeInputToIso(endedAt) : undefined;
     const durationSeconds = endIso ? computeDurationSeconds(startedAt, endedAt) : undefined;
 
     const data: Partial<FlightRecord> = {

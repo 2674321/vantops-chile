@@ -40,6 +40,7 @@ async function wipeDatabase(): Promise<void> {
   await db.plans.clear();
   await db.operationalMaps.clear();
   await db.drafts.clear();
+  await db.operationSessions.clear();
 }
 
 beforeEach(async () => {
@@ -47,23 +48,23 @@ beforeEach(async () => {
   await wipeDatabase();
 });
 
-describe("freeze: schema Dexie v5 (compatibilidad con 1.0.x/1.1 beta)", () => {
-  it("opens at database schema version 5 with plans, maps and drafts", async () => {
+describe("freeze: schema Dexie v6 (compatibilidad con 1.0.x/1.1 beta)", () => {
+  it("opens at database schema version 6 with sessions and prior tables", async () => {
     const db = getDB();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(db.tables.map((t) => t.name).sort()).toEqual(
-      ["batteries", "drafts", "flights", "operationalMaps", "places", "plans", "settings"].sort()
+      ["batteries", "drafts", "flights", "operationalMaps", "operationSessions", "places", "plans", "settings"].sort()
     );
     const flightsSchema = db.table("flights").schema;
     const settingsSchema = db.table("settings").schema;
     expect(flightsSchema.primKey.name).toBe("id");
     expect(flightsSchema.indexes.map((i) => i.name).sort()).toEqual(
-      ["aircraftId", "batteryId", "createdAt", "planId", "startedAt"].sort()
+      ["aircraftId", "batteryId", "createdAt", "operationSessionId", "planId", "startedAt"].sort()
     );
     expect(settingsSchema.primKey.name).toBe("id");
   });
 
-  it("upgrades an existing v1 database to v5 preserving flights and batteries", async () => {
+  it("upgrades an existing v1 database to v6 preserving flights and batteries", async () => {
     await getDB().delete();
     resetDB();
     const legacy = new Dexie("vantops");
@@ -92,14 +93,14 @@ describe("freeze: schema Dexie v5 (compatibilidad con 1.0.x/1.1 beta)", () => {
 
     resetDB();
     const db = getDB();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.flights.get("legacy-flight")).toMatchObject({ id: "legacy-flight" });
     expect(await listBatteries()).toHaveLength(1);
     await createPlace({ name: "Nuevo en v2", coordinate: { latitude: -33, longitude: -70 } });
     expect(await listPlaces()).toHaveLength(1);
   });
 
-  it("upgrades an existing v2 database to v5 without losing any v2 table", async () => {
+  it("upgrades an existing v2 database to v6 without losing any v2 table", async () => {
     await getDB().delete();
     resetDB();
     const legacy = new Dexie("vantops");
@@ -126,7 +127,7 @@ describe("freeze: schema Dexie v5 (compatibilidad con 1.0.x/1.1 beta)", () => {
 
     resetDB();
     const db = getDB();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.places.get("legacy-place")).toMatchObject({ name: "Lugar v2" });
     expect(await loadSetting<{ windMaxKmh: number }>("flightLimits")).toEqual({
       windMaxKmh: 25,
@@ -135,7 +136,7 @@ describe("freeze: schema Dexie v5 (compatibilidad con 1.0.x/1.1 beta)", () => {
     expect(await db.operationalMaps.toArray()).toEqual([]);
   });
 
-  it("upgrades an existing v3 database to v5 without changing plans", async () => {
+  it("upgrades an existing v3 database to v6 without changing plans", async () => {
     await getDB().delete();
     resetDB();
     const legacy = new Dexie("vantops");
@@ -151,15 +152,15 @@ describe("freeze: schema Dexie v5 (compatibilidad con 1.0.x/1.1 beta)", () => {
     legacy.close();
     resetDB();
     const db = getDB();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.plans.get("plan-v3")).toMatchObject({ id: "plan-v3" });
     expect(await db.operationalMaps.toArray()).toEqual([]);
   });
 });
 
-describe("freeze: formato de backup v4 compatible con v1/v2/v3", () => {
-  it("exports CURRENT_BACKUP_VERSION=4 and keeps BACKUP_FORMAT", () => {
-    expect(CURRENT_BACKUP_VERSION).toBe(4);
+describe("freeze: formato de backup v5 compatible con v1-v4", () => {
+  it("exports CURRENT_BACKUP_VERSION=5 and keeps BACKUP_FORMAT", () => {
+    expect(CURRENT_BACKUP_VERSION).toBe(5);
     expect(BACKUP_FORMAT).toBe("vantops-backup");
   });
 
@@ -181,6 +182,7 @@ describe("freeze: formato de backup v4 compatible con v1/v2/v3", () => {
     expect(Array.isArray(backup.plans)).toBe(true);
     expect(Array.isArray(backup.operationalMaps)).toBe(true);
     expect(Array.isArray(backup.drafts)).toBe(true);
+    expect(Array.isArray(backup.operationSessions)).toBe(true);
     expect(backup.settings).toMatchObject({ operationZoneRadius: 800 });
   });
 
@@ -238,13 +240,13 @@ describe("freeze: fallos de storage no rompen la app)", () => {
 });
 
 describe("freeze: tablas expuestas en la clase db", () => {
-  it("VantOpsDB expone las 7 tablas tipadas", () => {
+  it("VantOpsDB expone las 8 tablas tipadas", () => {
     const db = new VantOpsDB();
     try {
-      const names = [db.flights, db.batteries, db.places, db.settings, db.plans, db.operationalMaps, db.drafts].map(
+      const names = [db.flights, db.batteries, db.places, db.settings, db.plans, db.operationalMaps, db.drafts, db.operationSessions].map(
         (t) => (t as unknown as Table<unknown, string>).name
       );
-      expect(names.sort()).toEqual(["batteries", "drafts", "flights", "operationalMaps", "places", "plans", "settings"]);
+      expect(names.sort()).toEqual(["batteries", "drafts", "flights", "operationSessions", "operationalMaps", "places", "plans", "settings"]);
     } finally {
       db.close();
     }

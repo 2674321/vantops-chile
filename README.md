@@ -10,7 +10,7 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.7 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.8 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
 **Accesos directos:** [Mapa de operaciones](https://2674321.github.io/vantops-chile/) · [Condiciones](https://2674321.github.io/vantops-chile/#/condiciones) · [Mi operación](https://2674321.github.io/vantops-chile/#/operacion) · [Identidad B1](docs/branding/README.md)
 
@@ -29,7 +29,7 @@ No autoriza vuelos, no entrega permisos y no representa a ninguna autoridad. Es 
 No. No hay registro, cuentas ni sincronización. Todo funciona en tu dispositivo.
 
 **¿Dónde se guardan mis datos?**
-IndexedDB (Dexie) para preparaciones, mapas de operaciones, bitácora, baterías, lugares y configuración; localStorage para diagnóstico local y preferencias livianas. Nunca salen automáticamente del dispositivo: no hay analytics ni telemetría.
+IndexedDB (Dexie) para sesiones operacionales, preparaciones, mapas, bitácora, baterías, lugares y configuración; localStorage para diagnóstico local y preferencias livianas. Nunca salen automáticamente del dispositivo: no hay analytics ni telemetría.
 
 **¿Funciona sin conexión?**
 Sí, la PWA es instalable y funciona offline. Las fuentes en vivo (clima, METAR, buscador) requieren conexión; pueden entregar datos en caché con aviso de antigüedad.
@@ -46,10 +46,16 @@ Open-Meteo (clima y elevación), VATSIM METAR (observaciones en aeródromo; feed
 Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estable para consumo público. El METAR de VATSIM se muestra como referencia informativa y la integración oficial queda pendiente.
 
 **¿Cómo respaldo mi bitácora?**
-Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v3 incluye preparaciones, mapas y preferencias, y sigue importando respaldos v1/v2.
+Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v5 incluye sesiones operacionales, vuelos, preparaciones, mapas, borradores y preferencias, y sigue importando respaldos v1-v4.
 
 **¿Qué permite el Mapa de operaciones?**
 Es la pantalla inicial. Permite buscar o elegir ubicación, crear radios preset o personalizados, mover centros, añadir pines, medir distancias y alternar entre Calles y Topográfico. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
+
+**¿Cómo registro una jornada con varios vuelos?**
+En el panel lateral abre `Operación`, inicia la sesión para el punto seleccionado
+y registra cada despegue y aterrizaje por separado. Puedes cerrar una jornada sin
+vuelos; VantOPS conserva la sesión, pero no crea un vuelo ficticio. Si recargas
+durante un vuelo, el cierre queda pendiente hasta que confirmes o corrijas la hora.
 
 **¿Cómo abro rápidamente el mapa?**
 La URL raíz abre directamente el workspace cartográfico sin solicitar GPS. Los enlaces históricos `/#/utilidades` y `/#/utilidades/mapa` se conservan como alias compatibles.
@@ -77,6 +83,10 @@ Pantallas reales del código de la PWA, capturadas en un entorno de prueba sin c
 | Vista de escritorio | Vista móvil |
 |---|---|
 | ![VantOPS en escritorio](docs/screenshots/01-escritorio.png) | ![VantOPS en móvil](docs/screenshots/02-movil.png) |
+
+| Centro operacional Beta 8 | Centro operacional móvil |
+|---|---|
+| ![Centro operacional Beta 8 en escritorio](docs/screenshots/beta8-centro-operacional-desktop.png) | ![Centro operacional Beta 8 en móvil](docs/screenshots/beta8-centro-operacional-mobile.png) |
 
 ![Inicio móvil con mapa desplegable e identidad B1](docs/screenshots/03-inicio-mapa-b1.png)
 

@@ -24,12 +24,17 @@ import { useToast } from "../../../components/toast/useToast";
 import { LocationSearch } from "../../dashboard/LocationSearch";
 import type { MapTool } from "./OperationalMapCanvas";
 import { addSavedPin, loadSavedPins, migrateInlineMapPins, moveSavedPin, removeSavedPin, updateSavedPin } from "./pinActions";
+import { useOperationSessions } from "../../../hooks/useOperationSessions";
+import { ActiveSessionBanner } from "./ActiveSessionBanner";
+import { OperationPanel } from "./OperationPanel";
+import { RecentActivityPanel } from "./RecentActivityPanel";
 
 const OperationalMapCanvas = lazy(() => import("./OperationalMapCanvas"));
 const DEFAULT_CENTER: Coordinate = { latitude: -33.4489, longitude: -70.6693 };
 const PANEL_STORAGE_KEY = "vantops:operational-map-panel";
 
 export type OperationalPanelTab = "ubicacion" | "radios" | "pines" | "condiciones";
+type WorkspaceMode = "map" | "operation" | "register";
 
 export function parseOperationalPanelTab(raw: string | null): OperationalPanelTab {
   return raw === "radios" || raw === "pines" || raw === "condiciones" ? raw : "ubicacion";
@@ -83,10 +88,15 @@ export function OperationalMapPage() {
     try { return localStorage.getItem(PANEL_STORAGE_KEY) !== "collapsed"; } catch { return true; }
   });
   const [panelTab, setPanelTab] = useState(() => parseOperationalPanelTab(searchParams.get("panel")));
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(() => {
+    const value = searchParams.get("workspace");
+    return value === "operation" || value === "register" ? value : "map";
+  });
   const [basemapId, setBasemapId] = useState<BasemapId>(DEFAULT_BASEMAP_ID);
   const basemapFailureHandled = useRef(false);
   const autosave = useMemo(() => new AutosaveController<SavedOperationalMap>(async (value) => { await saveOperationalMap(value); setMaps(await listOperationalMaps()); }, (value) => isValidSavedOperationalMap(value) ? null : "El mapa necesita un nombre y datos válidos.", 550), []);
   const [saveState, setSaveState] = useState<AutosaveView>(autosave.snapshot);
+  const operations = useOperationSessions();
 
   useEffect(() => { const unsubscribe = autosave.subscribe(setSaveState); return () => { unsubscribe(); autosave.stopTimers(); }; }, [autosave]);
   useEffect(() => { setPanelTab(parseOperationalPanelTab(searchParams.get("panel"))); }, [searchParams]);
@@ -113,6 +123,10 @@ export function OperationalMapPage() {
   const filteredPlaces = useMemo(() => { const query = pinSearch.trim().toLocaleLowerCase("es-CL"); return [...visiblePins].sort((a, b) => Number(Boolean(b.favorite)) - Number(Boolean(a.favorite)) || a.name.localeCompare(b.name, "es-CL")).filter((pin) => !query || `${pin.name} ${pin.notes ?? ""}`.toLocaleLowerCase("es-CL").includes(query)); }, [pinSearch, visiblePins]);
   const dirty = saveState.revision !== saveState.persistedRevision;
   const measurementResult = useMemo(() => measurement.a && measurement.b ? { distance: haversineDistanceMeters(measurement.a, measurement.b), bearing: initialBearingDegrees(measurement.a, measurement.b) } : null, [measurement]);
+  const operationLocation = useMemo(() => {
+    const selected = effectiveMapSelection(center, selectionSource, selectionLabel, selectedPin, selectedZone);
+    return buildLocationSelection(selected.coordinate, selected.source, { label: selected.label, placeId: selected.placeId, mapId: draft.id, zoneId: selected.zoneId, accuracyMeters: selectionAccuracy });
+  }, [center, selectionSource, selectionLabel, selectedPin, selectedZone, draft.id, selectionAccuracy]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -127,6 +141,7 @@ export function OperationalMapPage() {
   async function switchMap(map: SavedOperationalMap) { if (!await autosave.flush()) { setError("No se pudo guardar el mapa actual; no se abrió otro."); return; } openMap(map); }
   function updateZone(id: string, changes: Partial<MapRadiusZone>) { mutate((map) => ({ ...map, zones: map.zones.map((zone) => zone.id === id ? { ...zone, ...changes } : zone) })); }
   function selectPanel(tab: OperationalPanelTab) { setPanelTab(tab); setPanelOpen(true); const next = new URLSearchParams(searchParams); next.set("panel", tab); setSearchParams(next, { replace: true }); }
+  function selectWorkspace(mode: WorkspaceMode) { setWorkspaceMode(mode); setPanelOpen(true); const next = new URLSearchParams(searchParams); if (mode === "map") next.delete("workspace"); else next.set("workspace", mode); setSearchParams(next, { replace: true }); }
   function selectZone(id: string) { const zone = draft.zones.find((item) => item.id === id); setSelectedZoneId(id); setSelectedPinId(null); setMovablePinId(null); if (zone) { applyCenter(zone.center); setSelectionSource("map-click"); setSelectionLabel(zone.name); } }
   function selectPin(id: string) { const pin = places.find((item) => item.id === id); setSelectedPinId(id); setSelectedZoneId(null); setMovableZoneId(null); if (pin) { applyCenter(pin.coordinate); setSelectionSource("saved-place"); setSelectionLabel(pin.name); } }
 
@@ -177,18 +192,22 @@ export function OperationalMapPage() {
     <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-rows-[minmax(320px,1fr)_auto] overflow-hidden lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-rows-1">
       <section className="relative min-h-0 min-w-0" aria-label="Mapa de operaciones">
         <Suspense fallback={<div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-500">Cargando mapa…</div>}><OperationalMapCanvas center={center} zones={draft.zones} pins={visiblePins} selectedZoneId={selectedZoneId} selectedPinId={selectedPinId} movablePinId={movablePinId} movableZoneId={movableZoneId} measurement={measurement} tool={tool} fitNonce={fitNonce} recenterNonce={recenterNonce} basemapId={basemapId} onBasemapError={handleBasemapError} onMapPick={pickOnMap} onSelectZone={selectZone} onSelectPin={selectPin} onMoveZone={moveZone} onMovePin={movePin} /></Suspense>
+        {operations.active && <ActiveSessionBanner session={operations.active} onOpen={() => selectWorkspace("operation")} />}
         {measurementResult && <div className="absolute bottom-14 left-3 z-[500] flex flex-wrap items-center gap-2 rounded-lg bg-slate-950/90 p-2 text-xs"><span>{formatRadius(measurementResult.distance)} · {measurementResult.bearing.toFixed(0)}°</span><Button size="sm" variant="outline" onClick={() => setMeasurement({})}>Limpiar</Button></div>}
       </section>
       {panelOpen ? <aside id="operational-side-panel" className="flex w-full min-w-0 max-w-full max-h-[42dvh] flex-col border-t border-slate-800 bg-slate-950 lg:h-full lg:w-[390px] lg:max-w-none lg:max-h-none lg:border-l lg:border-t-0">
-        <div className="grid shrink-0 grid-cols-4 border-b border-slate-800 p-1" role="tablist" aria-label="Panel del mapa">{panelTabs.map((tab, index) => <button key={tab.id} id={`map-tab-${tab.id}`} type="button" role="tab" aria-selected={panelTab === tab.id} aria-controls={`map-panel-${tab.id}`} onClick={() => selectPanel(tab.id)} onKeyDown={(event) => { if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return; event.preventDefault(); const direction = event.key === "ArrowRight" ? 1 : -1; const next = panelTabs[(index + direction + panelTabs.length) % panelTabs.length]; selectPanel(next.id); document.getElementById(`map-tab-${next.id}`)?.focus(); }} className={panelTab === tab.id ? "min-h-10 min-w-0 rounded-lg bg-sky-950 px-1 text-xs font-semibold text-sky-300" : "min-h-10 min-w-0 rounded-lg px-1 text-xs text-slate-400 hover:bg-slate-900"}>{tab.label}</button>)}</div>
+        <div className="grid shrink-0 grid-cols-3 border-b border-slate-800 p-1" role="tablist" aria-label="Centro operacional">{([{ id: "map", label: "Mapa" }, { id: "operation", label: operations.active ? "Operación •" : "Operación" }, { id: "register", label: "Registro" }] as Array<{ id: WorkspaceMode; label: string }>).map((item) => <button key={item.id} type="button" role="tab" aria-selected={workspaceMode === item.id} onClick={() => selectWorkspace(item.id)} className={workspaceMode === item.id ? "min-h-11 rounded-lg bg-sky-950 px-2 text-sm font-semibold text-sky-300" : "min-h-11 rounded-lg px-2 text-sm text-slate-400 hover:bg-slate-900"}>{item.label}</button>)}</div>
+        {workspaceMode === "map" && <div className="grid shrink-0 grid-cols-4 border-b border-slate-800 p-1" role="tablist" aria-label="Herramientas del mapa">{panelTabs.map((tab, index) => <button key={tab.id} id={`map-tab-${tab.id}`} type="button" role="tab" aria-selected={panelTab === tab.id} aria-controls={`map-panel-${tab.id}`} onClick={() => selectPanel(tab.id)} onKeyDown={(event) => { if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return; event.preventDefault(); const direction = event.key === "ArrowRight" ? 1 : -1; const next = panelTabs[(index + direction + panelTabs.length) % panelTabs.length]; selectPanel(next.id); document.getElementById(`map-tab-${next.id}`)?.focus(); }} className={panelTab === tab.id ? "min-h-10 min-w-0 rounded-lg bg-slate-800 px-1 text-xs font-semibold text-slate-100" : "min-h-10 min-w-0 rounded-lg px-1 text-xs text-slate-500 hover:bg-slate-900"}>{tab.label}</button>)}</div>}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
-          <div id={`map-panel-${panelTab}`} role="tabpanel" aria-labelledby={`map-tab-${panelTab}`} className="space-y-3">
+          {workspaceMode === "map" && <div id={`map-panel-${panelTab}`} role="tabpanel" aria-labelledby={`map-tab-${panelTab}`} className="space-y-3">
             {panelTab === "ubicacion" && LocationPanel()}
             {panelTab === "radios" && ZonesPanel()}
             {panelTab === "pines" && PinsPanel()}
             {panelTab === "condiciones" && ConditionsPanel()}
             {error && <div role="alert" className="space-y-2 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-300"><p>{error}</p><Button size="sm" variant="outline" onClick={copyDraftJson}>Copiar borrador JSON</Button></div>}
-          </div>
+          </div>}
+          {workspaceMode === "operation" && <OperationPanel location={operationLocation} mapId={draft.id} zoneId={selectedZone?.id} session={operations.active} refresh={operations.refresh} />}
+          {workspaceMode === "register" && <RecentActivityPanel sessions={operations.recent} />}
         </div>
       </aside> : <button type="button" aria-label="Abrir panel del mapa" onClick={() => setPanelOpen(true)} className="absolute bottom-20 right-3 z-[600] flex h-11 w-11 items-center justify-center rounded-full border border-slate-600 bg-slate-950 text-sky-300 shadow-lg lg:static lg:h-full lg:w-12 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:border-l"><PanelRightOpen className="h-5 w-5" /></button>}
     </div>
