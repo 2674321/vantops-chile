@@ -13,6 +13,8 @@ import {
   saveOperationRadius,
   loadDisplayPreferences,
   saveDisplayPreferences,
+  loadBasemapPreference,
+  saveBasemapPreference,
 } from "./settings";
 import type { FlightLimits } from "../domain/assessment/limits";
 import type { AircraftProfile } from "../domain/assessment/aircraft";
@@ -132,6 +134,14 @@ describe("display preferences persistence", () => {
     };
     await saveDisplayPreferences(preferences);
     expect(await loadDisplayPreferences()).toEqual(preferences);
+  });
+});
+
+describe("basemap preference persistence", () => {
+  it("uses streets by default and restores a saved topographic map", async () => {
+    expect(await loadBasemapPreference()).toBe("osm-standard");
+    await saveBasemapPreference("open-topo");
+    expect(await loadBasemapPreference()).toBe("open-topo");
   });
 });
 

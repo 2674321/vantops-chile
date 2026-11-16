@@ -10,9 +10,9 @@
 
 PWA gratuita de planificación y apoyo a operaciones RPAS en Chile. Datos reales, privacidad por defecto, sin login obligatorio.
 
-**Versión:** v1.1.0-beta.6 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
+**Versión:** v1.1.0-beta.7 · **Estado:** beta pública · **Live:** [2674321.github.io/vantops-chile](https://2674321.github.io/vantops-chile/)
 
-**Accesos directos:** [Abrir VantOPS Chile](https://2674321.github.io/vantops-chile/) · [Mapa de operaciones](https://2674321.github.io/vantops-chile/#/utilidades/mapa) · [Utilidades](https://2674321.github.io/vantops-chile/#/utilidades) · [Identidad B1](docs/branding/README.md)
+**Accesos directos:** [Mapa de operaciones](https://2674321.github.io/vantops-chile/) · [Condiciones](https://2674321.github.io/vantops-chile/#/condiciones) · [Mi operación](https://2674321.github.io/vantops-chile/#/operacion) · [Identidad B1](docs/branding/README.md)
 
 > **Marca B1 — Vector V Andino:** identidad integrada en la barra de navegación, favicon e iconos instalables PWA. Los recursos maskable tienen margen seguro y las rutas respetan la base `/vantops-chile/`.
 
@@ -48,11 +48,11 @@ Porque la API oficial chilena (DMC / IFIS DGAC) aún no ofrece un endpoint estab
 **¿Cómo respaldo mi bitácora?**
 Desde la página de bitácora: exporta un respaldo JSON (y CSV). Puedes restaurarlo en otro dispositivo o tras reinstalar. El formato v3 incluye preparaciones, mapas y preferencias, y sigue importando respaldos v1/v2.
 
-**¿Qué permite Utilidades → Mapa de operaciones?**
-Crear radios preset o personalizados, mover sus centros por arrastre, añadir pines, medir distancias y guardar mapas localmente. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
+**¿Qué permite el Mapa de operaciones?**
+Es la pantalla inicial. Permite buscar o elegir ubicación, crear radios preset o personalizados, mover centros, añadir pines, medir distancias y alternar entre Calles y Topográfico. Las figuras son geometría de planificación: no representan autorización, espacio aéreo disponible ni reemplazan DGAC/AIS, NOTAM o permisos.
 
 **¿Cómo abro rápidamente el mapa?**
-Inicio muestra una tarjeta de mapa que se despliega bajo demanda sin solicitar GPS automáticamente. La navegación ofrece accesos directos a **Mapa** y **Utilidades** tanto en móvil como en escritorio; el editor completo conserva la ruta `/#/utilidades/mapa`.
+La URL raíz abre directamente el workspace cartográfico sin solicitar GPS. Los enlaces históricos `/#/utilidades` y `/#/utilidades/mapa` se conservan como alias compatibles.
 
 **¿Puedo cambiar unidades o ver más detalle?**
 Sí. Ajustes permite elegir km/h, m/s o kt; °C o °F; sistema métrico o imperial; y activar el modo experto. El dominio conserva km/h, °C y metros como unidades canónicas: cambiar la presentación no altera físicamente tus límites ni vuelve la evaluación más permisiva.
