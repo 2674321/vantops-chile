@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../../../components/toast/ToastProvider";
 import { getDB, resetDB } from "../../../storage/db";
 import * as mapRepository from "../../../storage/repositories/operationalMapRepository";
+import { listPlaces } from "../../../storage/repositories/placeRepository";
 import { OperationalMapPage } from "./OperationalMapPage";
 
 vi.mock("./OperationalMapCanvas", () => ({ default: ({ onMapPick, onMoveZone, onMovePin }: { onMapPick: (point: { latitude: number; longitude: number }) => void; onMoveZone?: (id: string, point: { latitude: number; longitude: number }) => void; onMovePin?: (id: string, point: { latitude: number; longitude: number }) => void }) => <div data-testid="map-canvas">Mapa<button type="button" onClick={() => onMapPick({ latitude: -32, longitude: -71 })}>Punto mapa</button><button type="button" onClick={() => onMoveZone?.("zone-test", { latitude: -31, longitude: -70 })}>Mover radio simulado</button><button type="button" onClick={() => onMovePin?.("pin-test", { latitude: -30, longitude: -69 })}>Mover pin simulado</button></div> }));
@@ -25,12 +26,12 @@ describe("OperationalMapPage", () => {
   it("creates multiple zones and persists the map", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     expect(await screen.findByTestId("map-canvas")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Añadir" }));
+    await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     await userEvent.click(screen.getByRole("button", { name: "250 m" }));
     expect(screen.getAllByText(/Radio/).length).toBeGreaterThanOrEqual(2);
     await userEvent.clear(screen.getByLabelText("Nombre del mapa"));
     await userEvent.type(screen.getByLabelText("Nombre del mapa"), "Mapa QA público");
-    await userEvent.click(screen.getByRole("button", { name: "Guardar mapa" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
     await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
     expect((await mapRepository.listOperationalMaps())[0]).toMatchObject({ name: "Mapa QA público", zones: [{ radiusMeters: 500 }, { radiusMeters: 250 }] });
   });
@@ -43,15 +44,18 @@ describe("OperationalMapPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Añadir radio personalizado" }));
     await userEvent.click(screen.getByRole("button", { name: "Poner pin" }));
     await userEvent.click(screen.getByRole("button", { name: "Punto mapa" }));
-    await userEvent.click(screen.getByRole("button", { name: "Guardar mapa" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
     await waitFor(async () => expect(await mapRepository.listOperationalMaps()).toHaveLength(1));
-    expect((await mapRepository.listOperationalMaps())[0]).toMatchObject({ zones: [{ radiusMeters: 1350 }], pins: [{ coordinate: { latitude: -32, longitude: -71 } }] });
+    const storedMap = (await mapRepository.listOperationalMaps())[0];
+    const storedPins = await listPlaces();
+    expect(storedMap).toMatchObject({ zones: [{ radiusMeters: 1350 }], pinnedPlaceIds: [storedPins[0].id] });
+    expect(storedPins[0]).toMatchObject({ coordinate: { latitude: -32, longitude: -71 } });
   });
 
   it("rejects a partial numeric radius instead of parsing its prefix", async () => {
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
-    await userEvent.click(screen.getByRole("button", { name: "Añadir" }));
+    await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     const radius = screen.getByLabelText("Radio en metros");
     await userEvent.clear(radius);
     await userEvent.type(radius, "500abc");
@@ -70,36 +74,37 @@ describe("OperationalMapPage", () => {
   });
 
   it("keeps the draft and reports a storage write failure", async () => {
-    vi.spyOn(mapRepository, "saveOperationalMap").mockRejectedValueOnce(new DOMException("Cuota", "QuotaExceededError"));
+    vi.spyOn(mapRepository, "saveOperationalMap").mockRejectedValue(new DOMException("Cuota", "QuotaExceededError"));
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
     await userEvent.clear(screen.getByLabelText("Nombre del mapa"));
     await userEvent.type(screen.getByLabelText("Nombre del mapa"), "Borrador recuperable");
-    await userEvent.click(screen.getByRole("button", { name: "Guardar mapa" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar ahora" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cuota");
     expect(screen.getByLabelText("Nombre del mapa")).toHaveValue("Borrador recuperable");
     expect(screen.getByRole("button", { name: "Copiar borrador JSON" })).toBeInTheDocument();
   });
 
-  it("does not discard edits when switching saved maps is cancelled", async () => {
+  it("flushes edits before switching saved maps without a confirmation reload", async () => {
     const now = new Date().toISOString();
     await mapRepository.saveOperationalMap({ id: "map-a", schemaVersion: 1, name: "Mapa A", zones: [], createdAt: now, updatedAt: "2026-11-15T12:00:00.000Z" });
     await mapRepository.saveOperationalMap({ id: "map-b", schemaVersion: 1, name: "Mapa B", zones: [], createdAt: now, updatedAt: "2026-11-15T11:00:00.000Z" });
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    const confirmSpy = vi.spyOn(window, "confirm");
     render(<MemoryRouter><ToastProvider><OperationalMapPage /></ToastProvider></MemoryRouter>);
     await waitFor(() => expect(screen.getByLabelText("Nombre del mapa")).toHaveValue("Mapa A"));
     await userEvent.clear(screen.getByLabelText("Nombre del mapa"));
     await userEvent.type(screen.getByLabelText("Nombre del mapa"), "Mapa A editado");
     await userEvent.selectOptions(screen.getByLabelText("Abrir mapa guardado"), "map-b");
-    expect(window.confirm).toHaveBeenCalled();
-    expect(screen.getByLabelText("Nombre del mapa")).toHaveValue("Mapa A editado");
+    await waitFor(() => expect(screen.getByLabelText("Nombre del mapa")).toHaveValue("Mapa B"));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(await mapRepository.getOperationalMap("map-a")).toMatchObject({ name: "Mapa A editado" });
   });
 
   it("saves an edited zone before sending it to a preparation", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<MemoryRouter initialEntries={["/utilidades/mapa"]}><ToastProvider><Routes><Route path="/utilidades/mapa" element={<OperationalMapPage />} /><Route path="/operacion/nueva" element={<h1>Preparación segura</h1>} /></Routes></ToastProvider></MemoryRouter>);
     await screen.findByTestId("map-canvas");
-    await userEvent.click(screen.getByRole("button", { name: "Añadir" }));
+    await userEvent.click(screen.getByRole("button", { name: "Añadir radio" }));
     await userEvent.clear(screen.getByLabelText("Radio en metros"));
     await userEvent.type(screen.getByLabelText("Radio en metros"), "750");
     await userEvent.tab();

@@ -1,0 +1,8 @@
+import { isValidFormDraft, type FormDraft, type FormDraftKind } from "../../domain/drafts";
+import { createLocalId } from "../../lib/id";
+import { getDB } from "../db";
+export async function createDraft(kind: FormDraftKind, payload: Record<string, unknown> = {}, id = createLocalId()): Promise<FormDraft> { const now = new Date().toISOString(); const draft: FormDraft = { id, schemaVersion: 1, kind, payload: structuredClone(payload), createdAt: now, updatedAt: now, revision: 0 }; if (!isValidFormDraft(draft)) throw new Error("Borrador no válido"); await getDB().drafts.put(draft); return draft; }
+export async function getDraft(id: string): Promise<FormDraft | undefined> { return getDB().drafts.get(id); }
+export async function putDraft(draft: FormDraft): Promise<void> { const db = getDB(); await db.transaction("rw", db.drafts, async () => { const stored = await db.drafts.get(draft.id); if (stored && stored.updatedAt > draft.updatedAt) throw new Error("El borrador fue actualizado en otra pestaña."); const next = { ...structuredClone(draft), revision: (stored?.revision ?? draft.revision) + 1, updatedAt: new Date().toISOString() }; if (!isValidFormDraft(next)) throw new Error("Borrador inválido o demasiado grande"); await db.drafts.put(next); }); }
+export async function listDrafts(kind?: FormDraftKind): Promise<FormDraft[]> { const all = kind ? await getDB().drafts.where("kind").equals(kind).toArray() : await getDB().drafts.toArray(); return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)); }
+export async function deleteDraft(id: string): Promise<void> { await getDB().drafts.delete(id); }

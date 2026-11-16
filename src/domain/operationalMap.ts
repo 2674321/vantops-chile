@@ -5,6 +5,7 @@ import { MAX_RADIUS_METERS, MIN_RADIUS_METERS, validateRadiusMeters } from "./op
 export const OPERATIONAL_MAP_SCHEMA_VERSION = 1 as const;
 export const MAX_ZONES_PER_MAP = 50;
 export const MAX_PINS_PER_MAP = 100;
+export const MAX_PINNED_PLACES_PER_MAP = 200;
 export const MAX_OPERATIONAL_MAPS = 100;
 export const MAP_ZONE_COLORS = ["#38bdf8", "#22c55e", "#f59e0b", "#f43f5e", "#a78bfa", "#e2e8f0"] as const;
 
@@ -34,6 +35,8 @@ export interface SavedOperationalMap {
   zones: MapRadiusZone[];
   /** Optional for backwards compatibility with maps created before beta.5. */
   pins?: MapPin[];
+  /** SavedPlace references. Legacy inline pins remain readable and are migrated by the editor. */
+  pinnedPlaceIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +128,11 @@ export function isValidSavedOperationalMap(value: unknown): value is SavedOperat
   if (value.pins !== undefined) {
     if (!Array.isArray(value.pins) || value.pins.length > MAX_PINS_PER_MAP || !value.pins.every(isValidMapPin)) return false;
     if (new Set(value.pins.map((pin) => pin.id)).size !== value.pins.length) return false;
+  }
+  if (value.pinnedPlaceIds !== undefined) {
+    if (!Array.isArray(value.pinnedPlaceIds) || value.pinnedPlaceIds.length > MAX_PINNED_PLACES_PER_MAP) return false;
+    if (!value.pinnedPlaceIds.every((id) => typeof id === "string" && id.length > 0 && id.length <= 120)) return false;
+    if (new Set(value.pinnedPlaceIds).size !== value.pinnedPlaceIds.length) return false;
   }
   if (value.initialView !== undefined) {
     if (!isRecord(value.initialView) || !isRecord(value.initialView.center)) return false;

@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · SemVer.
 
+## [1.1.0-beta.6] - 2026-11-15
+
+### Added
+- Selección geográfica compartida y trazable entre mapa, nueva preparación y
+  nueva entrada de bitácora, sin solicitar GPS automáticamente.
+- Autoguardado serializado con estados visibles, reintento y `flush` antes de
+  cambiar de mapa o navegar; borradores recuperables de preparaciones y vuelos.
+- Pines canónicos basados en `SavedPlace`, con búsqueda, favoritos, notas,
+  movimiento explícito y migración transaccional de pines beta.5.
+- Contacto público con GitHub y correo; redes sociales solo se muestran cuando
+  una URL HTTPS personal válida se configura explícitamente.
+- Búsqueda tolerante a acentos y submenú por categoría en la lista pre-vuelo;
+  el progreso queda aislado por ubicación de operación.
+
+### Changed
+- `Lugares` se consolida en el panel de pines del mapa; la ruta histórica
+  redirige sin eliminar registros locales.
+- Dexie avanza aditivamente a v5 con tabla `drafts`; backup v4 incluye
+  borradores y mantiene importación v1-v3.
+- Los controles de movimiento de radios y pines requieren activación explícita,
+  evitando desplazamientos accidentales y remontajes de Leaflet.
+
+### Fixed
+- El estado `Guardado` solo aparece tras completar la escritura duradera y los
+  formularios siguen utilizables si IndexedDB está bloqueado o no disponible.
+- Cambiar de mapa espera el guardado pendiente en vez de recargar o descartar
+  cambios mediante confirmaciones repetitivas.
+
 ## [1.1.0-beta.5] - 2026-11-15
 
 ### Added

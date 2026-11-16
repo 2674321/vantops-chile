@@ -18,6 +18,10 @@ import { useToast } from "../../components/toast/useToast";
 import { esCL as t } from "../../i18n/es-CL";
 import type { FlightPlan } from "../../domain/flightPlan/types";
 import { getFlightPlan, updateFlightPlan } from "../../storage/repositories/flightPlanRepository";
+import { loadActiveLocation } from "../../storage/activeLocationRepository";
+import { mapPickerPath } from "../../domain/mapPickIntent";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
+import { AutosaveStatus } from "../../components/autosave/AutosaveStatus";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -51,8 +55,28 @@ export function FlightForm() {
   const [batteries, setBatteries] = useState<BatteryRecord[]>([]);
   const [sourcePlan, setSourcePlan] = useState<FlightPlan | null>(null);
   const [loading, setLoading] = useState(isEdit || Boolean(planId));
+  const [draftEnabled, setDraftEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const draft = usePersistentFormDraft({
+    id: id ? `flight-record-edit-${id}` : planId ? `flight-record-plan-${planId}` : "flight-record-new",
+    kind: "flight-record",
+    enabled: draftEnabled,
+    payload: { startedAt, endedAt, lat, lon, batteryId, batteryStartPct, batteryEndPct, operationType, notes, incidents },
+    onRestore: (payload) => {
+      if (typeof payload.startedAt === "string") setStartedAt(payload.startedAt);
+      if (typeof payload.endedAt === "string") setEndedAt(payload.endedAt);
+      if (typeof payload.lat === "string") setLat(payload.lat);
+      if (typeof payload.lon === "string") setLon(payload.lon);
+      if (typeof payload.batteryId === "string") setBatteryId(payload.batteryId);
+      if (typeof payload.batteryStartPct === "string") setBatteryStartPct(payload.batteryStartPct);
+      if (typeof payload.batteryEndPct === "string") setBatteryEndPct(payload.batteryEndPct);
+      if (typeof payload.operationType === "string") setOperationType(payload.operationType as OperationType);
+      if (typeof payload.notes === "string") setNotes(payload.notes);
+      if (Array.isArray(payload.incidents)) setIncidents(payload.incidents as FlightIncident[]);
+    },
+  });
 
   useEffect(() => {
     listBatteries().then(setBatteries);
@@ -71,6 +95,7 @@ export function FlightForm() {
           setIncidents(f.incidents ?? []);
         }
         setLoading(false);
+        setDraftEnabled(true);
       });
     } else if (planId) {
       getFlightPlan(planId).then((plan) => {
@@ -84,7 +109,15 @@ export function FlightForm() {
           setNotes(plan.operatorNotes ?? "");
         }
         setLoading(false);
+        setDraftEnabled(true);
       });
+    } else {
+      loadActiveLocation().then((selection) => {
+        if (selection) {
+          setLat(String(selection.coordinate.latitude));
+          setLon(String(selection.coordinate.longitude));
+        }
+      }).catch(() => undefined).finally(() => setDraftEnabled(true));
     }
   }, [id, planId]);
 
@@ -197,6 +230,8 @@ export function FlightForm() {
         }
       }
 
+      await draft.discard();
+
       navigate(`/bitacora/${flightId}`);
     } catch {
       toast.error(t.feedback.flightSaveError);
@@ -241,6 +276,8 @@ export function FlightForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <AutosaveStatus state={draft.status} onRetry={() => void draft.flush()} />
+        {!isEdit && <Button type="button" variant="outline" className="w-full" onClick={() => navigate(mapPickerPath("flight-new"))}>Cambiar ubicación desde Mapa operativo</Button>}
         <Card>
           <CardContent className="space-y-3 py-4">
             <div>
